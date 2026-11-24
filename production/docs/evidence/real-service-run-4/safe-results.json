@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "suite": "NAM OS isolated Supabase and Next browser QA",
+  "status": "failed",
+  "runnerStatus": "failed",
+  "coverageComplete": false,
+  "discovered": 13,
+  "executed": 13,
+  "missingRequired": [
+    "TASK_LIFECYCLE",
+    "ACADEMY_LIFECYCLE"
+  ],
+  "elapsedMs": 180452,
+  "counts": {
+    "passed": 11,
+    "failed": 2,
+    "timedOut": 0,
+    "skipped": 0,
+    "interrupted": 0
+  },
+  "tests": [
+    {
+      "id": "AUTH_FOUNDER",
+      "status": "passed",
+      "durationMs": 24455,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_MANAGER",
+      "status": "passed",
+      "durationMs": 772,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_1",
+      "status": "passed",
+      "durationMs": 792,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_2",
+      "status": "passed",
+      "durationMs": 729,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_PRODUCTION_MANAGER",
+      "status": "passed",
+      "durationMs": 781,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_ARTIST_1",
+      "status": "passed",
+      "durationMs": 771,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_ARTIST_2",
+      "status": "passed",
+      "durationMs": 654,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_FREELANCER",
+      "status": "passed",
+      "durationMs": 706,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "TASK_LIFECYCLE",
+      "status": "failed",
+      "durationMs": 46271,
+      "attempt": 0,
+      "stage": "task_status_close_saved_dialog",
+      "authenticatedWorkspaceObserved": true,
+      "failure": {
+        "kind": "assertion",
+        "matcher": "toBeVisible",
+        "source": {
+          "file": "browser.spec.cjs",
+          "line": 55,
+          "column": 128
+        }
+      },
+      "taskCloseProbe": {
+        "changedFields": [],
+        "flags": [
+          "task_fields_match_saved",
+          "empty_file_timestamp_stable"
+        ],
+        "dialogKinds": []
+      }
+    },
+    {
+      "id": "TASK_FAILURES",
+      "status": "passed",
+      "durationMs": 9748,
+      "attempt": 0,
+      "stage": "csrf_rejected",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "ACADEMY_LIFECYCLE",
+      "status": "failed",
+      "durationMs": 51450,
+      "attempt": 0,
+      "stage": "academy_area_isolation",
+      "authenticatedWorkspaceObserved": true,
+      "failure": {
+        "kind": "assertion",
+        "matcher": "toHaveText",
+        "source": {
+          "file": "browser.spec.cjs",
+          "line": 47,
+          "column": 116
+        }
+      }
+    },
+    {
+      "id": "RESPONSIVE_KEYBOARD",
+      "status": "passed",
+      "durationMs": 6620,
+      "attempt": 0,
+      "stage": "keyboard_dialog_validation",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "CONCURRENCY_8USERS",
+      "status": "passed",
+      "durationMs": 31630,
+      "attempt": 0,
+      "stage": "concurrent_workflows_verified",
+      "authenticatedWorkspaceObserved": false,
+      "metrics": {
+        "bootstrap_p95_ms": 223.95,
+        "mutation_p95_ms": 248.6,
+        "read_p95_ms": 231.93,
+        "cohort_ms": 216.77,
+        "concurrent_writes": 16,
+        "visible_leaks": 0,
+        "conflicts": 1,
+        "read_requests": 82,
+        "write_requests": 108
+      }
+    }
+  ],
+  "scope": {
+    "intendedTarget": "isolated Supabase and Next",
+    "authenticatedWorkspaceObserved": true,
+    "thirdPartyServicesVerified": false,
+    "liveNAMInfrastructureVerified": false,
+    "trace": false,
+    "video": false,
+    "authScreenshots": false,
+    "storageState": false
+  }
+}
