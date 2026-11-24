@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function LinkError(){return <main id="main" className="auth-shell"><section className="auth-panel"><img src="/nam-logo.png" alt="NAM" width={96}/><h1>This link could not be used.</h1><p role="alert">It may be expired, revoked, already used or intended for another account.</p><p>Ask your NAM workspace administrator for a new private link. Your account permissions were not changed by an unsuccessful request.</p><Link className="button" href="/login">Return to sign in</Link></section></main>;}

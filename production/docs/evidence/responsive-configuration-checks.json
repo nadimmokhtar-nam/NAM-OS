@@ -1,0 +1,36 @@
+{
+  "scope": "Unauthenticated production configuration-error state and install-help dialog only",
+  "results": [
+    {
+      "contentWidth": 360,
+      "h1": "Unable to connect.",
+      "logoLoaded": true,
+      "width": 360
+    },
+    {
+      "contentWidth": 390,
+      "h1": "Unable to connect.",
+      "logoLoaded": true,
+      "width": 390
+    },
+    {
+      "contentWidth": 768,
+      "h1": "Unable to connect.",
+      "logoLoaded": true,
+      "width": 768
+    },
+    {
+      "contentWidth": 1024,
+      "h1": "Unable to connect.",
+      "logoLoaded": true,
+      "width": 1024
+    },
+    {
+      "contentWidth": 1440,
+      "h1": "Unable to connect.",
+      "logoLoaded": true,
+      "width": 1440
+    }
+  ],
+  "limits": "Authenticated module layouts and actual desktop installation remain unverified."
+}

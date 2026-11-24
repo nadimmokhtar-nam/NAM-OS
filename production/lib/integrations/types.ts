@@ -1,0 +1,10 @@
+export const SOURCES=['attio','lemlist','justcall'] as const;
+export type Source=typeof SOURCES[number];
+export const LABELS:Record<Source,string>={attio:'Attio',lemlist:'Lemlist',justcall:'JustCall'};
+export type ProviderRecord={source:Source;kind:string;external_id:string;external_owner_id:string|null;title:string;occurred_at:string|null;[key:string]:unknown};
+export type Snapshot={records:ProviderRecord[];warnings:string[];coverage:Record<string,unknown>};
+export type TransportOptions={fetchImpl?:typeof fetch;clock?:()=>Date;timeoutMs?:number;paceMs?:number;sleep?:(ms:number)=>Promise<void>};
+export type ProviderConfig={token?:string;key?:string;secret?:string;dealsObject?:string};
+export type SavedConnection={source:Source;status:string;last_attempt_at:string|null;last_success_at:string|null;error_code:string|null;error_message:string|null;retry_at:string|null;coverage:Record<string,unknown>;warnings:string[];lease_until:string|null;snapshot_current:boolean};
+export type OwnerMapping={source:Source;external_owner_id:string;member_id:string;updated_at:string};
+export type ConnectedData={counts:Array<{source:Source;kind:string;n:number}>;reply_events:number;pipeline:Array<{currency:string;stage:string;amount:number|string}>;records:ProviderRecord[];records_total:number;external_owners:Array<{source:Source;external_owner_id:string}>};

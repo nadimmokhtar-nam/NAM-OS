@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createSecurityUI} from '../public/security-ui.js';
+
+// Execute the production UI's actual load/render lifecycle with provider data.
+// This tests disclosure/error states, not browser layout or React hydration.
+const model={account:{member_id:'member',email:'member@example.test',status:'active',mfaEnabled:false},mfaRequired:false,mfaAvailable:true,mfaVerified:false,remainingRecoveryCodes:0,sessions:[],sessionReporting:'Managed by Supabase; individual session history is not exposed by this interface.'};
+function ui(t,response){const original=globalThis.document;globalThis.document={addEventListener(){}};t.after(()=>globalThis.document=original);return createSecurityUI({request:async()=>response,openDialog(){},toast(){},onChange(){}});}
+test('production security renders unavailable session history explicitly without fabricated cards or expiry',async t=>{const view=ui(t,model);await view.load();const html=view.render();assert(html.includes('Managed by Supabase; individual session history is not exposed by this interface.'));assert(html.includes('<dt>Session management</dt><dd>Managed by Supabase</dd>'));assert(!html.includes('Current session expires'));assert(!html.includes('Active sessions'));assert(!html.includes('This session'));assert(!html.includes('Started '));assert(!html.includes('Expires —'));assert(!html.includes('— · Paris'));});
+test('missing provider history fields use the honest unavailable fallback and reporting strings are escaped',async t=>{const fallback=ui(t,{...model,sessions:undefined,sessionReporting:undefined});await fallback.load();assert(fallback.render().includes('Detailed session history and expiry are not available in this interface.'));const untrusted=ui(t,{...model,sessionReporting:'Unavailable <script>unsafe</script>'});await untrusted.load();const html=untrusted.render();assert(html.includes('Unavailable &lt;script&gt;unsafe&lt;/script&gt;'));assert(!html.includes('<script>'));});

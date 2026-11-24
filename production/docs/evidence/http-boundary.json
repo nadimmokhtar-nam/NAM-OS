@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-24",
+  "target": "http://127.0.0.1:4320",
+  "configuration": "No Supabase credentials supplied",
+  "results": [
+    {
+      "check": "Production page, nonce CSP and no-store",
+      "passed": true
+    },
+    {
+      "check": "Unconfigured authentication fails with controlled JSON503",
+      "passed": true
+    },
+    {
+      "check": "Foreign-origin login rejected before provider access",
+      "passed": true
+    },
+    {
+      "check": "Served manifest and correctly sized PNG icons",
+      "passed": true
+    },
+    {
+      "check": "Self-hosted Inter font responses",
+      "passed": true
+    }
+  ],
+  "limits": "No hosted identity, real integrations, authenticated workflow or desktop installation tested."
+}

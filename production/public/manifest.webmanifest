@@ -1,0 +1,20 @@
+{
+  "id": "/nam-os",
+  "name": "NAM OS — Studio workspace",
+  "short_name": "NAM OS",
+  "description": "NAM Studio’s private workspace for tasks, sales and learning.",
+  "lang": "en",
+  "start_url": "/workspace",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#f1f1f1",
+  "theme_color": "#f1f1f1",
+  "prefer_related_applications": false,
+  "categories": ["business", "productivity"],
+  "icons": [
+    {"src": "/icons/nam-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/nam-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/nam-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
