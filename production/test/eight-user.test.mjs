@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {performance} from 'node:perf_hooks';
-import {database,asUser,ids} from './database.mjs';
+import {database,asUser,ids,grantFixtureAccess} from './database.mjs';
 
 export const eightActors=[
  {id:ids.founder,label:'Synthetic founder',role:'founder',section:'team'},
@@ -13,7 +13,7 @@ export const eightActors=[
  {id:'20000000-0000-4000-8000-000000000014',label:'Synthetic artist 2',role:'artist',section:'academy'},
  {id:ids.artist,label:'Synthetic freelancer',role:'freelancer',section:'operations'}
 ];
-export async function eightUserDatabase(){const db=await database();for(const actor of eightActors){if([ids.founder,ids.sales,ids.artist].includes(actor.id))continue;await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[actor.id,`${actor.role}-${actor.id.slice(-2)}@synthetic.invalid`]);await db.query('insert into auth.sessions(id,user_id) values($1,$1)',[actor.id]);await db.query('insert into public.nam_memberships(workspace_id,user_id,name,role,active) values($1,$2,$3,$4,true)',[ids.w,actor.id,actor.label,actor.role]);}return db;}
+export async function eightUserDatabase(){const db=await database();for(const actor of eightActors){if([ids.founder,ids.sales,ids.artist].includes(actor.id))continue;await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[actor.id,`${actor.role}-${actor.id.slice(-2)}@synthetic.invalid`]);await db.query('insert into auth.sessions(id,user_id) values($1,$1)',[actor.id]);await db.query('insert into public.nam_memberships(workspace_id,user_id,name,role,active) values($1,$2,$3,$4,true)',[ids.w,actor.id,actor.label,actor.role]);await grantFixtureAccess(db,ids.w,actor.id);}return db;}
 async function rpc(db,actor,name,args){return asUser(db,actor,async()=>{const value=await db.query(`select to_jsonb(public.${name}(${args.map((_,i)=>`$${i+1}`).join(',')})) as value`,args);return value.rows[0].value;});}
 function serializedConnection(){let tail=Promise.resolve();return run=>{const pending=tail.then(run);tail=pending.catch(()=>{});return pending;};}
 function summary(values){const ordered=[...values].sort((a,b)=>a-b);return {samples:ordered.length,p50_ms:+ordered[Math.floor((ordered.length-1)*.5)].toFixed(2),p95_ms:+ordered[Math.ceil((ordered.length-1)*.95)].toFixed(2),max_ms:+ordered.at(-1).toFixed(2)};}
@@ -33,7 +33,7 @@ test('eight active synthetic identities exercise all role templates and complete
 });
 
 test('25 synthetic users / 10,000 tasks: bounded PostgreSQL policy-query load measurements',async t=>{
- const db=await eightUserDatabase();t.after(()=>db.close());const actors=[...eightActors];for(let i=8;i<25;i++){const id=`30000000-0000-4000-8000-${String(i).padStart(12,'0')}`;await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,`load-${i}@synthetic.invalid`]);await db.query('insert into auth.sessions(id,user_id) values($1,$1)',[id]);await db.query("insert into public.nam_memberships(workspace_id,user_id,name,role) values($1,$2,$3,'freelancer')",[ids.w,id,`Synthetic load ${i}`]);actors.push({id,role:'freelancer'});}const ownerIds=actors.map(a=>a.id);
+ const db=await eightUserDatabase();t.after(()=>db.close());const actors=[...eightActors];for(let i=8;i<25;i++){const id=`30000000-0000-4000-8000-${String(i).padStart(12,'0')}`;await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,`load-${i}@synthetic.invalid`]);await db.query('insert into auth.sessions(id,user_id) values($1,$1)',[id]);await db.query("insert into public.nam_memberships(workspace_id,user_id,name,role) values($1,$2,$3,'freelancer')",[ids.w,id,`Synthetic load ${i}`]);await grantFixtureAccess(db,ids.w,id);actors.push({id,role:'freelancer'});}const ownerIds=actors.map(a=>a.id);
  await db.query(`insert into public.nam_tasks(workspace_id,title,description,section,owner_id,created_by,due_date)
  select $1,'Load commitment '||i,repeat('x',1024),'operations',($2::uuid[])[1+(i%25)],$3,current_date+(i%28)
  from generate_series(0,9999) i`,[ids.w,ownerIds,ids.founder]);
