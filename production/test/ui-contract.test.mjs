@@ -209,3 +209,17 @@ test('accepted conflict reload refreshes authoritative records for finding and e
   const h=await harness({sales:manualData({activities:[salesActivity({context:'Original committed activity'})]})});h.ui.state.sales=manualData({activities:[]});h.ui.state.view='sales';h.ui.state.tab='activities';h.ui.openDialog('Conflict','<p>Reload the saved records.</p>');
   await h.ui.action({dataset:{action:'reload-sales'}});assert.equal(h.nodes.get('#dialog').open,false);const html=h.nodes.get('#app').innerHTML;assert(html.includes('Original committed activity'));assert(html.includes('data-action="edit-activity"'));assert(!h.requests.some(r=>['POST','PATCH','DELETE'].includes(r.init.method)));
 });
+
+test('task archive and restore controls require an explicit server capability',async()=>{
+  for(const archived of [false,true]){
+    const h=await harness({intercept:(url,init,model,response)=>url==='/api/tasks/task-1'?response({...task(),archived,can_archive:true}):null});
+    await h.ui.openTask('task-1');const html=h.nodes.get('#dialog').innerHTML;assert(html.includes('data-action="archive-task"'));assert(html.includes(archived?'Restore task':'Archive task'));
+  }
+});
+test('owners without archive capability cannot see or invoke archive and restore',async()=>{
+  for(const capability of [false,undefined]){
+    const h=await harness({intercept:(url,init,model,response)=>url==='/api/tasks/task-1'?response({...task(),owner_id:omar.id,can_archive:capability}):null});h.ui.state.data.actor=omar;
+    await h.ui.openTask('task-1');assert(!h.nodes.get('#dialog').innerHTML.includes('data-action="archive-task"'));
+    await assert.rejects(()=>h.ui.action({dataset:{action:'archive-task'}}),/permission to archive or restore/);assert(!h.requests.some(r=>['PATCH','POST','DELETE'].includes(r.init.method)));
+  }
+});
