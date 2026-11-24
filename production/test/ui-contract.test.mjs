@@ -184,3 +184,28 @@ test('unexpected session expiry clears private drafts without asking to discard 
 test('date-only task deadlines preserve the calendar date in UTC+14 browsers',async()=>{
   const h=await harness({defaultTimeZone:'Pacific/Kiritimati',intercept:(url,init,model,response)=>url.startsWith('/api/tasks?')?response({items:[{...task(),due_date:'2026-11-23'}],total:1,page:1,pageSize:100,hasMore:false}):null});h.location.hash='#tasks';await h.ui.navigate();const html=h.nodes.get('#app').innerHTML;assert(html.includes('<span class="due overdue">23 Nov</span>'));assert(!html.includes('<span class="due overdue">24 Nov</span>'));
 });
+
+test('Sales activity and target correction drafts use the shared close and unload protection',async()=>{
+  for(const kind of ['activity-edit','target']){
+    const h=await harness();h.ui.state.sales=manualData({targets:[{id:'target-1',owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:5,version:1}]});
+    const dialog=h.nodes.get('#dialog'),form={values:kind==='activity-edit'?{note:'Saved note'}:{target:'5'},elements:[{name:kind==='activity-edit'?'note':'target',type:kind==='activity-edit'?'textarea':'number'}]};dialog.querySelectorAll=selector=>selector==='form'?[form]:[];
+    await h.ui.action({dataset:{action:kind==='activity-edit'?'edit-activity':'edit-target',id:kind==='activity-edit'?'activity-1':'target-1'}});assert.equal(h.ui.dirtyDialog(),false);form.values[kind==='activity-edit'?'note':'target']=kind==='activity-edit'?'Unsaved correction':'8';
+    h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert(dialog.open);let blocked=false;h.windowEvents.beforeunload({preventDefault(){blocked=true;}});assert(blocked);
+    h.setConfirm(true);await h.ui.action({dataset:{action:'close-dialog'}});assert.equal(dialog.open,false);assert(!h.requests.some(r=>['PATCH','POST','DELETE'].includes(r.init.method)));
+  }
+});
+
+test('activity create retry conflict retains input and offers guarded reload without sending a new create',async()=>{
+  const h=await harness({intercept:(url,init,model,response)=>url==='/api/sales/activities'&&init.method==='POST'?response({error:'This retry key belongs to different activity content.'},409):url==='/api/sales'?response({error:'Sales could not refresh'},503):null});h.ui.state.sales=manualData();await h.ui.action({dataset:{action:'activity'}});
+  const f=correctionForm('activity',{type:'Reply',context:'Edited after uncertain response',outcome:'Keep the latest outcome',note:'Keep these details',occurred_on:'2026-11-24'});h.nodes.get('#dialog').querySelectorAll=selector=>selector==='form'?[{values:f.form.values,elements:Object.keys(f.form.values).map(name=>({name,type:'text'}))}]:[];
+  // Capture the actual current form before its subsequent user edit.
+  const current=h.nodes.get('#dialog').querySelectorAll('form')[0];h.nodes.get('#dialog').querySelectorAll=selector=>selector==='form'?[current]:[];h.ui.openDialog('Log activity','<form></form>');current.values.note='An unsaved revised note';
+  await h.dispatch('submit',{target:f.form,preventDefault(){}});assert.equal(f.form.values.note,'An unsaved revised note');assert(f.error.innerHTML.includes('data-action="reload-sales"'));assert(f.form.dataset.requestKey);assert.equal(h.requests.filter(r=>r.init.method==='POST').length,1);
+  h.setConfirm(false);await h.ui.action({dataset:{action:'reload-sales'}});assert(!h.requests.some(r=>r.url==='/api/sales'));assert(h.nodes.get('#dialog').open);
+  h.setConfirm(true);await assert.rejects(()=>h.ui.action({dataset:{action:'reload-sales'}}),/Sales could not refresh/);assert(h.nodes.get('#dialog').open);assert.equal(f.form.values.note,'An unsaved revised note');assert.equal(h.requests.filter(r=>r.init.method==='POST').length,1);
+});
+
+test('accepted conflict reload refreshes authoritative records for finding and editing the original activity',async()=>{
+  const h=await harness({sales:manualData({activities:[salesActivity({context:'Original committed activity'})]})});h.ui.state.sales=manualData({activities:[]});h.ui.state.view='sales';h.ui.state.tab='activities';h.ui.openDialog('Conflict','<p>Reload the saved records.</p>');
+  await h.ui.action({dataset:{action:'reload-sales'}});assert.equal(h.nodes.get('#dialog').open,false);const html=h.nodes.get('#app').innerHTML;assert(html.includes('Original committed activity'));assert(html.includes('data-action="edit-activity"'));assert(!h.requests.some(r=>['POST','PATCH','DELETE'].includes(r.init.method)));
+});
