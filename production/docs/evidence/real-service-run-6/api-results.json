@@ -1,0 +1,36 @@
+{
+  "kind": "real-local-supabase-api",
+  "status": "failed",
+  "stage": "http_security",
+  "setup": "passed",
+  "expected": 6,
+  "completed": 6,
+  "passed": 5,
+  "failed": 1,
+  "checks": [
+    {
+      "name": "eight-account-role-and-task-scope",
+      "status": "passed"
+    },
+    {
+      "name": "direct-permission-boundaries",
+      "status": "passed"
+    },
+    {
+      "name": "actual-password-and-optional-mfa-assurance",
+      "status": "failed"
+    },
+    {
+      "name": "actual-membership-revocation",
+      "status": "passed"
+    },
+    {
+      "name": "actual-managed-session-logout-replay",
+      "status": "passed"
+    },
+    {
+      "name": "actual-anonymous-and-signup-denial",
+      "status": "passed"
+    }
+  ]
+}
