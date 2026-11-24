@@ -119,11 +119,6 @@ jobs:
           path: |
             production/e2e/.runtime/safe-results.json
             production/e2e/.runtime/api-results.json
-            production/e2e/.runtime/safe-visuals/320x640.png
-            production/e2e/.runtime/safe-visuals/375x812.png
-            production/e2e/.runtime/safe-visuals/768x1024.png
-            production/e2e/.runtime/safe-visuals/1024x768.png
-            production/e2e/.runtime/safe-visuals/1440x900.png
           retention-days: 7
           if-no-files-found: warn
           include-hidden-files: true
