@@ -8,7 +8,7 @@ import vm from 'node:vm';
 // native focus, RLS, live providers or accessibility conformance.
 function node(){return {id:'',innerHTML:'',textContent:'',open:false,disabled:false,dataset:{},attributes:{},classList:{toggle(){},add(){},remove(){}},setAttribute(k,v){this.attributes[k]=v;},removeAttribute(k){delete this.attributes[k];},querySelector(){return null;},querySelectorAll(){return [];},contains(){return false;},closest(){return null;},matches(){return false;},focus(){},addEventListener(type,listener){(this.listeners??={})[type]=listener;},showModal(){this.open=true;},close(){this.open=false;this.listeners?.close?.();}};}
 const actor={id:'founder-1',name:'Nadim',initials:'NM',role:'founder'},omar={id:'sales-1',name:'Omar',initials:'OM',role:'sales'};
-function bootstrap(){return {actor,members:[actor,omar],sections:['sales','academy','projects','library','team','operations'],tasks:[],courses:[],notifications:[],today:'2026-11-24',mode:'authenticated',capabilities:{productionAuth:true,database:'postgresql',projects:'tasks_only',library:'tasks_only'},roleLabels:{founder:'Founder',sales:'Sales Representative'},csrf:'test-csrf'};}
+function bootstrap(){return {actor,members:[{...actor,sections:['sales','academy','projects','library','team','operations']},{...omar,sections:['sales','academy','operations']}],sections:['sales','academy','projects','library','team','operations'],tasks:[],courses:[],notifications:[],today:'2026-11-24',mode:'authenticated',capabilities:{createTaskSections:['sales','academy','projects','library','team','operations'],productionAuth:true,database:'postgresql',projects:'tasks_only',library:'tasks_only'},roleLabels:{founder:'Founder',sales:'Sales Representative'},csrf:'test-csrf'};}
 function task(section='projects'){return {id:'task-1',number:1,title:'Review project lighting',description:'Original brief',section,status:'Todo',priority:'High',owner_id:actor.id,owner_name:actor.name,owner_initials:actor.initials,version:1,due_date:'2026-11-25',comments:[],subtasks:[],events:[]};}
 async function harness({intercept,sales,defaultTimeZone}={}){
   const model=bootstrap(),nodes=new Map(['#app','#main','#dialog','#toast','#studio-navigation','#task-results'].map(id=>[id,node()])),listeners={},requests=[],redirects=[],windowEvents={};let confirmValue=true;
@@ -237,6 +237,16 @@ test('the actual menu click listener retains navigation focus when opening and r
  await h.dispatch('click',{target:trigger,preventDefault(){}});assert.equal(h.ui.state.menu,false);assert.equal(h.document.activeElement,trigger);
 });
 
+test('a read-only section exposes task work without Create or Add-task controls',async()=>{
+ const h=await harness({intercept:(url,init,model,response)=>url==='/api/bootstrap'?response({...model,capabilities:{...model.capabilities,createTaskSections:[]}}):null});h.location.hash='#projects';await h.ui.navigate();let html=h.nodes.get('#app').innerHTML;assert(html.includes('Projects work'));assert(!html.includes('data-action="create-task"'));await h.ui.action({dataset:{action:'view-mode',value:'board'}});html=h.nodes.get('#app').innerHTML;assert(!html.includes('data-action="create-task"'));await assert.rejects(()=>h.ui.action({dataset:{action:'create-task',section:'projects'}}),/creation is not granted/);assert.equal(h.nodes.get('#dialog').open,false);
+});
+test('malformed production create/owner permissions fail closed instead of falling back to role labels',async()=>{
+ for(const corrupt of [model=>({...model,capabilities:{...model.capabilities,createTaskSections:undefined}}),model=>({...model,members:model.members.map(member=>({...member,sections:undefined}))})]){const h=await harness({intercept:(url,init,model,response)=>url==='/api/bootstrap'?response(corrupt(model)):null});const html=h.nodes.get('#app').innerHTML;assert(html.includes('Workspace permissions could not be verified'));assert(!html.includes('data-action="create-task"'));assert.equal(h.ui.state.data,null);}
+});
+
+test('assignee picker uses actual section grants instead of a salesperson role label',async()=>{
+ const h=await harness({intercept:(url,init,model,response)=>url==='/api/bootstrap'?response({...model,members:model.members.map(member=>member.id===omar.id?{...member,sections:[]}:member)}):null});await h.ui.action({dataset:{action:'create-task',section:'sales'}});const owner=h.nodes.get('#dialog').innerHTML.match(/<select[^>]*name="owner_id"[^>]*>([\s\S]*?)<\/select>/)?.[1];assert(owner);assert(owner.includes(`value="${actor.id}"`));assert(!owner.includes(`value="${omar.id}"`));
+});
 for(const kind of ['checkbox','comment','subtask'])test('partial '+kind+' replies preserve edits made while saving and keep the parent save coherent',async()=>{
  let release,started;const hold=new Promise(r=>release=r),seen=new Promise(r=>started=r);
  const h=await harness({intercept:async(url,init,model,response)=>{if(init.method==='POST'&&(url.endsWith('/comments')||url.endsWith('/subtasks'))){started();await hold;return response({...task(),subtasks:[{id:'child-1',title:'Saved child',completed:1}]});}return null;}});
