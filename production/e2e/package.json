@@ -1,0 +1,8 @@
+{
+  "name": "nam-os-isolated-browser-tests",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {"test":"playwright test --config playwright.config.cjs"},
+  "devDependencies": {"@playwright/test":"1.65.1"},
+  "engines": {"node":">=24"}
+}
