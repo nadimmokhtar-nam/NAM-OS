@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "suite": "NAM OS isolated Supabase and Next browser QA",
+  "status": "passed",
+  "runnerStatus": "passed",
+  "coverageComplete": true,
+  "discovered": 13,
+  "executed": 13,
+  "missingRequired": [],
+  "elapsedMs": 180630,
+  "counts": {
+    "passed": 13,
+    "failed": 0,
+    "timedOut": 0,
+    "skipped": 0,
+    "interrupted": 0
+  },
+  "tests": [
+    {
+      "id": "AUTH_FOUNDER",
+      "status": "passed",
+      "durationMs": 25170,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_MANAGER",
+      "status": "passed",
+      "durationMs": 802,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_1",
+      "status": "passed",
+      "durationMs": 806,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_2",
+      "status": "passed",
+      "durationMs": 761,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_PRODUCTION_MANAGER",
+      "status": "passed",
+      "durationMs": 802,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_ARTIST_1",
+      "status": "passed",
+      "durationMs": 796,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_ARTIST_2",
+      "status": "passed",
+      "durationMs": 746,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_FREELANCER",
+      "status": "passed",
+      "durationMs": 781,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "TASK_LIFECYCLE",
+      "status": "passed",
+      "durationMs": 27704,
+      "attempt": 0,
+      "stage": "delete_and_restore",
+      "authenticatedWorkspaceObserved": true,
+      "taskCloseProbe": {
+        "changedFields": [],
+        "flags": [
+          "task_fields_match_saved",
+          "empty_file_timestamp_stable"
+        ],
+        "dialogKinds": []
+      }
+    },
+    {
+      "id": "TASK_FAILURES",
+      "status": "passed",
+      "durationMs": 28642,
+      "attempt": 0,
+      "stage": "csrf_rejected",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "ACADEMY_LIFECYCLE",
+      "status": "passed",
+      "durationMs": 32027,
+      "attempt": 0,
+      "stage": "academy_post_area_isolation",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "RESPONSIVE_KEYBOARD",
+      "status": "passed",
+      "durationMs": 26457,
+      "attempt": 0,
+      "stage": "keyboard_dialog_validation",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "CONCURRENCY_8USERS",
+      "status": "passed",
+      "durationMs": 31882,
+      "attempt": 0,
+      "stage": "concurrent_workflows_verified",
+      "authenticatedWorkspaceObserved": false,
+      "metrics": {
+        "bootstrap_p95_ms": 239.07,
+        "mutation_p95_ms": 294.27,
+        "read_p95_ms": 246.73,
+        "cohort_ms": 251.26,
+        "concurrent_writes": 16,
+        "visible_leaks": 0,
+        "conflicts": 1,
+        "read_requests": 82,
+        "write_requests": 108
+      }
+    }
+  ],
+  "scope": {
+    "intendedTarget": "isolated Supabase and Next",
+    "authenticatedWorkspaceObserved": true,
+    "thirdPartyServicesVerified": false,
+    "liveNAMInfrastructureVerified": false,
+    "trace": false,
+    "video": false,
+    "authScreenshots": false,
+    "storageState": false
+  }
+}
