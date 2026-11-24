@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {withVerifiedFactor} from './optional-mfa.mjs';
 import assert from 'node:assert/strict';
 import {database,asUser,ids} from './database.mjs';
 const grant=(section,can_create=true)=>({section,can_create});
@@ -14,8 +15,9 @@ test('P0 access administration uses explicit grants, fixed ceilings, live polici
   const user='50000000-0000-4000-8000-000000000001';await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[user,'ungranted@synthetic.invalid']);await db.query('insert into auth.sessions(id,user_id) values($1,$1)',[user]);await db.query("insert into nam_memberships(workspace_id,user_id,name,role) values($1,$2,'Ungrant test','sales')",[ids.w,user]);
   const access=await rpc(db,user,'nam_effective_access',[ids.w]);assert.deepEqual(access.sections,[]);assert.deepEqual(access.create_sections,[]);await assert.rejects(rpc(db,user,'nam_create_task',[ids.w,{title:'Must fail',section:'sales'},null]),e=>e.code==='42501');
  });
- await t.test('only a live AAL2 founder can read or change another member, within this workspace',async()=>{
-  for(const [actor,aal] of [[ids.sales,'aal2'],[ids.founder,'aal1']]){await assert.rejects(rpc(db,actor,'nam_access_member',[ids.w,ids.sales],{aal}),e=>e.code==='42501');await assert.rejects(save(db,baseline(),{actor,aal}),e=>e.code==='42501');}
+ await t.test('only a live founder meeting opted-in MFA can administer this workspace',async()=>{
+  await withVerifiedFactor(db,ids.founder,async()=>{
+  for(const [actor,aal] of [[ids.sales,'aal2'],[ids.founder,'aal1']]){await assert.rejects(rpc(db,actor,'nam_access_member',[ids.w,ids.sales],{aal}),e=>e.code==='42501');await assert.rejects(save(db,baseline(),{actor,aal}),e=>e.code==='42501');}});
   await assert.rejects(get(db,ids.outsider),e=>e.code==='P0002');await assert.rejects(save(db,baseline(),{target:ids.founder,role:'sales'}),e=>e.code==='42501');await assert.rejects(save(db,baseline(),{role:'founder'}),e=>e.code==='42501');
   await assert.rejects(asUser(db,ids.sales,()=>db.query("update nam_section_grants set can_create=false where user_id=$1",[ids.sales])),e=>e.code==='42501');await assert.rejects(asUser(db,ids.sales,()=>db.query("select public.nam_member_section($1,$2,'sales')",[ids.w,ids.founder])),e=>e.code==='42501');
  });
