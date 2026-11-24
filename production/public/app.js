@@ -17,7 +17,7 @@ const founder=()=>state.data.actor.role==='founder';
 const label=s=>names[s]||s;
 const role=m=>state.data.roleLabels[m.role];
 const member=id=>state.data.members.find(m=>m.id===id);
-const date=d=>d?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short'}).format(new Date(`${d}T12:00:00Z`)):'No date';
+const date=d=>d?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(`${d}T12:00:00Z`)):'No date';
 const timestamp=d=>new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date(d));
 const due=t=>t.due_date===state.data.today?'Today':date(t.due_date);
 const overdue=t=>t.due_date&&t.due_date<state.data.today&&!['Done','Canceled'].includes(t.status);
