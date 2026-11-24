@@ -2,7 +2,7 @@
 
 24 November 2026. **Not a production release or a completed full QA cycle.**
 
-The current production source builds and its merged automated suite passes. The GitHub account is authenticated, but the initial source transfer is not yet committed. Supabase/Vercel configuration, real users, tenant integrations and native desktop installation are not verified.
+The current production source builds and its merged automated suite passes. The tested application source is committed to the NAM-owned GitHub repository; all 125 uploaded files were verified byte-for-byte using the Git tree hash. Supabase/Vercel configuration, real users, tenant integrations and native desktop installation are not verified.
 
 ## Executed checks
 
