@@ -1,3 +1,4 @@
+import {loadBrowserModule} from './support/browser-module.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -17,9 +18,8 @@ async function render(action,dataset={}){
   const listeners={};let modal='';
   const document={querySelector:()=>({close(){}}),addEventListener(type,fn){(listeners[type]??=[]).push(fn);}};
   const context=vm.createContext({document,Intl,Date,Map,Set,JSON,String,Number,encodeURIComponent});
-  const source=(await readFile(new URL('../public/academy-admin.js',import.meta.url),'utf8')).replace('export function createAcademyAdmin','function createAcademyAdmin');
-  vm.runInContext(source+'\nglobalThis.factory=createAcademyAdmin;',context);
-  const controller=context.factory({request:async path=>path==='/bootstrap'?{members:[]}:path==='/academy/admin/courses'?[structuredClone(course)]:structuredClone(course),openDialog:(title,body)=>{modal=body;},toast:message=>{throw new Error(message);},onChange:async()=>{}});
+  const {createAcademyAdmin}=await loadBrowserModule(context,'academy-admin.js');
+  const controller=createAcademyAdmin({request:async path=>path==='/bootstrap'?{members:[]}:path==='/academy/admin/courses'?[structuredClone(course)]:structuredClone(course),openDialog:(title,body)=>{modal=body;},toast:message=>{throw new Error(message);},onChange:async()=>{}});
   async function click(name,extra={}){const element={dataset:{academyAction:name,...extra},isConnected:true,setAttribute(){},removeAttribute(){},closest(selector){return selector==='[data-academy-action]'?this:null;}};for(const fn of listeners.click||[])fn({target:element,preventDefault(){}});await tick();}
   await controller.load();await click('open',{course:course.id});
   const persistent=controller.render();if(action)await click(action,dataset);
