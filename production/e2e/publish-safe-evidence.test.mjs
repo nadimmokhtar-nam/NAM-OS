@@ -4,7 +4,7 @@ import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,existsSync,unlin
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
-const cases=['eight-account-role-and-task-scope','direct-permission-boundaries','actual-founder-aal1-denial','actual-membership-revocation','actual-managed-session-logout-replay','actual-anonymous-and-signup-denial'];
+const cases=['eight-account-role-and-task-scope','direct-permission-boundaries','actual-password-and-optional-mfa-assurance','actual-membership-revocation','actual-managed-session-logout-replay','actual-anonymous-and-signup-denial'];
 const output=new URL('./.runtime/api-results.json',import.meta.url);
 test('HTTP evidence retains only known counters and never copies raw credentials or errors',()=>{
  const temp=mkdtempSync(join(tmpdir(),'nam-safe-evidence-')),privateDir=join(temp,'nam-os-e2e');mkdirSync(privateDir,{mode:0o700});

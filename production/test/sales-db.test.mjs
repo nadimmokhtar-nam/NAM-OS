@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {withVerifiedFactor} from './optional-mfa.mjs';
 import assert from 'node:assert/strict';
 import {database,asUser,ids} from './database.mjs';
 
@@ -33,7 +34,7 @@ test('PostgreSQL Sales policies, durable sync and failure workflows',async t=>{
   await assert.rejects(asUser(db,ids.sales,()=>db.query("update nam_sales_activities set outcome='Direct update'")),e=>e.code==='42501');
  });
  await t.test('provider snapshots require founder assurance and durable matching leases',async()=>{
-  await assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_begin_integration_sync',[ids.w,'justcall',FP]),{aal:'aal1'}),e=>e.code==='42501');
+  await withVerifiedFactor(db,ids.founder,()=>assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_begin_integration_sync',[ids.w,'justcall',FP]),{aal:'aal1'}),e=>e.code==='42501'));
   await assert.rejects(asUser(db,ids.sales,()=>rpc(db,'nam_begin_integration_sync',[ids.w,'justcall',FP])),e=>e.code==='42501');
   token=await asUser(db,ids.founder,()=>rpc(db,'nam_begin_integration_sync',[ids.w,'justcall',FP]));
   await assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_begin_integration_sync',[ids.w,'justcall',FP])),e=>e.code==='55000');

@@ -1,7 +1,7 @@
 import {mkdirSync,readFileSync,writeFileSync,lstatSync} from 'node:fs';
 import {join,dirname,resolve,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
-const cases=new Set(['eight-account-role-and-task-scope','direct-permission-boundaries','actual-founder-aal1-denial','actual-membership-revocation','actual-managed-session-logout-replay','actual-anonymous-and-signup-denial']);
+const cases=new Set(['eight-account-role-and-task-scope','direct-permission-boundaries','actual-password-and-optional-mfa-assurance','actual-membership-revocation','actual-managed-session-logout-replay','actual-anonymous-and-signup-denial']);
 const stages=new Set(['preflight','local_stack_start','migration_reset','status_read','private_environment','account_provisioning','application_build','application_start','http_security','browser_workflows']);
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const privateRoot=process.env.RUNNER_TEMP&&isAbsolute(process.env.RUNNER_TEMP)?join(process.env.RUNNER_TEMP,'nam-os-e2e'):null;

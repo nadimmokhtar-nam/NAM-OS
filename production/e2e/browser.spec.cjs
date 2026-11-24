@@ -27,20 +27,12 @@ async function openAccount(browser,key,info,{viewport}={}){
     await page.getByLabel('Work email',{exact:true}).fill(account.email);
     await page.getByLabel('Password',{exact:true}).fill(account.password);
     await page.getByRole('button',{name:'Sign in',exact:true}).click();
-    if(account.totp){
-      stage(info,'verify_authenticator');
-      const input=page.locator('#auth-code, #mfa-code');await expect(input).toBeVisible();
-      // A new time step avoids reusing an OTP consumed by provisioning or the
-      // preceding real-auth test process. This value is never logged or saved.
-      const code=await helpers.nextTotpCode(account.totp.secret,{afterStep:Math.floor(Date.now()/30000)});
-      await input.fill(code);
-      await page.getByRole('button',{name:/^(Verify sign in|Verify authenticator)$/}).click();
-    }
+    expect(account.totp,'Baseline accounts must sign in with password only.').toBeUndefined();
     stage(info,'workspace_loading');await page.waitForURL(url=>url.pathname==='/workspace');
     await expect(page.locator('#studio-navigation')).toBeVisible();
     await expect(page.locator('#main h1')).toHaveText('A clear view of the studio.');
     await expect(page.locator('#preview-member')).toHaveCount(0);
-    const response=await context.request.get('/api/bootstrap');expect(response.status()).toBe(200);const bootstrap=await response.json();expect(bootstrap.mode).toBe('authenticated');expect(bootstrap.actor.id).toBe(account.id);expect(bootstrap.actor.role).toBe(account.role);stage(info,'authenticated_workspace');
+    const response=await context.request.get('/api/bootstrap');expect(response.status()).toBe(200);const bootstrap=await response.json();expect(bootstrap.mode).toBe('authenticated');expect(bootstrap.actor.id).toBe(account.id);expect(bootstrap.actor.role).toBe(account.role);expect(bootstrap.securityRequired).toBe(false);stage(info,'authenticated_workspace');
     return {context,page,account,errors};
   }catch(error){await context.close();throw error;}
 }
@@ -90,6 +82,7 @@ for(const key of KEYS)test(`AUTH_${key.toUpperCase()} role navigation, protected
     if(!founder){expect((await context.request.get('/api/academy/admin/courses')).status()).toBe(403);expect((await context.request.get('/api/auth/members')).status()).toBe(403);}
     if(production)expect((await context.request.get('/api/sales')).status()).toBe(403);
     const work=await context.request.get('/api/tasks?page=1&page_size=100');expect(work.status()).toBe(200);const records=await work.json();if(!founder)expect(records.items.every(t=>t.owner_id===account.id)).toBe(true);
+    if(founder){stage(info,'password_only_mfa_route_redirect');await page.goto('/mfa');await page.waitForURL(url=>url.pathname==='/workspace');await expect(page.locator('#main h1')).toHaveText('A clear view of the studio.');await expect(page.locator('#auth-code,#mfa-code,input[autocomplete=\"one-time-code\"]')).toHaveCount(0);}
     stage(info,'logout');await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.waitForURL(url=>url.pathname==='/login');await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();expect((await context.request.get('/api/bootstrap')).status()).toBe(401);expectNoPageErrors(errors);
   }finally{await context.close();}
 });
