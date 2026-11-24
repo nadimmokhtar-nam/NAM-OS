@@ -1,7 +1,7 @@
 import 'server-only';
 import {createClient} from '@supabase/supabase-js';
 import {type APIContext,ApiError,fields,inputText,json,readJSON,requireFounder,requireLiveContext} from './context';
-import {MAX_VIDEO_BYTES,validateVideo,videoRange,VideoValidationError} from './video-media';
+import {MAX_VIDEO_BYTES,validateVideo,videoStreamRange,VideoValidationError} from './video-media';
 
 const BUCKET='nam-academy-videos';
 const UUID=/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
@@ -111,7 +111,7 @@ export async function dispatchAcademyVideo(ctx:APIContext,path:string[],request:
     return new Response(video.caption_vtt,{headers:{'Content-Type':'text/vtt; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
    }
    const size=Number(video.byte_size);let range;
-   try{range=videoRange(request.headers.get('range'),size);}catch(error){if(error instanceof VideoValidationError&&error.status===416)return new Response(null,{status:416,headers:{'Content-Range':`bytes */${size}`,'Cache-Control':'private, no-store'}});throw error;}
+   try{range=videoStreamRange(request.headers.get('range'),size);}catch(error){if(error instanceof VideoValidationError&&error.status===416)return new Response(null,{status:416,headers:{'Content-Range':`bytes */${size}`,'Cache-Control':'private, no-store'}});throw error;}
    const upstream=await (internal.fetchStorage||fetchStorage)(ctx,video,range.partial?`bytes=${range.start}-${range.end}`:null,request.signal);
    const expectedStatus=range.partial?206:200;
    if(upstream.status!==expectedStatus||Number(upstream.headers.get('content-length'))!==range.length||(range.partial&&upstream.headers.get('content-range')!==`bytes ${range.start}-${range.end}/${size}`)){

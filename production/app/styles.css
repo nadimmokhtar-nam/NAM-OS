@@ -418,12 +418,12 @@ body>main:not(.main):not(.auth-shell) p[role=alert]{color:#9b4438}
 .pwa-tools>*{pointer-events:auto}
 .pwa-notice{padding:14px 16px;border:1px solid #dedede;border-radius:14px;background:#fdfdfd;font-size:13px;line-height:1.6;box-shadow:0 4px 20px #00000008}
 .pwa-notice .button{margin-top:12px}
-.pwa-install-slot{position:fixed;right:20px;bottom:20px;z-index:40;display:flex;justify-content:flex-end;max-width:calc(100vw - 32px)}
+.pwa-install-slot{position:static;inset:auto;z-index:auto;display:flex;justify-content:flex-end;max-width:none;margin:0 24px 24px 264px}
 .pwa-install{box-shadow:0 3px 14px #00000008}
 .pwa-help p{font-size:14px;line-height:1.8}
 @media(max-width:700px){
   .pwa-tools,.pwa-tools-installed{right:16px;bottom:calc(16px + env(safe-area-inset-bottom))}
-  .pwa-install-slot{position:static;inset:auto;z-index:auto;justify-content:flex-start;width:100%;max-width:none;padding:16px 16px calc(16px + env(safe-area-inset-bottom));border-top:1px solid #dedede}
+  .pwa-install-slot{position:static;inset:auto;z-index:auto;justify-content:flex-start;width:100%;max-width:none;margin:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));border-top:1px solid #dedede}
   .pwa-install{font-size:14px;min-height:44px}
   .pwa-help .dialog-head{position:static}
 }

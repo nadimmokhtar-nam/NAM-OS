@@ -22,6 +22,33 @@ button,a,input,select,textarea{transition:background-color var(--motion-fast),bo
 .daily-metric small .icon{width:12px;height:12px}
 .daily-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,310px);gap:24px;align-items:start}
 .daily-main,.daily-aside{display:grid;gap:24px;min-width:0}
+.daily-review-row{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;text-align:left;border-top:1px solid #e5e5e5;padding:18px 0}
+.daily-review-row>span{min-width:0}
+.daily-review-row small,.daily-review-row b,.daily-review-row>span>span{display:block;overflow-wrap:anywhere;line-height:1.65}
+.daily-review-row small,.daily-review-row>span>span{font-size:11px;color:#626262}
+.daily-review-row b{font-weight:500;font-size:13px;margin:4px 0}
+.daily-review-row:hover b{text-decoration:underline;text-underline-offset:4px}
+.daily-review-row>.icon{flex:none;width:15px;height:15px}
+.daily-project-row{display:flex;align-items:center;justify-content:space-between;gap:18px;width:100%;text-align:left;padding:18px 0;border-top:1px solid #e5e5e5}
+.daily-project-row b,.daily-project-row small{display:block;line-height:1.7;overflow-wrap:anywhere}
+.daily-project-row b{font-size:13px;font-weight:500}
+.daily-project-row small{font-size:11px;color:#626262;margin-top:3px}
+.daily-project-row>span:first-child{min-width:0}
+.daily-project-row>span:last-child{font-size:11px;color:#626262;display:flex;align-items:center;gap:10px;flex:none}
+.daily-project-row .icon{width:13px;height:13px;flex:none}
+.daily-project-row:hover b{text-decoration:underline;text-underline-offset:4px}
+.daily-review-copy{padding:20px 0;border-bottom:1px solid #e5e5e5}
+.daily-review-copy h3{font-size:12px;margin-bottom:10px}
+.daily-review-copy p{font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+form[data-daily-review]{margin-top:24px}
+.daily-sales-person{padding:16px 0;border-top:1px solid #e5e5e5}
+.daily-sales-person h3{font-size:12px;font-weight:500;margin-bottom:14px}
+.daily-sales-person dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}
+.daily-sales-person dt{color:#626262;font-size:10px}
+.daily-sales-person dd{font-size:22px;font-weight:450;margin:6px 0 10px;font-variant-numeric:tabular-nums}
+.daily-sales-person>p{font-size:10px!important;color:#626262;line-height:1.7}
+.sales-followups{display:flex;align-items:center;gap:8px;text-align:left;font-size:11px;line-height:1.7;text-decoration:underline;text-underline-offset:4px;margin-top:14px}
+.sales-followups>.icon{width:12px;height:12px;flex:none}
 .daily-section .panel-head{align-items:flex-start}
 .daily-section .panel-head p{line-height:1.6;max-width:430px}
 .daily-section .task-row{min-height:82px}
@@ -54,6 +81,7 @@ progress::-moz-progress-bar{background:#262626}
 .completion-mark{display:flex;align-items:center;justify-content:center;flex:none;width:20px;height:20px;border:1px solid #d5d5d5;border-radius:50%;margin-top:2px}
 .completion-mark .icon{width:11px;height:11px}
 .unscheduled-note{display:flex;justify-content:space-between;gap:12px;text-align:left;font-size:11px;line-height:1.7;color:#626262;padding:0 12px 10px;text-decoration:underline;text-underline-offset:4px}
+.unscheduled-note>.icon{width:13px;height:13px;flex:none;margin-top:3px}
 .work-views{display:flex;gap:4px;border-bottom:1px solid #dcdcdc;margin-bottom:22px;overflow:auto}
 .work-view{position:relative;white-space:nowrap;min-height:44px;padding:0 15px;font-size:12px;color:#626262;border-bottom:2px solid transparent}
 .work-view.active{color:#111;border-bottom-color:#222;font-weight:550}
@@ -137,3 +165,7 @@ kbd{font-family:inherit;display:inline-flex;align-items:center;justify-content:c
 @media(max-width:1200px){.daily-layout{grid-template-columns:minmax(0,1fr)}.daily-aside{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-heading{flex-direction:column;gap:16px}.daily-heading-actions{padding-top:0;justify-content:flex-start}.project-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.daily-heading{margin:0 0 24px}.daily-heading h1{font-size:28px}.daily-subtitle{font-size:13px}.daily-heading-actions{width:100%;justify-content:space-between;gap:10px}.daily-heading-actions>.button{padding:0 12px;font-size:12px}.daily-metrics{grid-template-columns:repeat(2,minmax(0,1fr));border-radius:16px;margin-bottom:20px}.daily-metric{padding:18px 16px;border-bottom:1px solid #e8e8e8;gap:10px}.daily-metric:nth-child(2){border-right:0}.daily-metric:nth-child(3){border-bottom:0}.daily-metric strong{font-size:29px}.daily-metric small{font-size:10px}.daily-metric small .icon{display:none}.daily-layout,.daily-main,.daily-aside{gap:20px}.daily-aside{grid-template-columns:minmax(0,1fr)}.daily-section .panel-head{gap:12px}.daily-section .panel-head .button{padding:0 10px;min-height:34px;flex:none}.daily-section .panel-head p{font-size:11px}.daily-section .panel-head h2{font-size:16px}.daily-section .task-row{grid-template-columns:20px minmax(0,1fr) 80px;gap:10px}.daily-section .task-row .badge{grid-column:2;grid-row:auto;font-size:9px}.daily-section .task-row .due{grid-column:3;grid-row:1}.daily-section .task-row .avatar{display:none}.daily-section .task-row .task-open{grid-column:2;grid-row:1}.daily-section .task-row>input{grid-column:1;grid-row:1}.work-view{padding:0 12px;font-size:11px}.project-grid{grid-template-columns:minmax(0,1fr)}.project-navigation{gap:8px;flex-wrap:wrap}.project-navigation>.tabs{margin-bottom:10px}.project-brief{grid-template-columns:minmax(0,1fr);gap:24px}.project-brief aside{border-left:0;border-top:1px solid #e5e5e5;padding:20px 0 0;gap:12px}.project-empty{padding:32px 20px}.project-empty>h2{font-size:21px}.task-context{padding:16px}.page-head .filters{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+.sidebar-close{display:none;font-size:22px;position:absolute;top:18px;right:12px;width:32px;height:32px}
+@media(max-width:700px){.daily-project-row{align-items:flex-start;flex-direction:column;gap:8px}.daily-project-row>span:last-child{align-self:flex-end}}
+@media(max-width:700px){.sidebar.open .sidebar-close{display:inline-flex}}

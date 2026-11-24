@@ -1,6 +1,9 @@
 import {createHash} from 'node:crypto';
 
 export const MAX_VIDEO_BYTES=50*1024*1024;
+// Fits Netlify's documented 6 MB buffered response envelope after base64
+// encoding, even when an adapter buffers a nominally streamed response.
+export const VIDEO_CHUNK_BYTES=4*1024*1024;
 export class VideoValidationError extends Error {
  status:number;
  constructor(message:string,status=400){super(message);this.name='VideoValidationError';this.status=status;}
@@ -40,4 +43,11 @@ export function videoRange(value:string|null,size:number){
  else{start=Number(match[1]);end=match[2]?Math.min(Number(match[2]),size-1):size-1;}
  check(Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&start>=0&&start<size&&end>=start,'The video byte range is outside this file.',416);
  return {start,end,length:end-start+1,partial:true};
+}
+
+export function videoStreamRange(value:string|null,size:number){
+ const range=videoRange(value,size);
+ if(range.length<=VIDEO_CHUNK_BYTES)return range;
+ check(range.partial,'Open this video in the course player.');
+ return {...range,end:range.start+VIDEO_CHUNK_BYTES-1,length:VIDEO_CHUNK_BYTES};
 }

@@ -1,5 +1,5 @@
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const size=bytes=>(Number(bytes)/1024/1024).toLocaleString('en-GB',{maximumFractionDigits:1})+' MiB';
+const size=bytes=>{const value=Number(bytes);return value<1024?value+' B':(value/(value<1048576?1024:1048576)).toLocaleString('en-GB',{maximumFractionDigits:1})+(value<1048576?' KiB':' MiB');};
 
 export function renderVideoLesson(course,lessonId){
  return (course.videos||[]).filter(video=>video.lesson_id===lessonId).map(video=>`<section class="lesson-video" aria-label="Lesson video"><div class="spread"><h3>${esc(video.title)}</h3><small>Private · ${size(video.size)}</small></div><video controls playsinline preload="metadata" data-academy-video="${esc(video.id)}" aria-label="${esc(video.title)}" src="/api/academy/videos/${encodeURIComponent(video.id)}/content">${video.has_captions?`<track kind="captions" src="/api/academy/videos/${encodeURIComponent(video.id)}/captions" srclang="en" label="English" default>`:''}Your browser cannot play this video. The written lesson remains available below.</video><p class="video-state" role="status" data-video-state="${esc(video.id)}">Private lesson video. Written steps are available below.</p></section>`).join('');

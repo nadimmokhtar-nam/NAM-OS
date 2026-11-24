@@ -1,3 +1,5 @@
+> Historical checkpoint. Current implementation and executed reinvention checks are in [REINVENTION_VALIDATION.md](REINVENTION_VALIDATION.md). The owner’s latest requirements and migration 015 permit password-only Founder sign-in; verified authenticator enrollment is optional. Earlier feature/assurance statements below describe their recorded revision.
+
 # Independent production security and behavior review
 
 Reviewed 24 November 2026. Scope: Next.js/Supabase identity context, native authentication handlers, identity/assurance migrations, and the browser-module bridge. This is an engineering review with bounded automated evidence. It is not a penetration-test certificate or an online launch approval.

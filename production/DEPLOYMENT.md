@@ -1,55 +1,60 @@
-# NAM OS online deployment
+# NAM OS delivery
 
-This is the production Next.js/PostgreSQL source. The Node/SQLite application in the parent directory is a local test application and must not be deployed as a Vercel persistence layer. Production code still requires real provider configuration, hosted verification and the release gates in the test report. Do not infer live readiness from a successful build.
+The owner supplied these existing services. Preserve them; no replacement account, paid upgrade, initial database installer, owner bootstrap or reset is part of this initiative.
 
-## Repository and Vercel root
-
-The user currently chose a public GitHub repository. Keep production credentials, local databases, test exports, client files and personalized bootstrap SQL out of it. Public source does not make studio records public: authentication and database/file policies remain mandatory. No Git push has been performed without authenticated repository access.
-
-The simplest publishable source bundle is the **contents of this `production` folder** at repository root. It includes its own application, assets, integration adapters, package files and migrations. In that arrangement Vercel's Root Directory is `.`. If the repository instead contains the `nam-os` folder, select `nam-os/production`; if repository root is the existing `nam-os` folder, select `production`. Do not select the parent SQLite application's package.json.
-
-For the prepared **NAM_OS_Online_App_v0_3.zip** fallback: extract the archive, then use GitHub's **Add file → Upload files** and drag the extracted **production folder** into the repository. Before committing, confirm the resulting tree contains **production/package.json**. Commit through your authenticated GitHub account. In this exact arrangement, set Vercel's Root Directory to **production**. Upload the sanitized source archive's extracted folder only; do not upload the whole local workspace, node_modules, caches, databases, exports or any private environment file. GitHub upload and Vercel connection require your account action when authenticated Git access is unavailable.
-
-Connect the NAM-owned GitHub repository in the NAM-owned Vercel project, choose Next.js and Node.js 24.x, and use the committed lockfile with `npm ci`. Keep staging and production settings separate. Let Vercel run `npm run build`. The operator must first verify the exact committed source passes type checks, tests, dependency review and build. This document does not authorize publishing unfinished staging as a daily team release.
-
-## Supabase staging and initial founder
-
-1. Create a NAM-owned Supabase staging project in an EU region. Disable public signup. Keep production separate; never point preview builds at production data.
-2. Apply all versioned `supabase/migrations/*.sql` in filename order through a reviewed migration process. Do not apply `bootstrap-owner.sql` automatically as a migration. Create the private storage bucket according to the operations migration/instructions; never make it public to resolve an access error.
-3. Create the first owner's Supabase Auth identity through the trusted provider/operator process. The owner must privately set a password and verify their email. Do not send passwords, access keys or email verification tokens through ChatGPT or GitHub. Record the confirmed Auth UUID and email from the provider UI.
-4. Make a private temporary copy of `supabase/bootstrap-owner.sql`, replace its Auth UUID and expected-email placeholders, review it and run it once as the trusted database operator. It requires an empty NAM workspace, matches the existing confirmed/unbanned Auth identity, creates one founder membership and records an audit event. It cannot create an Auth user or silently upgrade an existing member. Do not commit the personalized copy.
-5. Save the returned workspace UUID as `NAM_WORKSPACE_ID`. Complete founder TOTP setup in the application; business data and founder privileges require the appropriate verified session assurance. Securely retain the authenticator setup key through the approved recovery procedure.
-6. Once the founder is verified, issue team invitations through NAM OS. Do not add arbitrary public identities to memberships or use editable Auth metadata as a role source.
-
-## Vercel configuration
-
-Enter values through the provider's secure environment-variable UI for the selected staging/production environment. Never commit `.env.local` or paste secrets into chat.
-
-| Variable | Purpose |
+| Binding | Existing value |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Selected Supabase project URL. |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | That project's publishable client key; RLS must still restrict all data. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only key for narrowly controlled identity/storage operations. Never prefix it with `NEXT_PUBLIC_`. |
-| `NAM_CSRF_SECRET` | Server-generated random secret of at least 32 characters, stored only in secure environment settings. |
-| `NAM_WORKSPACE_ID` | UUID from the reviewed initial-owner bootstrap. |
-| `NAM_APP_ORIGIN` | Exact application origin, e.g. the chosen `https://…vercel.app` staging URL, without a trailing slash. |
-| `NAM_INTEGRATIONS_WORKSPACE_ID` | Same authorized workspace UUID, enabling live source ingestion only for that workspace. |
-| `ATTIO_API_KEY` | Server-only permitted NAM CRM token. |
-| `ATTIO_DEALS_OBJECT` | Actual configured Attio deal-object identifier, when different from the supported default. |
-| `LEMLIST_API_KEY` | Server-only permitted reporting API key. |
-| `JUSTCALL_API_KEY`, `JUSTCALL_API_SECRET` | Server-only permitted JustCall credentials. |
+| Repository | `nadimmokhtar-nam/NAM-OS` |
+| Current trial | `https://nam-os-staging.netlify.app` — owner protected |
+| Netlify site / plan | `nam-os-staging` / Free |
+| Current deployment branch | `main` |
+| Application base / build / publish | `production` / `npm run build` / `.next` |
+| Node / adapter | 24 / pinned `@netlify/plugin-nextjs` 5.16.9 |
+| Supabase | `ltkdycibqnqmwqeejcvs`, Ireland |
+| Existing schema | migrations 001–015 |
+| Last verified trial commit | `7f07fa7c88c82c87e58931cf15efc9c3c74d96c9` |
+| Review branch | `codex/nam-os-reinvention` |
 
-The public deployment URL must be known before setting the exact origin. Configure the fixed staging host first, update `NAM_APP_ORIGIN` and Supabase allowed URLs, then redeploy. Arbitrary preview hosts should fail closed until deliberately configured; do not weaken origin checks or broadly wildcard authentication redirects to make previews pass.
+## Keep the current trial available
 
-Configure exact Supabase authentication Site/Redirect URLs for the selected application host and supported callback routes. Review `app/auth/confirm` and the identity module's provider-link requirements. Manual NAM invitation/recovery links are separate from SMTP delivery; configuring a sender does not make an unimplemented automatic email workflow complete. Align OTP expiry and rate limits with the actual identity flow and test expired/reused links.
+Review and test the branch in an isolated environment first. Do not merge into `main` or issue a production deploy over the trial as a substitute for a separate reviewable preview. On Free, credentials are not protected by paid per-context environment scoping: disable untrusted/fork previews and do not expose a server key to unreviewed branches. Use only trusted source and deliberate exact callback origins.
 
-## Verification before a team launch
+The isolated local Supabase stack uses synthetic records and is never a fallback for the real site. Its compiled application embeds loopback public bindings. **Build again in the intended secure deployment context.** Never upload the local QA build or its generated profiles, session states, runtime JSON or caches.
 
-- Execute migrations and policy tests against the selected staging database using real Supabase Auth identities, including anonymous, suspended, cross-workspace, AAL1 and AAL2 cases. PGlite tests are valuable evidence but do not verify hosted Auth, PostgREST or Storage behavior.
-- Verify login/logout, recovery, MFA, invites, revocation, all record workflows and private files through deployed browser sessions on mobile, tablet and desktop.
-- Connect each permitted sales service, explicitly map external owners to Omar/Nadim, check deduplication, available fields, recording access, source windows, currency separation, sync timestamps and safe failed/expired connections. No unavailable metric should be presented as zero or live sample data.
-- Configure an authenticated reminder scheduler and exercise it. The reminder RPC creates in-app notifications; its presence alone does not configure a scheduler or email delivery.
-- Complete all four documented correction rounds, load/accessibility/visual checks and a backup/restore rehearsal. Resolve every known critical/high issue before enabling daily team use.
-- Promote the same tested source to a separately configured production project, start with Nadim/Omar and retain rollback/restore instructions. A custom domain and desktop distribution can follow a verified online pilot.
+## Secure configuration
 
-Hosting accounts and a public repository do not themselves establish a working deployment. Until the configured website and integrations pass these checks, report the remaining setup and test blockers explicitly.
+Check which names already exist without displaying their values. The cloud environment currently has no inherited hosting/browser credentials. A project ID is not deployment or database authorization.
+
+| Variable | Use |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Intended project's API origin |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key, protected by RLS |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only identity administration and stored-file attestation |
+| `NAM_WORKSPACE_ID` | Existing studio workspace UUID; never use the synthetic QA UUID |
+| `NAM_APP_ORIGIN` | Exact chosen HTTPS preview/application origin |
+| `NAM_CSRF_SECRET` | Existing independent server secret, at least 32 characters |
+| `NAM_INTEGRATIONS_WORKSPACE_ID` | Authorized workspace binding for optional sales credentials |
+| `ATTIO_API_KEY`, `ATTIO_DEALS_OBJECT` | Existing permitted CRM integration |
+| `LEMLIST_API_KEY` | Existing permitted campaign reporting |
+| `JUSTCALL_API_KEY`, `JUSTCALL_API_SECRET` | Existing permitted calling integration |
+| `NAM_CRON_SECRET` | Authenticated scheduled-job token where already configured |
+
+Preserve existing secret values; do not rotate or recreate accounts to gain access. Set exact Supabase Site/Redirect URLs for the deliberately selected application origin. Do not wildcard redirects or weaken Origin/CSRF checks. Password-only sign-in includes Founder; do not force authenticator enrollment. Accounts that elected a verified factor still require it.
+
+## Schema delivery
+
+1. Inspect the hosted migration history and take a verified database/private-Storage backup through the existing operator process. The JSON business export contains no media bytes or Auth recovery state.
+2. Confirm migrations 001–015 are present. Review only pending **016 projects, 017 daily work, 018 private Academy video, 019 connected daily reviews, 020 complete business-context export, 021 video reservation recovery**. Apply them in order through the existing trusted migration channel. No hosted migration has been applied by this task.
+3. Retain existing tasks, publications, enrollments, progress, memberships, grants, files and integrations. Projects/video add tables and optional task context. Existing unlinked tasks remain valid. Migration 019 leaves the legacy trial's report-review RPC intact and adds a version-checked path for the new application.
+4. Verify private bucket `nam-academy-videos` stays private, permits allowed video formats and enforces 50 MiB objects. Do not add broad Storage policies or public URLs. Playback uses caller-authenticated bounded range reads; trusted attestation is the only ready-state transition.
+5. Run direct negative checks with disposable identities before releasing the new app. Assigned-only users must not see colleagues' tasks or an unshared brief; revoked enrollment/session/MFA assurance must stop private access.
+
+## Preview and acceptance
+
+Build the exact reviewed branch with the intended secure bindings and a fixed, separately configured HTTPS preview origin. Keep the existing main deployment available. Use a free deployment path on the NAM-owned infrastructure; do not enable paid add-ons or spend upgrades.
+
+Verify the deployed Netlify adapter, not just `next start`: password login, elected MFA, session refresh/logout/revocation, nonce CSP, no-store responses, Origin/CSRF rejection, project/task creation and conflicts, source-ledger sales, report resubmission/review, Academy reading/practical work, actual private video upload/play/seek/captions and denial after revocation. Include mobile/tablet/desktop, keyboard use, eight appropriately different identities and latency measurements from the Ireland database. The local >4 MiB MP4 fixture tests range continuation; it does not certify the hosted adapter or a maximum-size upload.
+
+Confirm provider attribution/freshness against the actual permitted sales tenants. Verify recovery, private-file backup/restore and existing scheduled jobs. Batch deploys within Free allowances. Preserve the previous deploy for code rollback; additive schema should remain until an explicitly reviewed data migration is justified. Do not roll back by dropping business tables.
+
+Executed results and open hosted gates are in [REINVENTION_VALIDATION.md](docs/REINVENTION_VALIDATION.md). No production deployment or protected-hosted acceptance is claimed without that evidence.

@@ -7,6 +7,7 @@ export async function dailyBrief(ctx:APIContext,scope=ctx.actor.role==='founder'
  if(error)throw new ApiError(error.code==='42501'?403:503,'The daily brief could not be loaded. Please retry.','BRIEF_UNAVAILABLE');
  const names=new Map(ctx.members.map(member=>[member.id,member]));
  for(const group of ['attention','priorities','upcoming','completed'])data[group]=(data[group]||[]).map((task:Record<string,unknown>)=>({...task,owner_name:names.get(String(task.owner_id))?.name||'Studio member',can_archive:ctx.actor.role==='founder'&&(!ctx.mfa.required||ctx.mfa.verified)}));
+ for(const group of ['sales','reviews'])data[group]=(data[group]||[]).map((row:Record<string,unknown>)=>({...row,owner_name:names.get(String(row.owner_id))?.name||'Studio member'}));
  return data;
 }
 export async function dispatchDaily(ctx:APIContext,path:string[],request:Request):Promise<Response|null>{

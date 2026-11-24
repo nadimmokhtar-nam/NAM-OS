@@ -7,6 +7,7 @@ import vm from 'node:vm';
 // The document/HTTP boundary is simulated. This checks behavior, not layout,
 // native focus, RLS, live providers or accessibility conformance.
 function node(){return {id:'',innerHTML:'',textContent:'',open:false,disabled:false,dataset:{},attributes:{},classList:{toggle(){},add(){},remove(){}},setAttribute(k,v){this.attributes[k]=v;},removeAttribute(k){delete this.attributes[k];},querySelector(){return null;},querySelectorAll(){return [];},contains(){return false;},closest(){return null;},matches(){return false;},focus(){},addEventListener(type,listener){(this.listeners??={})[type]=listener;},showModal(){this.open=true;},close(){this.open=false;this.listeners?.close?.();}};}
+const endpoint=(url,path)=>new URL(url,'https://nam.example').pathname==='/api/'+path;
 const actor={id:'founder-1',name:'Nadim',initials:'NM',role:'founder'},omar={id:'sales-1',name:'Omar',initials:'OM',role:'sales'};
 function bootstrap(){return {actor,members:[{...actor,sections:['sales','academy','projects','library','team','operations']},{...omar,sections:['sales','academy','operations']}],sections:['sales','academy','projects','library','team','operations'],tasks:[],courses:[],notifications:[],today:'2026-11-24',mode:'authenticated',capabilities:{createTaskSections:['sales','academy','projects','library','team','operations'],productionAuth:true,database:'postgresql',projects:'tasks_only',library:'tasks_only'},roleLabels:{founder:'Founder',sales:'Sales Representative'},csrf:'test-csrf'};}
 function task(section='projects'){return {id:'task-1',number:1,title:'Review project lighting',description:'Original brief',section,status:'Todo',priority:'High',owner_id:actor.id,owner_name:actor.name,owner_initials:actor.initials,version:1,due_date:'2026-11-25',comments:[],subtasks:[],events:[]};}
@@ -20,7 +21,8 @@ async function harness({intercept,sales,defaultTimeZone}={}){
   const runtimeIntl=defaultTimeZone?Object.create(Intl):Intl;if(defaultTimeZone)runtimeIntl.DateTimeFormat=function(locales,options={}){return new Intl.DateTimeFormat(locales,{timeZone:defaultTimeZone,...options});};
   const sandbox=vm.createContext({console,Intl:runtimeIntl,Date,URL,URLSearchParams,AbortController,WeakSet,structuredClone,setTimeout:()=>1,clearTimeout(){},confirm:()=>confirmValue,location,history:{replaceState(a,b,url){location.hash=url;}},window:{addEventListener(type,listener){windowEvents[type]=listener;},matchMedia(){return {matches:false};},scrollTo(){},location},document,FormData:class {constructor(form){this.values=form.values||{};}*[Symbol.iterator](){yield*Object.entries(this.values);}},fetch:async(url,init={})=>{
     requests.push({url,init});const overridden=await intercept?.(url,init,model,response);if(overridden)return overridden;
-    if(url==='/api/bootstrap')return response(model);
+    if(endpoint(url,'bootstrap'))return response(model);
+    if(url.startsWith('/api/brief?'))return response(model.brief||{scope:'studio',today:model.today,counts:{today:0,overdue:0,blocked:0,upcoming:0,unscheduled:0},attention:[],priorities:[],upcoming:[],completed:[],workload:[]});
     if(url.startsWith('/api/tasks?')){const section=new URL(url,'https://nam.example').searchParams.get('section');return response({items:section?[task(section)]:[],total:section?1:0,page:1,pageSize:100,hasMore:false});}
     if(url.startsWith('/api/tasks/')&&!init.method?.includes('POST'))return response(task());
     if(url==='/api/sales')return response(fixtureSales);
@@ -72,18 +74,18 @@ test('an unreadable session-expiry response clears protected content and redirec
 
 test('a late bootstrap cannot restore the previous identity after logout',async()=>{
   let release,started;const hold=new Promise(resolve=>release=resolve),seen=new Promise(resolve=>started=resolve);let bootstrapRequests=0;
-  const h=await harness({intercept:async(url,init,model,response)=>{if(url==='/api/bootstrap'&&++bootstrapRequests>1){started();await hold;return response(model);}return null;}});
+  const h=await harness({intercept:async(url,init,model,response)=>{if(endpoint(url,'bootstrap')&&++bootstrapRequests>1){started();await hold;return response(model);}return null;}});
   const older=h.ui.refresh();await seen;await h.ui.action({dataset:{action:'logout'}});release();await assert.rejects(()=>older,{name:'AbortError'});assert.equal(h.ui.state.data,null);assert(h.nodes.get('#app').innerHTML.includes('Sign in to continue.'));
 });
 
 test('a response body arriving after logout is discarded even when headers arrived earlier',async()=>{
   let release,started;const hold=new Promise(resolve=>release=resolve),seen=new Promise(resolve=>started=resolve);let calls=0;
-  const h=await harness({intercept:(url,init,model)=>{if(url==='/api/bootstrap'&&++calls>1)return {ok:true,status:200,async json(){started();await hold;return structuredClone(model);}};return null;}});
+  const h=await harness({intercept:(url,init,model)=>{if(endpoint(url,'bootstrap')&&++calls>1)return {ok:true,status:200,async json(){started();await hold;return structuredClone(model);}};return null;}});
   const older=h.ui.refresh();await seen;await h.ui.action({dataset:{action:'logout'}});release();await assert.rejects(()=>older,{name:'AbortError'});assert.equal(h.ui.state.data,null);
 });
 
 test('production rejects a non-production bootstrap instead of rendering a role selector',async()=>{
-  const h=await harness({intercept:(url,init,model,response)=>url==='/api/bootstrap'?response({...model,mode:'local-preview'}):null});assert(h.nodes.get('#app').innerHTML.includes('could not verify its production data source'));assert(!h.nodes.get('#app').innerHTML.includes('preview-member'));assert.equal(h.ui.state.data,null);
+  const h=await harness({intercept:(url,init,model,response)=>endpoint(url,'bootstrap')?response({...model,mode:'local-preview'}):null});assert(h.nodes.get('#app').innerHTML.includes('could not verify its production data source'));assert(!h.nodes.get('#app').innerHTML.includes('preview-member'));assert.equal(h.ui.state.data,null);
 });
 
 test('task conflict preserves unsaved fields and keeps an explicit reload action available',async()=>{
@@ -238,14 +240,14 @@ test('the actual menu click listener retains navigation focus when opening and r
 });
 
 test('a read-only section exposes task work without Create or Add-task controls',async()=>{
- const h=await harness({intercept:(url,init,model,response)=>url==='/api/bootstrap'?response({...model,capabilities:{...model.capabilities,createTaskSections:[]}}):null});h.location.hash='#projects';await h.ui.navigate();let html=h.nodes.get('#app').innerHTML;assert(html.includes('Projects work'));assert(!html.includes('data-action="create-task"'));await h.ui.action({dataset:{action:'view-mode',value:'board'}});html=h.nodes.get('#app').innerHTML;assert(!html.includes('data-action="create-task"'));await assert.rejects(()=>h.ui.action({dataset:{action:'create-task',section:'projects'}}),/creation is not granted/);assert.equal(h.nodes.get('#dialog').open,false);
+ const h=await harness({intercept:(url,init,model,response)=>endpoint(url,'bootstrap')?response({...model,capabilities:{...model.capabilities,createTaskSections:[]}}):null});h.location.hash='#projects';await h.ui.navigate();let html=h.nodes.get('#app').innerHTML;assert(html.includes('Projects work'));assert(!html.includes('data-action="create-task"'));await h.ui.action({dataset:{action:'view-mode',value:'board'}});html=h.nodes.get('#app').innerHTML;assert(!html.includes('data-action="create-task"'));await assert.rejects(()=>h.ui.action({dataset:{action:'create-task',section:'projects'}}),/creation is not granted/);assert.equal(h.nodes.get('#dialog').open,false);
 });
 test('malformed production create/owner permissions fail closed instead of falling back to role labels',async()=>{
- for(const corrupt of [model=>({...model,capabilities:{...model.capabilities,createTaskSections:undefined}}),model=>({...model,members:model.members.map(member=>({...member,sections:undefined}))})]){const h=await harness({intercept:(url,init,model,response)=>url==='/api/bootstrap'?response(corrupt(model)):null});const html=h.nodes.get('#app').innerHTML;assert(html.includes('Workspace permissions could not be verified'));assert(!html.includes('data-action="create-task"'));assert.equal(h.ui.state.data,null);}
+ for(const corrupt of [model=>({...model,capabilities:{...model.capabilities,createTaskSections:undefined}}),model=>({...model,members:model.members.map(member=>({...member,sections:undefined}))})]){const h=await harness({intercept:(url,init,model,response)=>endpoint(url,'bootstrap')?response(corrupt(model)):null});const html=h.nodes.get('#app').innerHTML;assert(html.includes('Workspace permissions could not be verified'));assert(!html.includes('data-action="create-task"'));assert.equal(h.ui.state.data,null);}
 });
 
 test('assignee picker uses actual section grants instead of a salesperson role label',async()=>{
- const h=await harness({intercept:(url,init,model,response)=>url==='/api/bootstrap'?response({...model,members:model.members.map(member=>member.id===omar.id?{...member,sections:[]}:member)}):null});await h.ui.action({dataset:{action:'create-task',section:'sales'}});const owner=h.nodes.get('#dialog').innerHTML.match(/<select[^>]*name="owner_id"[^>]*>([\s\S]*?)<\/select>/)?.[1];assert(owner);assert(owner.includes(`value="${actor.id}"`));assert(!owner.includes(`value="${omar.id}"`));
+ const h=await harness({intercept:(url,init,model,response)=>endpoint(url,'bootstrap')?response({...model,members:model.members.map(member=>member.id===omar.id?{...member,sections:[]}:member)}):null});await h.ui.action({dataset:{action:'create-task',section:'sales'}});const owner=h.nodes.get('#dialog').innerHTML.match(/<select[^>]*name="owner_id"[^>]*>([\s\S]*?)<\/select>/)?.[1];assert(owner);assert(owner.includes(`value="${actor.id}"`));assert(!owner.includes(`value="${omar.id}"`));
 });
 for(const kind of ['checkbox','comment','subtask'])test('partial '+kind+' replies preserve edits made while saving and keep the parent save coherent',async()=>{
  let release,started;const hold=new Promise(r=>release=r),seen=new Promise(r=>started=r);
@@ -274,7 +276,7 @@ test('a late Academy catalog response cannot update a later route',async()=>{
 for(const editWhilePending of [false,true])test('parent Save keeps Close and Escape busy through refresh and preserves '+(editWhilePending?'new input':'a clean saved state'),async()=>{
  let release,started;const hold=new Promise(r=>release=r),seen=new Promise(r=>started=r);let bootstraps=0,saved={...task(),status:'Done',version:2};
  const h=await harness({intercept:async(url,init,model,response)=>{
-  if(url==='/api/bootstrap'&&++bootstraps>1){started();await hold;return response(model);}
+  if(endpoint(url,'bootstrap')&&++bootstraps>1){started();await hold;return response(model);}
   if(url==='/api/tasks/task-1'&&init.method==='PATCH')return response(saved);
   if(url==='/api/tasks/task-1')return response(saved.version===2&&bootstraps>1?saved:task());
   return null;

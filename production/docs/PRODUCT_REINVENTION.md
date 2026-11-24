@@ -24,6 +24,10 @@ The owner supplied Figma overview `19:2459` and Academy catalogue `19:3274` in f
 | Academy is a catalogue of equal-weight cards and a written lesson reader | New staff do not know what to continue or what a practical assessment still needs | Lead with the next unfinished assigned lesson and separate reading progress from assessment. Retain immutable publications and completion records. Add real private video upload and authenticated playback using existing Supabase Storage. |
 | Default task filtering has no operational time views | Finding today's actions requires assembling filters | Add Today, Upcoming, Blocked and Completed views with server-side date rules, plus accessible quick actions. Keep list/board, detailed filters and conflict recovery. |
 | Sales activity/reports live apart from attention | Founder must visit Sales to discover unreviewed reports | Surface authorized report-review work in the daily brief. Keep CRM facts in their source; do not fabricate a pipeline or provider connectivity. |
+| Project deadlines, practical feedback and sales reports require separate visits | An artist or founder misses a next action after another person updates it | Connect project watch, source-report decisions and practical reviews to Today. Refresh on returning to Today; keep the artist's requested changes visible. |
+| Report resubmission can race a Founder review | An older report can approve unseen new results | Review the exact submission timestamp under a row lock. Retain the trial's original RPC and add a checked path for the new application. Practical responses retain their existing optimistic revisions. |
+| Public modules refresh Auth and their import graph starts after hydration | Eight concurrent users wait for avoidable network work | Keep page/API identity checks and all asset security headers; skip public-asset session refresh and preload the module graph without executing before the scaffold is ready. |
+| Export allowlist predates project/video and learning-structure records | A business export omits operational context | Extend the explicit Founder-only allowlist to project, learning, grant and video metadata; keep Auth, credentials and media bytes outside JSON export. |
 
 ### Product boundaries
 
@@ -42,4 +46,12 @@ Deprioritize decorative charts, another CRM, automatic prospect outreach, comple
 5. Record four distinct testing/refinement cycles: functional/data integrity; browser/interaction; measured performance/accessibility/eight-user isolation; full regression/release review. Keep simulated, isolated-provider and hosted results distinct.
 6. Commit and push checkpoints on the separate branch. Do not merge or deploy over the current trial. Prepare delivery against existing free infrastructure when protected hosted access is supplied securely. No fresh-task restoration, hosted concurrency, production deployment or completed release gate is claimed without direct evidence.
 
-This is an implementation plan, not a claim that these changes or four testing cycles are complete. Results and remaining release gates will be recorded as the work executes.
+These decisions have been implemented and exercised through four isolated correction cycles. Executed results, evidence boundaries and remaining hosted delivery gates are recorded in REINVENTION_VALIDATION.md.
+
+## Implemented boundary and next priorities
+
+The source implementation now covers the daily operating loop above, real production records and actual private learning media. Migrations 016–021 extend the existing database additively. Attention and today's current work are distinct groups; a future-dated render awaiting review remains discoverable through the same Attention filter. Browser evidence and the four local correction cycles are recorded separately in [REINVENTION_VALIDATION.md](REINVENTION_VALIDATION.md).
+
+Keep the next expansion tied to observed studio use. Contextual Academy recommendations within projects, multi-course onboarding paths, richer render annotations and production sign-off gates need real standards/content and a verified delivery workflow. They are not represented as completed features. Do not generate a catalogue of invented NAM training content or duplicate CRM opportunities to make the product appear populated. Existing published learning and completion records remain authoritative.
+
+Managers retain their existing explicit section grants and assigned-only task visibility. A future team-wide production-management permission is a separate owner decision. The current shared brief and task context improve coordination without silently broadening employee access.

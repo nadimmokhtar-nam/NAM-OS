@@ -1,5 +1,5 @@
 /** Generated from deployment source by scripts/pwa-release.mjs before builds. */
-export const PWA_RELEASE='build-2979aede7fc545db';
+export const PWA_RELEASE='build-179776f15dd4250c';
 export function deploymentChanged(value:unknown):boolean{
   if(!value||typeof value!=='object'||Array.isArray(value))return false;
   const release=(value as {release?:unknown}).release;

@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {database,asUser,ids} from './database.mjs';
 import {client,context,loadServerModule,serial} from './support/runtime.mjs';
 import {privateStorage} from './support/storage.mjs';
-import {validateVideo,videoRange,MAX_VIDEO_BYTES} from '../lib/api/video-media.ts';
+import {validateVideo,videoRange,videoStreamRange,VIDEO_CHUNK_BYTES,MAX_VIDEO_BYTES} from '../lib/api/video-media.ts';
 
 const bytes=await readFile(new URL('../browser/fixtures/academy-demo.mp4',import.meta.url));
 let db,storage,dispatch,ApiError;
@@ -40,6 +40,10 @@ test('real MP4 container validation and bounded byte ranges reject truncated, ac
  assert.deepEqual(videoRange('bytes=-10',100),{start:90,end:99,length:10,partial:true});
  assert.equal(videoRange('bytes=50-',100).length,50);assert.equal(videoRange('bytes=0-999',100).length,100);
  for(const value of ['bytes=','bytes=-0','bytes=100-','bytes=80-20','bytes=0-1,5-8','items=0-5','bytes=999999999999999-'])assert.throws(()=>videoRange(value,100),{status:416});
+ assert.equal(videoStreamRange('bytes=0-',MAX_VIDEO_BYTES).length,VIDEO_CHUNK_BYTES);
+ assert.equal(videoStreamRange('bytes=5000000-',MAX_VIDEO_BYTES).end,5000000+VIDEO_CHUNK_BYTES-1);
+ assert.equal(videoStreamRange('bytes=-32',MAX_VIDEO_BYTES).length,32);
+ assert.throws(()=>videoStreamRange(null,MAX_VIDEO_BYTES),{status:400});
 });
 
 test('private video upload verifies actual stored bytes, streams ranges and captions, and pins the assigned publication',async()=>{
@@ -70,6 +74,10 @@ test('private video upload verifies actual stored bytes, streams ranges and capt
  assert.equal((await read(c)).videos.length,0);assert.equal((await call(ids.artist,`academy/videos/${replacement.id}/content`)).status,200);
  await admin('revoke',await read(c),{member_id:ids.artist});await assert.rejects(call(ids.artist,`academy/videos/${replacement.id}/content`),denied);
  assert.equal(storage.objects.size,2);
+ const exported=await rpc(ids.founder,'nam_export_business',{w:ids.w});assert.equal(exported.videoBytesIncluded,false);
+ assert(exported.data.nam_academy_videos.some(row=>row.id===plan.id&&row.sha256===createHash('sha256').update(bytes).digest('hex')));
+ assert(exported.data.nam_course_version_videos.some(row=>row.video_id===replacement.id));
+ assert(exported.data.nam_course_completions.some(row=>row.course_id===c.id&&row.user_id===ids.artist));
 });
 
 test('bad bytes, unsupported files and absent trusted configuration never create a ready video',async()=>{
@@ -82,6 +90,19 @@ test('bad bytes, unsupported files and absent trusted configuration never create
  await assert.rejects(call(ids.sales,'academy/videos','POST',{}),e=>e.status===403);
  await assert.rejects(rpc(ids.founder,'nam_attest_academy_video',{w:ids.w,vid:plan.id,expected_revision:c.revision,verified_actor:ids.founder,verified_session:ids.founder,verified_aal2:false,content_sha256:'a'.repeat(64)}),e=>e.code==='42501');
  const bucket=(await db.query("select public,file_size_limit from storage.buckets where id='nam-academy-videos'")).rows[0];assert.equal(bucket.public,false);assert.equal(Number(bucket.file_size_limit),MAX_VIDEO_BYTES);
+});
+
+test('removing an abandoned video frees its pending slot while retaining reserved bytes, metadata and stored history',async()=>{
+ let c=await course();const plans=[];
+ for(let i=0;i<3;i++){c=await read(c);plans.push(await reserve(c,'abandoned-video-'+i));}
+ await assert.rejects(reserve(await read(c),'abandoned-video-full'),error=>error.status===413);
+ await upload(plans[0]);c=await read(c);
+ await call(ids.founder,`academy/videos/${plans[0].id}/unlink`,'POST',{expectedRevision:c.revision});
+ const next=await reserve(await read(c),'recovered-video-slot');assert.equal(next.status,'pending');
+ const exported=await rpc(ids.founder,'nam_export_business',{w:ids.w}),retained=exported.data.nam_academy_videos.find(row=>row.id===plans[0].id);
+ assert(retained);assert.equal(retained.source_lesson_id,null);assert.equal(Number(retained.byte_size),bytes.length);assert(storage.objects.has(retained.storage_path));
+ assert.equal((await read(c)).videos.filter(video=>video.status==='pending').length,3);
+ await assert.rejects(call(ids.founder,`academy/videos/${plans[0].id}/finish`,'POST',{expectedRevision:(await read(c)).revision}),error=>[400,404,409].includes(error.status));
 });
 
 test('video attestation rechecks original sessions and optional MFA; ready object bytes cannot be replaced',async()=>{

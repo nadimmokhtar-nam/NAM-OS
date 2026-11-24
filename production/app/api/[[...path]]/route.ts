@@ -20,7 +20,7 @@ async function route(request:Request,parameters:RouteContext):Promise<Response>{
   const open=await publicAuth(request,'/'+path.join('/'));if(open)return open;
   const context=await getContext(request,{allowMfaPending:path[0]==='auth'||path.join('/')==='bootstrap'});
   if(!['GET','HEAD'].includes(request.method))assertMutation(context,request);
-  if(path.length===1&&path[0]==='bootstrap'&&request.method==='GET')return json(await bootstrap(context,new URL(request.url).searchParams.get('scope')||undefined));
+  if(path.length===1&&path[0]==='bootstrap'&&request.method==='GET'){const url=new URL(request.url);return json(await bootstrap(context,url.searchParams.get('scope')||undefined,url.searchParams.get('view')||'overview'));}
   const auth=await authAPI(context,request,'/'+path.join('/'));if(auth)return auth;
   // File URLs overlap task paths. Resolve the authorized private file routes
   // first; every dispatcher returns null for paths it does not own.

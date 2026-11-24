@@ -70,6 +70,7 @@ test('daily brief counts all authorized records, not the first page; Paris date 
  const personal=await rpc(ids.sales,'nam_daily_brief',[ids.w,'mine']);
  assert.equal(personal.today,today);assert.equal(personal.counts.overdue,120);assert.equal(personal.counts.blocked,1);assert.equal(personal.counts.upcoming,1);assert.equal(personal.counts.unscheduled,1);
  assert(personal.attention.some(t=>t.title==='Sales follow-up 120'));assert(personal.attention.length<=8);assert.deepEqual(personal.workload,[]);
+ assert(!personal.priorities.some(task=>task.due_date&&task.due_date<today),'Overdue work stays in Attention rather than appearing twice');
  const page=await rpc(ids.sales,'nam_task_page',[ids.w,{pageSize:20,focus:'overdue'}]);assert.equal(page.total,120);assert.equal(page.items.length,20);assert.equal(page.hasMore,true);
  const blocked=await rpc(ids.sales,'nam_task_page',[ids.w,{focus:'blocked'}]);assert.equal(blocked.items.length,1);assert.equal(blocked.items[0].title,'Sales follow-up 120');
  assert.equal((await rpc(ids.sales,'nam_task_page',[ids.w,{focus:'upcoming'}])).total,1);
@@ -82,4 +83,83 @@ test('daily brief counts all authorized records, not the first page; Paris date 
  assert.equal((await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).attention.filter(t=>t.section==='sales').length,0);
  await db.query('update nam_memberships set active=false where workspace_id=$1 and user_id=$2',[ids.w,ids.sales]);
  try{assert.equal((await rpc(ids.sales,'nam_daily_brief',[ids.w,'mine'])).counts.open,0);}finally{await db.query('update nam_memberships set active=true where workspace_id=$1 and user_id=$2',[ids.w,ids.sales]);}
+});
+
+test('daily sales summary uses the actual ledger, shared follow-up tasks and existing section access',async()=>{
+ const today=(await rpc(ids.sales,'nam_daily_brief',[ids.w,'mine'])).today;
+ for(const [type,day] of [['Meeting held',today],['Reply',today],['Research','2020-01-01'],['Proposal','2099-01-01']]){
+  await rpc(ids.sales,'nam_save_sales_activity',[ids.w,null,null,{type,context:'Real ledger context',outcome:'Recorded outcome',occurred_on:day},null]);
+ }
+ const brief=await rpc(ids.sales,'nam_daily_brief',[ids.w,'mine']);
+ assert.equal(brief.sales.length,1);assert.equal(brief.sales[0].owner_id,ids.sales);
+ assert.equal(brief.sales[0].week_activities,2);assert.equal(brief.sales[0].week_meetings,1);assert.equal(brief.sales[0].today_activities,2);assert.equal(brief.sales[0].last_activity,today);assert.equal(brief.sales[0].overdue_followups,120);
+ assert.deepEqual((await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).sales,[]);
+ assert.deepEqual((await rpc(ids.founder,'nam_daily_brief',[ids.w,'mine'])).sales,[]);
+ assert((await rpc(ids.founder,'nam_daily_brief',[ids.w,'studio'])).sales.some(row=>row.owner_id===ids.sales&&row.week_activities===2));
+ const grants=(await db.query("delete from nam_section_grants where workspace_id=$1 and user_id=$2 and section='sales' returning *",[ids.w,ids.sales])).rows;
+ try{assert.deepEqual((await rpc(ids.sales,'nam_daily_brief',[ids.w,'mine'])).sales,[]);assert(!(await rpc(ids.founder,'nam_daily_brief',[ids.w,'studio'])).sales.some(row=>row.owner_id===ids.sales));}
+ finally{for(const grant of grants)await db.query('insert into nam_section_grants(workspace_id,user_id,section,can_create) values($1,$2,$3,$4)',[grant.workspace_id,grant.user_id,grant.section,grant.can_create]);}
+});
+
+test('Founder reviews the exact sales report read; a resubmission cannot be marked reviewed by a stale action',async()=>{
+ const input={week_start:'2026-11-23',outcomes:'Three conversations advanced',blockers:'Need a portfolio example',next_week:'Follow up with a clear date'};
+ const report=await rpc(ids.sales,'nam_submit_sales_report',[ids.w,input]);
+ let brief=await rpc(ids.founder,'nam_daily_brief',[ids.w,'studio']);assert.equal(brief.review_counts.sales,1);assert(brief.reviews.some(row=>row.id===report.id&&row.kind==='sales_report'));assert(!('outcomes' in brief.reviews[0]));
+ assert.deepEqual((await rpc(ids.sales,'nam_daily_brief',[ids.w,'mine'])).reviews,[]);
+ const revised=await rpc(ids.sales,'nam_submit_sales_report',[ids.w,{...input,outcomes:'Updated with the fourth conversation'}]);
+ assert.notEqual(report.submitted_at,revised.submitted_at);
+ await assert.rejects(rpc(ids.founder,'nam_review_sales_report_checked',[ids.w,report.id,report.submitted_at]),error=>error.code==='40001');
+ assert.equal((await db.query('select reviewed_at from nam_sales_reports where id=$1',[report.id])).rows[0].reviewed_at,null);
+ await assert.rejects(rpc(ids.sales,'nam_review_sales_report_checked',[ids.w,report.id,revised.submitted_at]),denied);
+ await assert.rejects(rpc(ids.founder,'nam_review_sales_report_checked',[ids.w,report.id]),error=>error.code==='40001');
+ await rpc(ids.founder,'nam_review_sales_report_checked',[ids.w,report.id,revised.submitted_at]);
+ brief=await rpc(ids.founder,'nam_daily_brief',[ids.w,'studio']);assert.equal(brief.review_counts.sales,0);assert(!brief.reviews.some(row=>row.id===report.id));
+ const events=(await db.query("select id from nam_sales_events where record_id=$1 and kind='report_reviewed'",[report.id])).rows.length;
+ await rpc(ids.founder,'nam_review_sales_report_checked',[ids.w,report.id,revised.submitted_at]);
+ assert.equal((await db.query("select id from nam_sales_events where record_id=$1 and kind='report_reviewed'",[report.id])).rows.length,events);
+});
+
+test('practical reviews connect Founder decisions with the learner’s next action without changing completion history',async()=>{
+ const admin=(op,c,changes)=>rpc(ids.founder,'nam_academy_admin',[ids.w,op,c?.id||null,c?.revision||null,changes]);
+ let course=await admin('create',null,{title:'Daily review / light hierarchy',area:'3d',summary:'A practical standard'});
+ course=await admin('lesson',course,{title:'Read the image',body:'Describe the subject and the intended light.'});
+ course=await admin('publish',course,{});course=await admin('enroll',course,{member_id:ids.artist,course_version:1,mandatory:true});
+ const assignment=await admin('assignments',course,{course_version:1,title:'Explain the lighting choice',instructions:'Describe the reference, subject and next adjustment.'});
+ let response=await rpc(ids.artist,'nam_academy_submit',[ids.w,assignment.id,0,'A focused daylight study.']);
+ const submission=response.submissions[0];let brief=await rpc(ids.founder,'nam_daily_brief',[ids.w,'studio']);
+ assert.equal(brief.review_counts.academy,1);assert(brief.reviews.some(row=>row.id===submission.id&&row.title===assignment.title));
+ assert.deepEqual((await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).reviews,[]);
+ await rpc(ids.founder,'nam_academy_review',[ids.w,submission.id,submission.revision,'changes_requested','Identify the brightest surface and explain its role.']);
+ brief=await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine']);assert.equal(brief.learning_feedback.length,1);assert.equal(brief.learning_feedback[0].course_id,course.id);
+ assert.equal((await rpc(ids.founder,'nam_daily_brief',[ids.w,'studio'])).review_counts.academy,0);
+ response=await rpc(ids.artist,'nam_academy_submit',[ids.w,assignment.id,submission.revision+1,'The subject plane receives the strongest light; I will soften the competing highlight.']);
+ await assert.rejects(rpc(ids.founder,'nam_academy_review',[ids.w,submission.id,submission.revision,'approved','']),error=>error.code==='40001');
+ await rpc(ids.founder,'nam_academy_review',[ids.w,submission.id,response.submissions[0].revision,'approved','Clear and actionable.']);
+ assert.deepEqual((await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).learning_feedback,[]);
+ assert.equal((await db.query('select count(*)::int as n from nam_academy_submission_events where submission_id=$1',[submission.id])).rows[0].n,4);
+ assert.equal((await db.query('select count(*)::int as n from nam_course_completions where course_id=$1',[course.id])).rows[0].n,0,'Practical approval must not fabricate a reading completion');
+});
+
+test('production watch respects explicit participation and Attention includes a future-dated render awaiting review',async()=>{
+ const pid=await project({title:'Future review / explicit brief',due_date:'2030-01-08'});
+ const task=await rpc(ids.founder,'nam_create_task',[ids.w,{title:'Review the first courtyard image',section:'projects',owner_id:ids.artist,project_id:pid,production_stage:'Internal review',due_date:'2030-01-07',status:'Todo'},null]);
+ const brief=await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine']);
+ assert(brief.projects.some(row=>row.id===pid&&row.reviews===1));
+ assert((await rpc(ids.artist,'nam_task_page',[ids.w,{focus:'attention'}])).items.some(row=>row.id===task.id));
+ assert(!(await rpc(ids.artist,'nam_task_page',[ids.w,{focus:'today'}])).items.some(row=>row.id===task.id));
+ assert(!(await rpc(ids.sales,'nam_daily_brief',[ids.w,'mine'])).projects.some(row=>row.id===pid));
+ await rpc(ids.founder,'nam_save_project',[ids.w,pid,1,{member_ids:[],lead_id:ids.founder},null]);
+ assert(!(await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).projects.some(row=>row.id===pid));
+});
+
+test('business export retains project context, learning structure and grants without exporting another workspace or Auth',async()=>{
+ const pid=await project({title:'Export the approved brief'});
+ const other=(await db.query("insert into nam_projects(workspace_id,title,lead_id,created_by,create_payload) values($1,'A different workspace',$2,$2,'{}') returning id",[ids.otherW,ids.outsider])).rows[0].id;
+ const exported=await rpc(ids.founder,'nam_export_business',[ids.w]);assert.equal(exported.version,4);assert.equal(exported.videoBytesIncluded,false);assert.equal(exported.attachmentBytesIncluded,false);
+ assert(exported.data.nam_projects.some(row=>row.id===pid));assert(!exported.data.nam_projects.some(row=>row.id===other));
+ assert(exported.data.nam_project_members.some(row=>row.project_id===pid&&row.user_id===ids.artist));
+ assert(exported.data.nam_project_events.some(row=>row.project_id===pid));
+ for(const table of ['nam_course_modules','nam_course_version_resources','nam_academy_videos','nam_course_version_videos','nam_section_grants','nam_access_events'])assert(Array.isArray(exported.data[table]),table);
+ assert(!Object.keys(exported.data).some(name=>name.startsWith('auth')||/session|invite|integration_state/.test(name)));
+ await assert.rejects(rpc(ids.artist,'nam_export_business',[ids.w]),denied);
 });

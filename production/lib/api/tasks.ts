@@ -45,7 +45,7 @@ export async function taskPage(ctx:APIContext,input:URLSearchParams|Record<strin
  for(const [field,allowed] of [['section',SECTIONS],['status',STATUSES],['priority',PRIORITIES]] as Array<[string,string[]]>){if(source[field]){check(allowed.includes(String(source[field])),`Invalid ${field} filter.`);filters[field]=source[field];}}
  if(source.owner)filters.owner=uuid(source.owner);
  if(source.project_id)filters.project_id=uuid(source.project_id);
- if(source.focus){check(['open','today','upcoming','blocked','overdue','unscheduled','completed'].includes(String(source.focus)),'Invalid work view.');filters.focus=source.focus;}
+ if(source.focus){check(['open','attention','today','upcoming','blocked','overdue','unscheduled','completed'].includes(String(source.focus)),'Invalid work view.');filters.focus=source.focus;}
  if(source.search)filters.search=text(source.search,'Search',200,false);
  const result=await rpc(ctx,'nam_task_page',{w:ctx.workspaceId,filters});
  return {...result,items:(result?.items||[]).map((row:Record<string,unknown>)=>decorate(ctx,row))};
