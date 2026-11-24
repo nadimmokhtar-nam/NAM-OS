@@ -46,6 +46,13 @@ test('deployment update waits for an explicit reload confirmation instead of dis
 test('offline state makes the no-queue limitation visible and sends no record mutations',async()=>{
   const h=await harness();h.navigator.onLine=false;h.events.get('offline')();const alert=find(h.render(),node=>node.props.role==='alert');assert(alert);assert(alert.props.children.includes('Changes are not queued'));assert(h.requests.every(request=>request.url==='/app-version.json'&&!request.init.body));h.cleanup();
 });
+test('installation has its own footer while offline, update and status notices keep their viewport region',async()=>{
+  const h=await harness({version:'build-ffffffffffffffff'});h.navigator.onLine=false;h.events.get('offline')();h.states[4]='Installation status remains visible.';
+  const tree=h.render(),slot=find(tree,node=>node.type==='footer'&&node.props.className==='pwa-install-slot'),notices=find(tree,node=>node.type==='aside'&&node.props.className.split(' ').includes('pwa-tools'));
+  assert(slot);assert(notices);assert(button(slot,'Install NAM OS'));assert.equal(button(notices,'Install NAM OS'),null);
+  assert(find(notices,node=>node.props.role==='alert'));assert(button(notices,'Reload for update'));assert(find(notices,node=>node.props.role==='status'&&node.props.children==='Installation status remains visible.'));
+  h.events.get('appinstalled')();const installed=h.render();assert.equal(find(installed,node=>node.props.className==='pwa-install-slot'),null);assert(find(installed,node=>node.props.className==='pwa-tools pwa-tools-installed'));assert(find(installed,node=>node.props.role==='alert'));assert(button(installed,'Reload for update'));h.cleanup();
+});
 
 test('self-hosted Inter faces point to actual licensed WOFF2 files',async()=>{
   const css=await readFile(new URL('../app/styles.css',import.meta.url),'utf8'),license=await readFile(new URL('../public/fonts/LICENSE-Inter.txt',import.meta.url),'utf8');assert(license.includes('SIL OPEN FONT LICENSE'));assert(license.includes('The Inter Project Authors'));
