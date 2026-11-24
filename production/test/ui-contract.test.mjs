@@ -223,3 +223,15 @@ test('owners without archive capability cannot see or invoke archive and restore
     await assert.rejects(()=>h.ui.action({dataset:{action:'archive-task'}}),/permission to archive or restore/);assert(!h.requests.some(r=>['PATCH','POST','DELETE'].includes(r.init.method)));
   }
 });
+
+test('fresh empty file sentinels keep an untouched task dialog clean',async()=>{
+ const h=await harness(),dialog=h.nodes.get('#dialog');let stamp=1000;const form={elements:[{name:'file',type:'file'}],get values(){return {file:{name:'',size:0,type:'application/octet-stream',lastModified:stamp++}};}};dialog.querySelectorAll=s=>s==='form'?[form]:[];h.ui.openDialog('Task attachments','<form></form>');assert.equal(h.ui.dirtyDialog(),false);h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert.equal(dialog.open,false);
+});
+test('selected files still mark the task dialog dirty including named zero-byte files',async()=>{
+ for(const size of[0,10]){const h=await harness(),dialog=h.nodes.get('#dialog'),form={elements:[{name:'file',type:'file'}],values:{file:{name:'',size:0,type:'application/octet-stream',lastModified:1000}}};dialog.querySelectorAll=s=>s==='form'?[form]:[];h.ui.openDialog('Task attachments','<form></form>');form.values.file={name:'notes.txt',size,type:'text/plain',lastModified:1001};assert.equal(h.ui.dirtyDialog(),true);}
+});
+test('the actual menu click listener retains navigation focus when opening and returns trigger focus when closing',async()=>{
+ const h=await harness(),trigger=node(),nav=node();trigger.id='mobile-menu-trigger';trigger.dataset.action='menu';trigger.focus=()=>h.document.activeElement=trigger;nav.focus=()=>h.document.activeElement=nav;trigger.closest=selector=>selector==='[data-action]'?trigger:null;h.nodes.set('#mobile-menu-trigger',trigger);h.nodes.set('.sidebar .nav-link',nav);
+ await h.dispatch('click',{target:trigger,preventDefault(){}});assert.equal(h.ui.state.menu,true);assert.equal(h.document.activeElement,nav);
+ await h.dispatch('click',{target:trigger,preventDefault(){}});assert.equal(h.ui.state.menu,false);assert.equal(h.document.activeElement,trigger);
+});
