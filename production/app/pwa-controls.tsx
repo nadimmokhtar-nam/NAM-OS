@@ -33,12 +33,12 @@ export function PwaControls(){
     finally{setBusy(false);}
   }
   return <>
-    <aside className="pwa-tools" aria-label="NAM OS application">
+    <aside className={`pwa-tools${installed?' pwa-tools-installed':''}`} aria-label="NAM OS application notices">
       {offline&&<p className="pwa-notice" role="alert">You’re offline. Reconnect before saving. Changes are not queued.</p>}
       {update&&<div className="pwa-notice"><p>A NAM OS update is available. Save your work before reloading.</p><button type="button" className="button small" onClick={()=>{if(window.confirm('Save your work before reloading. Reload NAM OS now?'))window.location.reload();}}>Reload for update</button></div>}
-      {!installed&&<button type="button" className="button small pwa-install" disabled={busy} aria-busy={busy} onClick={()=>void install()}>Install NAM OS</button>}
       {notice&&<p className="pwa-notice" role="status">{notice}</p>}
     </aside>
+    {!installed&&<footer className="pwa-install-slot" aria-label="Install NAM OS"><button type="button" className="button small pwa-install" disabled={busy} aria-busy={busy} onClick={()=>void install()}>Install NAM OS</button></footer>}
     <dialog ref={help} className="pwa-help" aria-labelledby="pwa-install-title"><div className="dialog-head"><h2 id="pwa-install-title">Install NAM OS</h2><button type="button" className="button small" onClick={()=>help.current?.close()}>Close</button></div><div className="dialog-body"><p>Open NAM OS in an up-to-date Chrome or Edge browser on your Mac or Windows computer. Use the install icon in the address bar, or the browser menu’s option to install this page as an app.</p><hr className="rule"/><p>The app opens in its own window. Your NAM account and permissions stay the same. A connection is required; this release does not support offline editing.</p></div></dialog>
   </>;
 }
