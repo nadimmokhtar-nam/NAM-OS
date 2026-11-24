@@ -26,7 +26,11 @@ PR #2 adds an ephemeral local Supabase Docker stack in GitHub Actions. It uses a
 
 The required coverage includes six HTTP security checks and thirteen browser/concurrency cases, with role boundaries, persistent tasks and learning, stale/offline actions, five authenticated viewports and eight overlapping user sessions. Missing/skipped coverage cannot produce a completed evidence report. Only sanitized results and explicitly allowlisted post-login screenshots can be artifacts; private credentials and raw provider/server logs remain outside the repository and artifacts.
 
-Static fixture/reporter contracts and test discovery have passed. The first real-service workflow is executing; no real-service pass is claimed by this checkpoint. **Zero of four full release QA cycles are certified.** The larger 25-user/10,000-task sustained-load test, provider reconciliation, independent backup/object restore and production regression remain separate gates.
+The first real-service execution completed at source `c40356b21c12e4432317b23bcdf7f2fcb6a465e6`: all six HTTP security checks passed; thirteen browser/concurrency cases ran, with ten passing and three failing. All eight role login/navigation/logout cases and stale/offline task handling passed. Task creation/lifecycle, Academy authoring/lifecycle and the first mobile viewport case failed and are being investigated; no full UI workflow pass is assumed from earlier contract tests.
+
+The actual eight-session burst passed 190 counted HTTP requests (82 reads, 108 writes), with 16 overlapping mutations, zero observed permission leaks and one expected stale-edit conflict. Read p95 was 250.69 ms and mutation p95 282.53 ms in this disposable CI environment. This does not establish NAM cloud or sustained-load capacity. Retained sanitized evidence is under `docs/evidence/real-service-run-1`; run: https://github.com/nadimmokhtar-nam/NAM-OS/actions/runs/45466454347.
+
+**Zero of four full release QA cycles are certified.** The larger 25-user/10,000-task sustained-load test, provider reconciliation, independent backup/object restore and production regression remain separate gates.
 
 ## Hosting and external dependencies
 

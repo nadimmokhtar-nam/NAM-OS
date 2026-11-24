@@ -72,10 +72,22 @@ for(const key of KEYS)test(`AUTH_${key.toUpperCase()} role navigation, protected
 test('TASK_LIFECYCLE founder assignment, sales accountability, archive, delete and restore',async({browser},info)=>{
   const owner=await openAccount(browser,'founder',info),worker=await openAccount(browser,'sales_1',info),title=`${tag} accountable task`,subtask=`${tag} prepare review`,comment='Synthetic sales outcome: next review confirmed.';
   try{
-    stage(info,'create_assigned_task');await visit(owner.page,'sales','Sales');await owner.page.getByRole('button',{name:'Create task',exact:true}).click();let dialog=owner.page.locator('#dialog');
-    await dialog.getByLabel('Task name',{exact:true}).fill(title);await dialog.getByLabel('Description',{exact:true}).fill('Synthetic task used to test the actual saved team workflow.');await dialog.getByLabel('Section',{exact:true}).selectOption('sales');await dialog.getByLabel('Owner',{exact:true}).selectOption(worker.account.id);await dialog.getByLabel('Priority',{exact:true}).selectOption('High');await dialog.getByLabel('Due date',{exact:true}).fill(new Date(Date.now()+86400000).toISOString().slice(0,10));
-    const created=owner.page.waitForResponse(r=>new URL(r.url()).pathname==='/api/tasks'&&r.request().method()==='POST');await dialog.getByRole('button',{name:'Create task',exact:true}).click();const createdResponse=await created;expect(createdResponse.status()).toBe(201);const task=await createdResponse.json();await expect(dialog.getByLabel('Task name',{exact:true})).toHaveValue(title);
-    await dialog.locator('form[data-form="subtask"] input[name="title"]').fill(subtask);await dialog.locator('form[data-form="subtask"]').getByRole('button',{name:'Add',exact:true}).click();await expect(dialog.getByLabel(subtask,{exact:true})).toBeVisible();await closeDialog(owner.page);
+    stage(info,'task_sales_route');await visit(owner.page,'sales','Sales');
+    stage(info,'task_open_create');await owner.page.getByRole('button',{name:'Create task',exact:true}).click();let dialog=owner.page.locator('#dialog');
+    stage(info,'task_fill_name');await dialog.getByLabel('Task name',{exact:true}).fill(title);
+    stage(info,'task_fill_description');await dialog.getByLabel('Description',{exact:true}).fill('Synthetic task used to test the actual saved team workflow.');
+    stage(info,'task_select_section');await dialog.getByLabel('Section',{exact:true}).selectOption('sales');
+    stage(info,'task_select_owner');await dialog.getByLabel('Owner',{exact:true}).selectOption(worker.account.id);
+    stage(info,'task_select_priority');await dialog.getByLabel('Priority',{exact:true}).selectOption('High');
+    stage(info,'task_fill_due_date');await dialog.getByLabel('Due date',{exact:true}).fill(new Date(Date.now()+86400000).toISOString().slice(0,10));
+    const created=owner.page.waitForResponse(r=>new URL(r.url()).pathname==='/api/tasks'&&r.request().method()==='POST');
+    stage(info,'task_submit_create');await dialog.getByRole('button',{name:'Create task',exact:true}).click();
+    stage(info,'task_created_response');const createdResponse=await created;expect(createdResponse.status()).toBe(201);const task=await createdResponse.json();
+    stage(info,'task_created_dialog');await expect(dialog.getByLabel('Task name',{exact:true})).toHaveValue(title);
+    stage(info,'task_fill_subtask');await dialog.locator('form[data-form="subtask"] input[name="title"]').fill(subtask);
+    stage(info,'task_submit_subtask');await dialog.locator('form[data-form="subtask"]').getByRole('button',{name:'Add',exact:true}).click();
+    stage(info,'task_subtask_visible');await expect(dialog.getByLabel(subtask,{exact:true})).toBeVisible();
+    stage(info,'task_close_creator_dialog');await closeDialog(owner.page);
     stage(info,'sales_member_responds');await visit(worker.page,'tasks','The work, made visible.');await openTask(worker.page,title);dialog=worker.page.locator('#dialog');await dialog.getByLabel('Add a comment',{exact:true}).fill(comment);await dialog.getByRole('button',{name:'Add comment',exact:true}).click();await expect(dialog.locator('.comment p').filter({hasText:comment})).toBeVisible();await expect(dialog.locator('form[data-form="comment"] button[type="submit"]')).toBeFocused();
     const checkbox=dialog.getByLabel(subtask,{exact:true});await checkbox.focus();await worker.page.keyboard.press('Space');await expect(checkbox).toBeChecked();await expect(checkbox).toBeFocused();await dialog.getByLabel('Status',{exact:true}).selectOption('Done');await dialog.getByRole('button',{name:'Save changes',exact:true}).click();await expect(dialog.getByLabel('Status',{exact:true})).toHaveValue('Done');await closeDialog(worker.page);await worker.page.reload();await expect(worker.page.locator('.task-row').filter({hasText:title}).locator('.badge')).toHaveText('Done');
     stage(info,'board_list_consistency');await worker.page.getByRole('button',{name:'Board',exact:true}).click();const doneCard=worker.page.locator('.board-col[data-drop="Done"] .task-card').filter({hasText:title});await expect(doneCard).toHaveCount(1);await doneCard.click();await expect(worker.page.locator('#dialog').getByLabel('Status',{exact:true})).toHaveValue('Done');await closeDialog(worker.page);await worker.page.getByRole('button',{name:'List',exact:true}).click();await expect(worker.page.locator('.task-row').filter({hasText:title}).locator('.badge')).toHaveText('Done');
@@ -101,10 +113,30 @@ test('TASK_FAILURES stale edits and offline saves retain drafts without overwrit
 test('ACADEMY_LIFECYCLE authored modules, private resource, publication, enrollment and personal progress',async({browser},info)=>{
   const owner=await openAccount(browser,'founder',info),learner=await openAccount(browser,'sales_1',info),title=`${tag} sales onboarding`,moduleTitle='Discovery module',lessonTitle='Prepare the discovery call',resourceTitle='Call preparation checklist',resourceBody='Synthetic resource: confirm scope, owner and next action.';
   try{
-    stage(info,'academy_authoring');await visit(owner.page,'academy','Academy');await owner.page.getByRole('button',{name:'Manage courses',exact:true}).click();await owner.page.getByRole('button',{name:'Create course',exact:true}).click();let dialog=owner.page.locator('#dialog');await dialog.getByLabel('Course title',{exact:true}).fill(title);await dialog.getByLabel('Learning area',{exact:true}).selectOption('sales');await dialog.getByLabel('Summary',{exact:true}).fill('Synthetic written onboarding for isolated browser testing.');await dialog.getByRole('button',{name:'Create draft',exact:true}).click();await expect(owner.page.locator('[data-academy-form="metadata"]')).toBeVisible();
-    await owner.page.getByRole('button',{name:'Add module',exact:true}).click();await dialog.getByLabel('Module title',{exact:true}).fill(moduleTitle);await dialog.getByRole('button',{name:'Add module',exact:true}).click();await expect(owner.page.locator('.data-row h3').filter({hasText:moduleTitle})).toBeVisible();
-    await owner.page.getByRole('button',{name:'Add lesson',exact:true}).click();await dialog.getByLabel('Lesson title',{exact:true}).fill(lessonTitle);await dialog.getByLabel('Written lesson',{exact:true}).fill('Read the brief, clarify the scope and assign the next follow-up.');await dialog.getByRole('button',{name:'Add lesson',exact:true}).click();await owner.page.locator('.data-row').filter({has:owner.page.getByRole('heading',{name:'1. '+lessonTitle,exact:true})}).getByRole('button',{name:'Choose module',exact:true}).click();await dialog.getByLabel('Module',{exact:true}).selectOption({label:moduleTitle});await dialog.getByRole('button',{name:'Save lesson module',exact:true}).click();
-    await owner.page.getByRole('button',{name:'Add text resource',exact:true}).click();await dialog.getByLabel('Resource title',{exact:true}).fill(resourceTitle);await dialog.getByLabel('Available with',{exact:true}).selectOption({label:lessonTitle});await dialog.getByLabel('Written resource content',{exact:true}).fill(resourceBody);await dialog.getByRole('button',{name:'Add text resource',exact:true}).click();
+    stage(info,'academy_route');await visit(owner.page,'academy','Academy');
+    stage(info,'academy_manage');await owner.page.getByRole('button',{name:'Manage courses',exact:true}).click();
+    stage(info,'academy_open_create');await owner.page.getByRole('button',{name:'Create course',exact:true}).click();let dialog=owner.page.locator('#dialog');
+    stage(info,'academy_fill_title');await dialog.getByLabel('Course title',{exact:true}).fill(title);
+    stage(info,'academy_select_area');await dialog.getByLabel('Learning area',{exact:true}).selectOption('sales');
+    stage(info,'academy_fill_summary');await dialog.getByLabel('Summary',{exact:true}).fill('Synthetic written onboarding for isolated browser testing.');
+    stage(info,'academy_submit_draft');await dialog.getByRole('button',{name:'Create draft',exact:true}).click();
+    stage(info,'academy_draft_visible');await expect(owner.page.locator('[data-academy-form="metadata"]')).toBeVisible();
+    stage(info,'academy_open_module');await owner.page.getByRole('button',{name:'Add module',exact:true}).click();
+    stage(info,'academy_fill_module');await dialog.getByLabel('Module title',{exact:true}).fill(moduleTitle);
+    stage(info,'academy_submit_module');await dialog.getByRole('button',{name:'Add module',exact:true}).click();
+    stage(info,'academy_module_visible');await expect(owner.page.locator('.data-row h3').filter({hasText:moduleTitle})).toBeVisible();
+    stage(info,'academy_open_lesson');await owner.page.getByRole('button',{name:'Add lesson',exact:true}).click();
+    stage(info,'academy_fill_lesson_title');await dialog.getByLabel('Lesson title',{exact:true}).fill(lessonTitle);
+    stage(info,'academy_fill_lesson_body');await dialog.getByLabel('Written lesson',{exact:true}).fill('Read the brief, clarify the scope and assign the next follow-up.');
+    stage(info,'academy_submit_lesson');await dialog.getByRole('button',{name:'Add lesson',exact:true}).click();
+    stage(info,'academy_choose_module');await owner.page.locator('.data-row').filter({has:owner.page.getByRole('heading',{name:'1. '+lessonTitle,exact:true})}).getByRole('button',{name:'Choose module',exact:true}).click();
+    stage(info,'academy_select_module');await dialog.getByLabel('Module',{exact:true}).selectOption({label:moduleTitle});
+    stage(info,'academy_save_module');await dialog.getByRole('button',{name:'Save lesson module',exact:true}).click();
+    stage(info,'academy_open_resource');await owner.page.getByRole('button',{name:'Add text resource',exact:true}).click();
+    stage(info,'academy_fill_resource_title');await dialog.getByLabel('Resource title',{exact:true}).fill(resourceTitle);
+    stage(info,'academy_select_resource_lesson');await dialog.getByLabel('Available with',{exact:true}).selectOption({label:lessonTitle});
+    stage(info,'academy_fill_resource_body');await dialog.getByLabel('Written resource content',{exact:true}).fill(resourceBody);
+    stage(info,'academy_submit_resource');await dialog.getByRole('button',{name:'Add text resource',exact:true}).click();
     stage(info,'academy_publish_and_enroll');await owner.page.getByRole('button',{name:'Review and publish',exact:true}).click();await dialog.getByRole('button',{name:'Publish version 1',exact:true}).click();await owner.page.getByRole('button',{name:'Assign learner',exact:true}).click();await dialog.getByLabel('Learner',{exact:true}).selectOption(learner.account.id);await dialog.getByLabel('Mandatory onboarding or training',{exact:true}).check();await dialog.getByRole('button',{name:'Save enrollment',exact:true}).click();
     stage(info,'academy_learner_and_download');await visit(learner.page,'academy','Academy');for(const area of ['Sales','3D','Post-production'])await expect(learner.page.locator('[data-action="area"]').filter({hasText:area})).toHaveCount(1);const card=learner.page.locator('.course-card').filter({hasText:title});await expect(card).toBeVisible();await card.getByRole('button',{name:'Start learning',exact:true}).click();await expect(learner.page.locator('.lesson-body h2')).toHaveText(lessonTitle);await expect(learner.page.locator('.lesson-module')).toHaveText(moduleTitle);
     const downloadEvent=learner.page.waitForEvent('download');await learner.page.getByRole('link',{name:'Download TXT',exact:true}).click();const download=await downloadEvent,stream=await download.createReadStream(),chunks=[];for await(const chunk of stream)chunks.push(chunk);expect(Buffer.concat(chunks).toString('utf8')).toBe(resourceBody);expect(download.suggestedFilename()).toMatch(/\.txt$/);
@@ -118,8 +150,13 @@ test('RESPONSIVE_KEYBOARD authenticated layout at five widths and native dialog/
   try{
     await createFixtureTask(owner.context,title,owner.account.id);await visit(owner.page,'tasks','The work, made visible.');
     for(const viewport of VIEWPORTS){
-      stage(info,`viewport_${viewport.width}x${viewport.height}`);await owner.page.setViewportSize(viewport);await expect(owner.page.locator('#main h1')).toHaveText('The work, made visible.');await owner.page.evaluate(()=>document.fonts.ready);
-      expect(await owner.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await expect(owner.page.locator('#app .topbar')).toBeVisible();await expect(owner.page.locator('.task-open').filter({hasText:title})).toBeVisible();
+      const vp=`vp_${viewport.width}x${viewport.height}`;
+      stage(info,vp+'_set_size');await owner.page.setViewportSize(viewport);
+      stage(info,vp+'_heading');await expect(owner.page.locator('#main h1')).toHaveText('The work, made visible.');
+      stage(info,vp+'_fonts');await owner.page.evaluate(()=>document.fonts.ready);
+      stage(info,vp+'_no_horizontal_overflow');expect(await owner.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+      stage(info,vp+'_header_visible');await expect(owner.page.locator('#app .topbar')).toBeVisible();
+      stage(info,vp+'_task_visible');await expect(owner.page.locator('.task-open').filter({hasText:title})).toBeVisible();
       if(viewport.width===1440){const geometry=await owner.page.evaluate(()=>({sidebar:document.querySelector('.sidebar').getBoundingClientRect().width,header:document.querySelector('.topbar').getBoundingClientRect().height,titleLeft:document.querySelector('#main h1').getBoundingClientRect().left,panelLeft:document.querySelector('#task-results>.panel').getBoundingClientRect().left}));expect(Math.abs(geometry.sidebar-240)).toBeLessThanOrEqual(1);expect(Math.abs(geometry.header-72)).toBeLessThanOrEqual(1);expect(Math.abs(geometry.titleLeft-264)).toBeLessThanOrEqual(1);expect(Math.abs(geometry.titleLeft-geometry.panelLeft)).toBeLessThanOrEqual(1);}
       if(viewport.width<=700){await expect(owner.page.locator('#studio-navigation')).toHaveJSProperty('inert',true);const trigger=owner.page.getByRole('button',{name:'Open navigation',exact:true});await trigger.focus();await owner.page.keyboard.press('Enter');await expect(owner.page.locator('#studio-navigation')).toHaveJSProperty('inert',false);await expect(owner.page.locator('.sidebar .nav-link').first()).toBeFocused();await owner.page.keyboard.press('Escape');await expect(trigger).toBeFocused();await expect(owner.page.locator('#studio-navigation')).toHaveJSProperty('inert',true);}
       if(process.env.NAM_E2E_SAFE_SCREENSHOTS==='1'){
