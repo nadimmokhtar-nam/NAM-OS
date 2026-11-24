@@ -10,14 +10,15 @@ function node(){return {id:'',innerHTML:'',textContent:'',open:false,disabled:fa
 const actor={id:'founder-1',name:'Nadim',initials:'NM',role:'founder'},omar={id:'sales-1',name:'Omar',initials:'OM',role:'sales'};
 function bootstrap(){return {actor,members:[actor,omar],sections:['sales','academy','projects','library','team','operations'],tasks:[],courses:[],notifications:[],today:'2026-11-24',mode:'authenticated',capabilities:{productionAuth:true,database:'postgresql',projects:'tasks_only',library:'tasks_only'},roleLabels:{founder:'Founder',sales:'Sales Representative'},csrf:'test-csrf'};}
 function task(section='projects'){return {id:'task-1',number:1,title:'Review project lighting',description:'Original brief',section,status:'Todo',priority:'High',owner_id:actor.id,owner_name:actor.name,owner_initials:actor.initials,version:1,due_date:'2026-11-25',comments:[],subtasks:[],events:[]};}
-async function harness({intercept,sales}={}){
+async function harness({intercept,sales,defaultTimeZone}={}){
   const model=bootstrap(),nodes=new Map(['#app','#main','#dialog','#toast','#studio-navigation','#task-results'].map(id=>[id,node()])),listeners={},requests=[],redirects=[],windowEvents={};let confirmValue=true;
   const document={activeElement:node(),title:'',querySelector(selector){return nodes.get(selector)||null;},getElementById(id){return nodes.get('#'+id)||null;},querySelectorAll(){return [];},addEventListener(type,listener){(listeners[type]??=[]).push(listener);}};
   for(const [id,element] of nodes){element.id=id.slice(1);element.focus=()=>document.activeElement=element;}
   const location={hash:'#overview',origin:'https://nam.example',assign(url){redirects.push(url);},reload(){redirects.push('reload');}};
   const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>structuredClone(body)});
   const fixtureSales=sales||{activities:[],reports:[],targets:[],activity_total:0,activity_counts:[],activities_truncated:false};
-  const sandbox=vm.createContext({console,Intl,Date,URL,URLSearchParams,AbortController,WeakSet,structuredClone,setTimeout:()=>1,clearTimeout(){},confirm:()=>confirmValue,location,history:{replaceState(a,b,url){location.hash=url;}},window:{addEventListener(type,listener){windowEvents[type]=listener;},matchMedia(){return {matches:false};},scrollTo(){},location},document,FormData:class {constructor(form){this.values=form.values||{};}*[Symbol.iterator](){yield*Object.entries(this.values);}},fetch:async(url,init={})=>{
+  const runtimeIntl=defaultTimeZone?Object.create(Intl):Intl;if(defaultTimeZone)runtimeIntl.DateTimeFormat=function(locales,options={}){return new Intl.DateTimeFormat(locales,{timeZone:defaultTimeZone,...options});};
+  const sandbox=vm.createContext({console,Intl:runtimeIntl,Date,URL,URLSearchParams,AbortController,WeakSet,structuredClone,setTimeout:()=>1,clearTimeout(){},confirm:()=>confirmValue,location,history:{replaceState(a,b,url){location.hash=url;}},window:{addEventListener(type,listener){windowEvents[type]=listener;},matchMedia(){return {matches:false};},scrollTo(){},location},document,FormData:class {constructor(form){this.values=form.values||{};}*[Symbol.iterator](){yield*Object.entries(this.values);}},fetch:async(url,init={})=>{
     requests.push({url,init});const overridden=await intercept?.(url,init,model,response);if(overridden)return overridden;
     if(url==='/api/bootstrap')return response(model);
     if(url.startsWith('/api/tasks?')){const section=new URL(url,'https://nam.example').searchParams.get('section');return response({items:section?[task(section)]:[],total:section?1:0,page:1,pageSize:100,hasMore:false});}
@@ -136,6 +137,34 @@ async function editInlineMetadata(h){
   await h.dispatch('input',{target:{id:'academy-title',closest(selector){return selector==='[data-academy-form="metadata"]'?form:null;}}});assert(h.ui.academyAdmin.hasUnsavedChanges());
 }
 
+const salesActivity=(overrides={})=>({id:'activity-1',owner_id:omar.id,type:'Reply',context:'Approved company',outcome:'Reply received',note:'Original note',occurred_on:'2026-11-24',version:3,...overrides});
+const manualData=(overrides={})=>({activities:[salesActivity()],reports:[],targets:[],activity_total:1,activity_counts:[],...overrides});
+function correctionForm(kind,values,dataset={}){const error=node(),submit=node(),form={dataset:{form:kind,...dataset},values,matches(){return false;},querySelector(selector){return selector==='.form-error'?error:selector==='[type=submit]'?submit:null;}};return {form,error,submit};}
+
+test('manual activity corrections and deletions use the captured revision and refresh totals',async()=>{
+  const sales=manualData();const h=await harness({sales,intercept:(url,init,model,response)=>url==='/api/sales/activities/activity-1'&&['PATCH','DELETE'].includes(init.method)?response(manualData({activities:[],activity_total:0})):null});h.ui.state.sales=structuredClone(sales);h.ui.state.view='sales';h.ui.state.tab='activities';h.ui.render();assert(h.nodes.get('#app').innerHTML.includes('data-action="edit-activity"'));
+  await h.ui.action({dataset:{action:'edit-activity',id:'activity-1'}});assert(h.nodes.get('#dialog').innerHTML.includes('data-version="3"'));const f=correctionForm('activity-edit',{type:'Meeting held',context:'Corrected company',outcome:'Meeting booked',note:'Updated note',occurred_on:'2026-11-25'},{id:'activity-1',version:'3'});await h.dispatch('submit',{target:f.form,preventDefault(){}});
+  const edit=h.requests.find(r=>r.init.method==='PATCH');assert.equal(JSON.parse(edit.init.body).expectedVersion,3);assert.equal(JSON.parse(edit.init.body).changes.note,'Updated note');assert.equal(h.ui.state.sales.activity_total,0);
+  h.ui.state.sales=structuredClone(sales);h.setConfirm(false);await h.ui.action({dataset:{action:'delete-activity',id:'activity-1',version:'3'}});assert(!h.requests.some(r=>r.init.method==='DELETE'));
+  h.setConfirm(true);await h.ui.action({dataset:{action:'delete-activity',id:'activity-1',version:'3'}});assert.equal(JSON.parse(h.requests.find(r=>r.init.method==='DELETE').init.body).expectedVersion,3);assert.equal(h.ui.state.sales.activity_total,0);
+});
+
+test('activity conflict preserves input and offers explicit reload instead of silently retrying',async()=>{
+  const h=await harness({intercept:(url,init,model,response)=>init.method==='PATCH'?response({error:'Record changed elsewhere'},409):null});h.ui.state.sales=manualData();await h.ui.action({dataset:{action:'edit-activity',id:'activity-1'}});const f=correctionForm('activity-edit',{type:'Reply',context:'Unsaved correction',outcome:'Retain this',note:'Keep me',occurred_on:'2026-11-24'},{id:'activity-1',version:'3'});await h.dispatch('submit',{target:f.form,preventDefault(){}});assert.equal(f.form.values.note,'Keep me');assert(f.error.innerHTML.includes('Record changed elsewhere'));assert(f.error.innerHTML.includes('data-action="reload-sales"'));assert.equal(h.requests.filter(r=>r.init.method==='PATCH').length,1);assert.equal(f.submit.disabled,false);
+});
+
+test('sales representatives cannot open correction controls for another owner',async()=>{
+  const h=await harness();h.ui.state.data.actor=omar;h.ui.state.view='sales';h.ui.state.tab='activities';h.ui.state.sales=manualData({activities:[salesActivity({owner_id:actor.id})]});h.ui.render();assert(!h.nodes.get('#app').innerHTML.includes('data-action="edit-activity"'));await assert.rejects(()=>h.ui.action({dataset:{action:'edit-activity',id:'activity-1'}}),/not available/);assert(!h.requests.some(r=>r.init.method==='PATCH'||r.init.method==='DELETE'));
+});
+
+test('editing an existing founder target sends the captured revision and immutable target key',async()=>{
+  const target={id:'target-1',owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:5,version:7};const h=await harness({intercept:(url,init,model,response)=>url==='/api/sales/targets'&&init.method==='POST'?response(manualData({targets:[{...target,target:8,version:8}]})):null});h.ui.state.sales=manualData({targets:[target]});await h.ui.action({dataset:{action:'edit-target',id:'target-1'}});assert(h.nodes.get('#dialog').innerHTML.includes('data-version="7"'));const f=correctionForm('target',{owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:'8'},{id:'target-1',version:'7'});await h.dispatch('submit',{target:f.form,preventDefault(){}});assert.deepEqual(JSON.parse(h.requests.find(r=>r.url==='/api/sales/targets').init.body),{owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:8,expectedVersion:7});assert.equal(h.ui.state.sales.targets[0].version,8);
+});
+
+test('stale target correction remains editable and duplicate create never overwrites an existing target',async()=>{
+  const target={id:'target-1',owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:5,version:7};const h=await harness({intercept:(url,init,model,response)=>url==='/api/sales/targets'?response({error:'Target changed elsewhere'},409):null});h.ui.state.sales=manualData({targets:[target]});const values={owner_id:omar.id,metric:target.metric,period:target.period,target:'9'},f=correctionForm('target',{...values},{id:target.id,version:'7'});await h.dispatch('submit',{target:f.form,preventDefault(){}});assert(f.error.innerHTML.includes('Reload sales records'));assert.equal(f.form.values.target,'9');const count=h.requests.filter(r=>r.url==='/api/sales/targets').length;const fresh=correctionForm('target',{...values});await h.dispatch('submit',{target:fresh.form,preventDefault(){}});assert(fresh.error.innerHTML.includes('use Edit target'));assert.equal(h.requests.filter(r=>r.url==='/api/sales/targets').length,count);
+});
+
 test('cancelled user logout sends no mutation and preserves actual Academy metadata drafts',async()=>{
   const h=await harness();await editInlineMetadata(h);h.setConfirm(false);await h.ui.action({dataset:{action:'logout'}});assert(!h.requests.some(r=>r.url==='/api/auth/logout'));assert(h.ui.state.data);assert(h.ui.academyAdmin.hasUnsavedChanges());
   h.setConfirm(true);await h.ui.action({dataset:{action:'logout'}});assert.equal(h.requests.filter(r=>r.url==='/api/auth/logout').length,1);assert.equal(h.ui.state.data,null);assert.equal(h.ui.academyAdmin.hasUnsavedChanges(),false);
@@ -150,4 +179,33 @@ test('beforeunload is prevented only for active unsaved work and not after disca
 
 test('unexpected session expiry clears private drafts without asking to discard them',async()=>{
   const h=await harness({intercept:(url,init,model,response)=>url==='/api/expired'?response({error:'Session expired'},401):null});await editInlineMetadata(h);h.setConfirm(false);await assert.rejects(()=>h.ui.api('/expired'),/Session expired/);assert.equal(h.ui.state.data,null);assert.equal(h.ui.academyAdmin.hasUnsavedChanges(),false);assert(h.redirects.some(url=>url.startsWith('/login')));
+});
+
+test('date-only task deadlines preserve the calendar date in UTC+14 browsers',async()=>{
+  const h=await harness({defaultTimeZone:'Pacific/Kiritimati',intercept:(url,init,model,response)=>url.startsWith('/api/tasks?')?response({items:[{...task(),due_date:'2026-11-23'}],total:1,page:1,pageSize:100,hasMore:false}):null});h.location.hash='#tasks';await h.ui.navigate();const html=h.nodes.get('#app').innerHTML;assert(html.includes('<span class="due overdue">23 Nov</span>'));assert(!html.includes('<span class="due overdue">24 Nov</span>'));
+});
+
+test('Sales activity and target correction drafts use the shared close and unload protection',async()=>{
+  for(const kind of ['activity-edit','target']){
+    const h=await harness();h.ui.state.sales=manualData({targets:[{id:'target-1',owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:5,version:1}]});
+    const dialog=h.nodes.get('#dialog'),form={values:kind==='activity-edit'?{note:'Saved note'}:{target:'5'},elements:[{name:kind==='activity-edit'?'note':'target',type:kind==='activity-edit'?'textarea':'number'}]};dialog.querySelectorAll=selector=>selector==='form'?[form]:[];
+    await h.ui.action({dataset:{action:kind==='activity-edit'?'edit-activity':'edit-target',id:kind==='activity-edit'?'activity-1':'target-1'}});assert.equal(h.ui.dirtyDialog(),false);form.values[kind==='activity-edit'?'note':'target']=kind==='activity-edit'?'Unsaved correction':'8';
+    h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert(dialog.open);let blocked=false;h.windowEvents.beforeunload({preventDefault(){blocked=true;}});assert(blocked);
+    h.setConfirm(true);await h.ui.action({dataset:{action:'close-dialog'}});assert.equal(dialog.open,false);assert(!h.requests.some(r=>['PATCH','POST','DELETE'].includes(r.init.method)));
+  }
+});
+
+test('activity create retry conflict retains input and offers guarded reload without sending a new create',async()=>{
+  const h=await harness({intercept:(url,init,model,response)=>url==='/api/sales/activities'&&init.method==='POST'?response({error:'This retry key belongs to different activity content.'},409):url==='/api/sales'?response({error:'Sales could not refresh'},503):null});h.ui.state.sales=manualData();await h.ui.action({dataset:{action:'activity'}});
+  const f=correctionForm('activity',{type:'Reply',context:'Edited after uncertain response',outcome:'Keep the latest outcome',note:'Keep these details',occurred_on:'2026-11-24'});h.nodes.get('#dialog').querySelectorAll=selector=>selector==='form'?[{values:f.form.values,elements:Object.keys(f.form.values).map(name=>({name,type:'text'}))}]:[];
+  // Capture the actual current form before its subsequent user edit.
+  const current=h.nodes.get('#dialog').querySelectorAll('form')[0];h.nodes.get('#dialog').querySelectorAll=selector=>selector==='form'?[current]:[];h.ui.openDialog('Log activity','<form></form>');current.values.note='An unsaved revised note';
+  await h.dispatch('submit',{target:f.form,preventDefault(){}});assert.equal(f.form.values.note,'An unsaved revised note');assert(f.error.innerHTML.includes('data-action="reload-sales"'));assert(f.form.dataset.requestKey);assert.equal(h.requests.filter(r=>r.init.method==='POST').length,1);
+  h.setConfirm(false);await h.ui.action({dataset:{action:'reload-sales'}});assert(!h.requests.some(r=>r.url==='/api/sales'));assert(h.nodes.get('#dialog').open);
+  h.setConfirm(true);await assert.rejects(()=>h.ui.action({dataset:{action:'reload-sales'}}),/Sales could not refresh/);assert(h.nodes.get('#dialog').open);assert.equal(f.form.values.note,'An unsaved revised note');assert.equal(h.requests.filter(r=>r.init.method==='POST').length,1);
+});
+
+test('accepted conflict reload refreshes authoritative records for finding and editing the original activity',async()=>{
+  const h=await harness({sales:manualData({activities:[salesActivity({context:'Original committed activity'})]})});h.ui.state.sales=manualData({activities:[]});h.ui.state.view='sales';h.ui.state.tab='activities';h.ui.openDialog('Conflict','<p>Reload the saved records.</p>');
+  await h.ui.action({dataset:{action:'reload-sales'}});assert.equal(h.nodes.get('#dialog').open,false);const html=h.nodes.get('#app').innerHTML;assert(html.includes('Original committed activity'));assert(html.includes('data-action="edit-activity"'));assert(!h.requests.some(r=>['POST','PATCH','DELETE'].includes(r.init.method)));
 });
