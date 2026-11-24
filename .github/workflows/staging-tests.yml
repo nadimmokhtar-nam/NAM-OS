@@ -1,0 +1,124 @@
+name: Isolated Supabase browser QA
+
+# Isolated PR verification; no hosted credentials or deployments.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - production/e2e/**
+      - production/supabase/**
+      - .github/workflows/staging-tests.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nam-os-isolated-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-qa:
+    name: Real local services and synthetic browser workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    defaults:
+      run:
+        shell: bash
+        working-directory: production
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      SUPABASE_ENV: ci
+      NAM_E2E_SAFE_SCREENSHOTS: "1"
+      NAM_E2E_ALLOW_PROVISION: "1"
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            production/package-lock.json
+            production/e2e/package-lock.json
+
+      - name: Install pinned local Supabase CLI
+        uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: 3.4.0
+
+      - name: Install locked application and browser-test dependencies
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm ci --prefix e2e --no-audit --no-fund
+          node --test --test-concurrency=1 e2e/safe-reporter.test.cjs e2e/publish-safe-evidence.test.mjs
+
+      - name: Install Chromium and its system dependencies
+        working-directory: production/e2e
+        timeout-minutes: 8
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Prepare isolated real Auth, PostgREST, Storage and database
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          umask 077
+          command -v docker >/dev/null
+          command -v psql >/dev/null || { sudo apt-get update -qq; sudo apt-get install -y -qq postgresql-client; }
+          node e2e/stack.mjs start
+
+      - name: Provision synthetic accounts and run real browser workflows
+        timeout-minutes: 28
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          source "$RUNNER_TEMP/nam-os-e2e/stack.env"
+          printf '%s\n' '{"stage":"account_provisioning"}' > "$RUNNER_TEMP/nam-os-e2e/stage.json"
+          node e2e/provision.mjs
+          source "$RUNNER_TEMP/nam-os-e2e/runtime.env"
+          printf '%s\n' '{"stage":"application_build"}' > "$RUNNER_TEMP/nam-os-e2e/stage.json"
+          npm run build > "$RUNNER_TEMP/nam-os-e2e/build-private.log" 2>&1
+          printf '%s\n' '{"stage":"application_start"}' > "$RUNNER_TEMP/nam-os-e2e/stage.json"
+          npm run start -- --hostname 127.0.0.1 --port 3000 > "$RUNNER_TEMP/nam-os-e2e/next-private.log" 2>&1 &
+          NAM_E2E_NEXT_PID=$!
+          trap 'kill "$NAM_E2E_NEXT_PID" 2>/dev/null || true' EXIT
+          node e2e/wait-for-app.mjs
+          printf '%s\n' '{"stage":"http_security"}' > "$RUNNER_TEMP/nam-os-e2e/stage.json"
+          if node --test --test-concurrency=1 e2e/security-http.test.mjs > "$RUNNER_TEMP/nam-os-e2e/security-http-private.log" 2>&1; then
+            printf '%s\n' 'Isolated real-service HTTP security checks passed.'
+          else
+            printf '%s\n' 'Isolated real-service HTTP security checks failed. Private raw output was not published.'
+            exit 1
+          fi
+          printf '%s\n' '{"stage":"browser_workflows"}' > "$RUNNER_TEMP/nam-os-e2e/stage.json"
+          npm test --prefix e2e
+
+      - name: Publish sanitized HTTP evidence even after setup failure
+        if: ${{ always() }}
+        run: node e2e/publish-safe-evidence.mjs
+
+      - name: Stop isolated services
+        if: ${{ always() }}
+        timeout-minutes: 3
+        run: node e2e/stack.mjs stop
+
+      - name: Retain only allowlisted safe QA evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nam-os-isolated-qa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            production/e2e/.runtime/safe-results.json
+            production/e2e/.runtime/api-results.json
+          retention-days: 7
+          if-no-files-found: warn
+          include-hidden-files: true
