@@ -270,3 +270,25 @@ test('a late Academy catalog response cannot update a later route',async()=>{
  let release,started;const hold=new Promise(r=>release=r),seen=new Promise(r=>started=r);const h=await harness({intercept:async(url,init,model,response)=>{if(url==='/api/courses'){started();await hold;return response([{id:'late-course'}]);}return null;}});
  h.location.hash='#academy';const older=h.ui.navigate();await seen;h.location.hash='#tasks';await h.ui.navigate();release();await older;assert.equal(h.ui.state.view,'tasks');assert.equal(h.ui.state.data.courses.length,0);assert(!h.nodes.get('#app').innerHTML.includes('late-course'));
 });
+
+for(const editWhilePending of [false,true])test('parent Save keeps Close and Escape busy through refresh and preserves '+(editWhilePending?'new input':'a clean saved state'),async()=>{
+ let release,started;const hold=new Promise(r=>release=r),seen=new Promise(r=>started=r);let bootstraps=0,saved={...task(),status:'Done',version:2};
+ const h=await harness({intercept:async(url,init,model,response)=>{
+  if(url==='/api/bootstrap'&&++bootstraps>1){started();await hold;return response(model);}
+  if(url==='/api/tasks/task-1'&&init.method==='PATCH')return response(saved);
+  if(url==='/api/tasks/task-1')return response(saved.version===2&&bootstraps>1?saved:task());
+  return null;
+ }});
+ await h.ui.openTask('task-1');const close=node(),save=node(),error=node(),edit={dataset:{form:'edit-task'},values:{title:'Review project lighting',description:'Original brief',section:'projects',status:'Done',priority:'High',due_date:'2026-11-25',owner_id:actor.id},querySelector:s=>s==='.form-error'?error:s==='[type=submit]'?save:null,matches(){return false;}};
+ h.nodes.get('#dialog').querySelector=s=>s==='form[data-form="edit-task"]'?edit:s==='form[data-form="edit-task"] [type="submit"]'?save:s==='[data-action="close-dialog"]'?close:null;
+ const request=h.dispatch('submit',{target:edit,preventDefault(){}});await seen;assert.equal(close.disabled,true);assert.equal(save.disabled,true);assert.equal(h.ui.state.task.status,'Done');
+ h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert.equal(h.nodes.get('#dialog').open,true);let prevented=false;h.nodes.get('#dialog').listeners.cancel({preventDefault(){prevented=true;}});assert(prevented);
+ if(editWhilePending)edit.values.description='Typed after the save request';
+ release();await request;assert.equal(close.disabled,false);assert.equal(save.disabled,false);
+ if(editWhilePending){assert(h.nodes.get('#dialog').innerHTML.includes('Typed after the save request'));assert.equal(h.ui.dirtyTask(),true);}
+ else{assert.equal(h.ui.dirtyTask(),false);await h.ui.action({dataset:{action:'close-dialog'}});assert.equal(h.nodes.get('#dialog').open,false);}
+});
+test('a failed parent write re-enables Close while retaining the genuinely unsaved draft',async()=>{
+ const h=await harness({intercept:(url,init,model,response)=>url==='/api/tasks/task-1'&&init.method==='PATCH'?response({error:'Version conflict'},409):null});await h.ui.openTask('task-1');const close=node(),save=node(),error=node(),edit={dataset:{form:'edit-task'},values:{title:'Unsaved work',description:'Keep this',section:'projects',status:'Done',priority:'High',due_date:'2026-11-25',owner_id:actor.id},querySelector:s=>s==='.form-error'?error:s==='[type=submit]'?save:null,matches(){return false;}};
+ h.nodes.get('#dialog').querySelector=s=>s==='form[data-form="edit-task"]'?edit:s==='form[data-form="edit-task"] [type="submit"]'?save:s==='[data-action="close-dialog"]'?close:null;await h.dispatch('submit',{target:edit,preventDefault(){}});assert.equal(close.disabled,false);assert.equal(save.disabled,false);assert(error.textContent.includes('Version conflict'));assert.equal(edit.values.description,'Keep this');h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert(h.nodes.get('#dialog').open);
+});
