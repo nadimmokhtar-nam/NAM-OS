@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {database,asUser,ids} from './database.mjs';
+import {withVerifiedFactor} from './optional-mfa.mjs';
 
 async function rpc(db,name,args){const placeholders=args.map((_,i)=>'$'+(i+1)).join(',');return (await db.query('select to_jsonb(public.'+name+'('+placeholders+')) as result',args)).rows[0].result;}
 test('sales target corrections preserve ownership, revisions and before/after history',async()=>{
@@ -8,12 +9,13 @@ test('sales target corrections preserve ownership, revisions and before/after hi
  const input={owner_id:ids.sales,metric:'Meetings held',period:'2026-11',target:5};
  const first=await asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,input]));assert.equal(first.version,1);
  await assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:8}])),e=>e.code==='40001');
- const changed=await asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:8,expectedVersion:1}]));assert.equal(changed.version,2);assert.equal(changed.id,first.id);assert.equal(changed.created_by,ids.founder);
+ const changed=await asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:8,expectedVersion:1}]),{aal:'aal1'});assert.equal(changed.version,2);assert.equal(changed.id,first.id);assert.equal(changed.created_by,ids.founder);
  await assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:99,expectedVersion:1}])),e=>e.code==='40001');
  const same=await asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:8,expectedVersion:2}]));assert.equal(same.version,2);
  const rows=await asUser(db,ids.sales,()=>db.query('select id,target,version from nam_sales_targets'));assert.equal(rows.rows.length,1);assert.equal(rows.rows[0].target,8);
  const events=await asUser(db,ids.founder,()=>db.query('select details,actor_id from nam_sales_events where record_id=$1 order by id',[first.id]));assert.equal(events.rows.length,2);assert.deepEqual(events.rows.map(e=>[e.details.before,e.details.after,e.details.version]),[[null,5,1],[5,8,2]]);assert(events.rows.every(e=>e.actor_id===ids.founder));
- for(const [user,options] of [[ids.sales,{}],[ids.artist,{}],[ids.outsider,{}],[ids.founder,{aal:'aal1'}]])await assert.rejects(asUser(db,user,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:9,expectedVersion:2}]),options),e=>e.code==='42501');
+ await withVerifiedFactor(db,ids.founder,()=>assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:9,expectedVersion:2}]),{aal:'aal1'}),e=>e.code==='42501'));
+ for(const [user,options] of [[ids.sales,{}],[ids.artist,{}],[ids.outsider,{}]])await assert.rejects(asUser(db,user,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,target:9,expectedVersion:2}]),options),e=>e.code==='42501');
  for(const change of [{target:0},{target:-1},{target:1.5},{owner_id:ids.artist},{owner_id:ids.suspended},{expectedVersion:null},{period:'2026-00'}])await assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,...change}])));
  await assert.rejects(asUser(db,ids.founder,()=>rpc(db,'nam_set_sales_target',[ids.w,{...input,period:'2026-12',expectedVersion:1}])),e=>e.code==='40001');
  assert.equal((await asUser(db,ids.artist,()=>db.query('select id from nam_sales_targets'))).rows.length,0);
