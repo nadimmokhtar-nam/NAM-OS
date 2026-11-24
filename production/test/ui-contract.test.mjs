@@ -136,6 +136,34 @@ async function editInlineMetadata(h){
   await h.dispatch('input',{target:{id:'academy-title',closest(selector){return selector==='[data-academy-form="metadata"]'?form:null;}}});assert(h.ui.academyAdmin.hasUnsavedChanges());
 }
 
+const salesActivity=(overrides={})=>({id:'activity-1',owner_id:omar.id,type:'Reply',context:'Approved company',outcome:'Reply received',note:'Original note',occurred_on:'2026-11-24',version:3,...overrides});
+const manualData=(overrides={})=>({activities:[salesActivity()],reports:[],targets:[],activity_total:1,activity_counts:[],...overrides});
+function correctionForm(kind,values,dataset={}){const error=node(),submit=node(),form={dataset:{form:kind,...dataset},values,matches(){return false;},querySelector(selector){return selector==='.form-error'?error:selector==='[type=submit]'?submit:null;}};return {form,error,submit};}
+
+test('manual activity corrections and deletions use the captured revision and refresh totals',async()=>{
+  const sales=manualData();const h=await harness({sales,intercept:(url,init,model,response)=>url==='/api/sales/activities/activity-1'&&['PATCH','DELETE'].includes(init.method)?response(manualData({activities:[],activity_total:0})):null});h.ui.state.sales=structuredClone(sales);h.ui.state.view='sales';h.ui.state.tab='activities';h.ui.render();assert(h.nodes.get('#app').innerHTML.includes('data-action="edit-activity"'));
+  await h.ui.action({dataset:{action:'edit-activity',id:'activity-1'}});assert(h.nodes.get('#dialog').innerHTML.includes('data-version="3"'));const f=correctionForm('activity-edit',{type:'Meeting held',context:'Corrected company',outcome:'Meeting booked',note:'Updated note',occurred_on:'2026-11-25'},{id:'activity-1',version:'3'});await h.dispatch('submit',{target:f.form,preventDefault(){}});
+  const edit=h.requests.find(r=>r.init.method==='PATCH');assert.equal(JSON.parse(edit.init.body).expectedVersion,3);assert.equal(JSON.parse(edit.init.body).changes.note,'Updated note');assert.equal(h.ui.state.sales.activity_total,0);
+  h.ui.state.sales=structuredClone(sales);h.setConfirm(false);await h.ui.action({dataset:{action:'delete-activity',id:'activity-1',version:'3'}});assert(!h.requests.some(r=>r.init.method==='DELETE'));
+  h.setConfirm(true);await h.ui.action({dataset:{action:'delete-activity',id:'activity-1',version:'3'}});assert.equal(JSON.parse(h.requests.find(r=>r.init.method==='DELETE').init.body).expectedVersion,3);assert.equal(h.ui.state.sales.activity_total,0);
+});
+
+test('activity conflict preserves input and offers explicit reload instead of silently retrying',async()=>{
+  const h=await harness({intercept:(url,init,model,response)=>init.method==='PATCH'?response({error:'Record changed elsewhere'},409):null});h.ui.state.sales=manualData();await h.ui.action({dataset:{action:'edit-activity',id:'activity-1'}});const f=correctionForm('activity-edit',{type:'Reply',context:'Unsaved correction',outcome:'Retain this',note:'Keep me',occurred_on:'2026-11-24'},{id:'activity-1',version:'3'});await h.dispatch('submit',{target:f.form,preventDefault(){}});assert.equal(f.form.values.note,'Keep me');assert(f.error.innerHTML.includes('Record changed elsewhere'));assert(f.error.innerHTML.includes('data-action="reload-sales"'));assert.equal(h.requests.filter(r=>r.init.method==='PATCH').length,1);assert.equal(f.submit.disabled,false);
+});
+
+test('sales representatives cannot open correction controls for another owner',async()=>{
+  const h=await harness();h.ui.state.data.actor=omar;h.ui.state.view='sales';h.ui.state.tab='activities';h.ui.state.sales=manualData({activities:[salesActivity({owner_id:actor.id})]});h.ui.render();assert(!h.nodes.get('#app').innerHTML.includes('data-action="edit-activity"'));await assert.rejects(()=>h.ui.action({dataset:{action:'edit-activity',id:'activity-1'}}),/not available/);assert(!h.requests.some(r=>r.init.method==='PATCH'||r.init.method==='DELETE'));
+});
+
+test('editing an existing founder target sends the captured revision and immutable target key',async()=>{
+  const target={id:'target-1',owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:5,version:7};const h=await harness({intercept:(url,init,model,response)=>url==='/api/sales/targets'&&init.method==='POST'?response(manualData({targets:[{...target,target:8,version:8}]})):null});h.ui.state.sales=manualData({targets:[target]});await h.ui.action({dataset:{action:'edit-target',id:'target-1'}});assert(h.nodes.get('#dialog').innerHTML.includes('data-version="7"'));const f=correctionForm('target',{owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:'8'},{id:'target-1',version:'7'});await h.dispatch('submit',{target:f.form,preventDefault(){}});assert.deepEqual(JSON.parse(h.requests.find(r=>r.url==='/api/sales/targets').init.body),{owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:8,expectedVersion:7});assert.equal(h.ui.state.sales.targets[0].version,8);
+});
+
+test('stale target correction remains editable and duplicate create never overwrites an existing target',async()=>{
+  const target={id:'target-1',owner_id:omar.id,metric:'Meetings held',period:'2026-11',target:5,version:7};const h=await harness({intercept:(url,init,model,response)=>url==='/api/sales/targets'?response({error:'Target changed elsewhere'},409):null});h.ui.state.sales=manualData({targets:[target]});const values={owner_id:omar.id,metric:target.metric,period:target.period,target:'9'},f=correctionForm('target',{...values},{id:target.id,version:'7'});await h.dispatch('submit',{target:f.form,preventDefault(){}});assert(f.error.innerHTML.includes('Reload sales records'));assert.equal(f.form.values.target,'9');const count=h.requests.filter(r=>r.url==='/api/sales/targets').length;const fresh=correctionForm('target',{...values});await h.dispatch('submit',{target:fresh.form,preventDefault(){}});assert(fresh.error.innerHTML.includes('use Edit target'));assert.equal(h.requests.filter(r=>r.url==='/api/sales/targets').length,count);
+});
+
 test('cancelled user logout sends no mutation and preserves actual Academy metadata drafts',async()=>{
   const h=await harness();await editInlineMetadata(h);h.setConfirm(false);await h.ui.action({dataset:{action:'logout'}});assert(!h.requests.some(r=>r.url==='/api/auth/logout'));assert(h.ui.state.data);assert(h.ui.academyAdmin.hasUnsavedChanges());
   h.setConfirm(true);await h.ui.action({dataset:{action:'logout'}});assert.equal(h.requests.filter(r=>r.url==='/api/auth/logout').length,1);assert.equal(h.ui.state.data,null);assert.equal(h.ui.academyAdmin.hasUnsavedChanges(),false);
