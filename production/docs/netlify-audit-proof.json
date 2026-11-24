@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-11-24T19:19:01.461Z",
+  "sourceCommit": "635433bb34064816b034f482f468a4a8ca5d0382",
+  "scope": "Full candidate npm audit including development adapter dependencies",
+  "command": "npm audit --json",
+  "exitCode": 0,
+  "auditReportVersion": 2,
+  "adapter": "@netlify/plugin-nextjs@5.16.9",
+  "packageLockSHA256": "8f3168a7c7536c6ac4da2ee7eb20dc5044ba5572b9104e6bf95c5e63f5dd1bd0",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "dependencies": {
+      "prod": 27,
+      "dev": 8,
+      "optional": 39,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 73
+    }
+  },
+  "advisories": [],
+  "limitation": "Known npm advisory database only; not a complete application security or hosted runtime audit."
+}

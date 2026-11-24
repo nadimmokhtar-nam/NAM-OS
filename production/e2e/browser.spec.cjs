@@ -51,7 +51,32 @@ async function api(context,endpoint,{method='GET',body}={}){
 }
 async function createFixtureTask(context,title,ownerId){const result=await api(context,'/api/tasks',{method:'POST',body:{title,description:'Synthetic browser-test work only.',section:'sales',owner_id:ownerId,status:'Todo',priority:'Normal'}});expect(result.status()).toBe(201);return result.json();}
 async function openTask(page,title){const button=page.locator('.task-open').filter({hasText:title});await expect(button).toHaveCount(1);await button.click();await expect(page.locator('#dialog')).toBeVisible();await expect(page.locator('#dialog').getByLabel('Task name',{exact:true})).toHaveValue(title);}
-async function closeDialog(page){await page.getByRole('button',{name:'Close dialog',exact:true}).click();await expect(page.locator('#dialog')).not.toBeVisible();}
+async function closeDialog(page,probe){
+  if(!probe){await page.getByRole('button',{name:'Close dialog',exact:true}).click();await expect(page.locator('#dialog')).not.toBeVisible();return;}
+  const {info,context,taskId}=probe;
+  const response=await context.request.get('/api/tasks/'+taskId);expect(response.status()).toBe(200);const saved=await response.json();
+  // All values stay in this isolated process/browser. Only fixed field names
+  // and booleans are annotated; no task text, file names, IDs or tokens escape.
+  const diagnostic=await page.locator('#dialog').evaluate(async(dialog,saved)=>{
+    const editable=['title','description','section','status','priority','due_date','owner_id'],form=dialog.querySelector('form[data-form="edit-task"]'),values=form?Object.fromEntries(new FormData(form)):{},changed=editable.filter(key=>Object.hasOwn(values,key)&&String(values[key]??'')!==String(saved[key]??''));
+    const flags=[];
+    if(!changed.length)flags.push('task_fields_match_saved');
+    if(dialog.querySelector('form[data-form="comment"] textarea')?.value)flags.push('unsubmitted_comment_present');
+    if(dialog.querySelector('#new-subtask')?.value)flags.push('unsubmitted_subtask_present');
+    const input=dialog.querySelector('input[type="file"]');
+    if(!input)flags.push('no_file_control');
+    else if(input.files.length)flags.push('selected_file_present');
+    else{const first=new FormData(input.form).get(input.name);await new Promise(resolve=>setTimeout(resolve,5));const second=new FormData(input.form).get(input.name);flags.push(first?.lastModified!==second?.lastModified?'empty_file_timestamp_changed':'empty_file_timestamp_stable');}
+    return {changed,flags};
+  },saved);
+  for(const field of diagnostic.changed)info.annotations.push({type:'nam-dirty-field',description:field});
+  for(const flag of diagnostic.flags)info.annotations.push({type:'nam-dirty-probe',description:flag});
+  let unexpected=false;
+  const onDialog=async modal=>{unexpected=true;stage(info,'task_close_unexpected_confirm');info.annotations.push({type:'nam-dialog-kind',description:modal.type()});await modal.dismiss();};
+  page.on('dialog',onDialog);
+  try{await page.getByRole('button',{name:'Close dialog',exact:true}).click();expect(unexpected,'A task whose changes were saved must close without a discard confirmation.').toBe(false);await expect(page.locator('#dialog')).not.toBeVisible();}
+  finally{page.off('dialog',onDialog);}
+}
 function expectNoPageErrors(errors){expect(errors).toEqual([]);}
 
 for(const key of KEYS)test(`AUTH_${key.toUpperCase()} role navigation, protected APIs and logout`,async({browser},info)=>{
@@ -87,7 +112,7 @@ test('TASK_LIFECYCLE founder assignment, sales accountability, archive, delete a
     stage(info,'task_fill_subtask');await dialog.locator('form[data-form="subtask"] input[name="title"]').fill(subtask);
     stage(info,'task_submit_subtask');await dialog.locator('form[data-form="subtask"]').getByRole('button',{name:'Add',exact:true}).click();
     stage(info,'task_subtask_visible');await expect(dialog.getByLabel(subtask,{exact:true})).toBeVisible();
-    stage(info,'task_close_creator_dialog');await closeDialog(owner.page);
+    stage(info,'task_close_creator_dialog');await closeDialog(owner.page,{info,context:owner.context,taskId:task.id});
     stage(info,'sales_member_responds');await visit(worker.page,'tasks','The work, made visible.');await openTask(worker.page,title);dialog=worker.page.locator('#dialog');await dialog.getByLabel('Add a comment',{exact:true}).fill(comment);await dialog.getByRole('button',{name:'Add comment',exact:true}).click();await expect(dialog.locator('.comment p').filter({hasText:comment})).toBeVisible();await expect(dialog.locator('form[data-form="comment"] button[type="submit"]')).toBeFocused();
     const checkbox=dialog.getByLabel(subtask,{exact:true});await checkbox.focus();await worker.page.keyboard.press('Space');await expect(checkbox).toBeChecked();await expect(checkbox).toBeFocused();await dialog.getByLabel('Status',{exact:true}).selectOption('Done');await dialog.getByRole('button',{name:'Save changes',exact:true}).click();await expect(dialog.getByLabel('Status',{exact:true})).toHaveValue('Done');await closeDialog(worker.page);await worker.page.reload();await expect(worker.page.locator('.task-row').filter({hasText:title}).locator('.badge')).toHaveText('Done');
     stage(info,'board_list_consistency');await worker.page.getByRole('button',{name:'Board',exact:true}).click();const doneCard=worker.page.locator('.board-col[data-drop="Done"] .task-card').filter({hasText:title});await expect(doneCard).toHaveCount(1);await doneCard.click();await expect(worker.page.locator('#dialog').getByLabel('Status',{exact:true})).toHaveValue('Done');await closeDialog(worker.page);await worker.page.getByRole('button',{name:'List',exact:true}).click();await expect(worker.page.locator('.task-row').filter({hasText:title}).locator('.badge')).toHaveText('Done');

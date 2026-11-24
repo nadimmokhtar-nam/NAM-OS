@@ -1,6 +1,6 @@
 import {type APIContext,ApiError,json,readJSON} from './context';
 
-export type TaskDTO=Record<string,unknown>&{id:string;owner_id:string;section:string;title:string;status:string;version:number};
+export type TaskDTO=Record<string,unknown>&{id:string;owner_id:string;section:string;title:string;status:string;version:number;can_archive:boolean};
 const SECTIONS=['sales','academy','projects','library','team','operations'];
 const STATUSES=['Backlog','Todo','In progress','Blocked','Done','Canceled'];
 const PRIORITIES=['Low','Normal','High','Urgent'];
@@ -20,7 +20,7 @@ function dbError(error:{code?:string;message?:string}|null){if(!error)return;
  if(code.startsWith('22')||code==='23514'||code==='23502'||code==='23503')throw new ApiError(400,'Some fields are invalid. Check the owner, dates and required values.');
  throw new ApiError(503,'The task service is temporarily unavailable. Please retry.');
 }
-function decorate(ctx:APIContext,row:Record<string,unknown>){const owner=ctx.members.find(m=>m.id===row.owner_id);return {...row,owner_name:owner?.name||'Studio member',owner_initials:owner?.initials||'—'};}
+function decorate(ctx:APIContext,row:Record<string,unknown>){const owner=ctx.members.find(m=>m.id===row.owner_id);return {...row,owner_name:owner?.name||'Studio member',owner_initials:owner?.initials||'—',can_archive:ctx.actor.role==='founder'&&ctx.mfa.verified===true};}
 function changes(input:Record<string,unknown>,create=false){keys(input,['title','description','section','status','priority','due_date','owner_id','archived','confirmOpenSubtasks']);const out={...input};
  if(create||'title'in out)out.title=text(out.title,'Task name',200);
  if('description'in out)out.description=text(out.description,'Description',10000,false);

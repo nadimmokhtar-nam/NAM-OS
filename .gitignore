@@ -1,0 +1,5 @@
+# Netlify link state, local caches and generated function bundles are private.
+.netlify/
+node_modules/
+.env*
+!.env.example
