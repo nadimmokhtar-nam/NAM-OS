@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "suite": "NAM OS isolated Supabase and Next browser QA",
+  "status": "failed",
+  "runnerStatus": "failed",
+  "coverageComplete": false,
+  "discovered": 13,
+  "executed": 13,
+  "missingRequired": [
+    "TASK_LIFECYCLE"
+  ],
+  "elapsedMs": 42821,
+  "counts": {
+    "passed": 12,
+    "failed": 1,
+    "timedOut": 0,
+    "skipped": 0,
+    "interrupted": 0
+  },
+  "tests": [
+    {
+      "id": "AUTH_FOUNDER",
+      "status": "passed",
+      "durationMs": 1152,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_MANAGER",
+      "status": "passed",
+      "durationMs": 782,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_1",
+      "status": "passed",
+      "durationMs": 801,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_SALES_2",
+      "status": "passed",
+      "durationMs": 820,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_PRODUCTION_MANAGER",
+      "status": "passed",
+      "durationMs": 713,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_ARTIST_1",
+      "status": "passed",
+      "durationMs": 725,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_ARTIST_2",
+      "status": "passed",
+      "durationMs": 678,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "AUTH_FREELANCER",
+      "status": "passed",
+      "durationMs": 661,
+      "attempt": 0,
+      "stage": "logout",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "TASK_LIFECYCLE",
+      "status": "failed",
+      "durationMs": 22199,
+      "attempt": 0,
+      "stage": "task_subtask_keyboard_complete",
+      "authenticatedWorkspaceObserved": true,
+      "failure": {
+        "kind": "assertion",
+        "matcher": "toBeFocused",
+        "source": {
+          "file": "browser.spec.cjs",
+          "line": 110,
+          "column": 230
+        }
+      },
+      "taskCloseProbe": {
+        "changedFields": [],
+        "flags": [
+          "task_fields_match_saved",
+          "empty_file_timestamp_stable"
+        ],
+        "dialogKinds": []
+      }
+    },
+    {
+      "id": "TASK_FAILURES",
+      "status": "passed",
+      "durationMs": 3199,
+      "attempt": 0,
+      "stage": "csrf_rejected",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "ACADEMY_LIFECYCLE",
+      "status": "passed",
+      "durationMs": 4837,
+      "attempt": 0,
+      "stage": "academy_post_area_isolation",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "RESPONSIVE_KEYBOARD",
+      "status": "passed",
+      "durationMs": 1250,
+      "attempt": 0,
+      "stage": "keyboard_dialog_validation",
+      "authenticatedWorkspaceObserved": true
+    },
+    {
+      "id": "CONCURRENCY_8USERS",
+      "status": "passed",
+      "durationMs": 3305,
+      "attempt": 0,
+      "stage": "concurrent_workflows_verified",
+      "authenticatedWorkspaceObserved": false,
+      "metrics": {
+        "bootstrap_p95_ms": 230.53,
+        "mutation_p95_ms": 262.86,
+        "read_p95_ms": 261.42,
+        "cohort_ms": 252.35,
+        "concurrent_writes": 16,
+        "visible_leaks": 0,
+        "conflicts": 1,
+        "read_requests": 82,
+        "write_requests": 108
+      }
+    }
+  ],
+  "scope": {
+    "intendedTarget": "isolated Supabase and Next",
+    "authenticatedWorkspaceObserved": true,
+    "thirdPartyServicesVerified": false,
+    "liveNAMInfrastructureVerified": false,
+    "trace": false,
+    "video": false,
+    "authScreenshots": false,
+    "storageState": false
+  }
+}

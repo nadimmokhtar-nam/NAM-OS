@@ -1,0 +1,89 @@
+{
+  "kind": "real-local-supabase-api",
+  "status": "passed",
+  "stage": "http_security",
+  "setup": "passed",
+  "expected": 6,
+  "completed": 6,
+  "passed": 6,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "eight-account-role-and-task-scope",
+      "status": "passed"
+    },
+    {
+      "name": "direct-permission-boundaries",
+      "status": "passed"
+    },
+    {
+      "name": "actual-password-and-optional-mfa-assurance",
+      "status": "passed"
+    },
+    {
+      "name": "actual-membership-revocation",
+      "status": "passed"
+    },
+    {
+      "name": "actual-managed-session-logout-replay",
+      "status": "passed"
+    },
+    {
+      "name": "actual-anonymous-and-signup-denial",
+      "status": "passed"
+    }
+  ],
+  "assurance": {
+    "stage": "session_cleanup",
+    "navigations": [
+      {
+        "stage": "password_mfa_redirect",
+        "path": "/mfa",
+        "expectedPath": "/workspace",
+        "actualPath": "/workspace",
+        "initialStatus": 200,
+        "rendered": true
+      },
+      {
+        "stage": "password_mfa_redirect",
+        "path": "/workspace",
+        "expectedPath": "/workspace",
+        "actualPath": "/workspace",
+        "initialStatus": 200,
+        "rendered": true
+      },
+      {
+        "stage": "optional_ssr_redirect",
+        "path": "/workspace",
+        "expectedPath": "/mfa",
+        "actualPath": "/mfa",
+        "initialStatus": 200,
+        "rendered": true
+      },
+      {
+        "stage": "optional_ssr_redirect",
+        "path": "/mfa",
+        "expectedPath": "/mfa",
+        "actualPath": "/mfa",
+        "initialStatus": 200,
+        "rendered": true
+      },
+      {
+        "stage": "optional_ssr_restore",
+        "path": "/workspace",
+        "expectedPath": "/workspace",
+        "actualPath": "/workspace",
+        "initialStatus": 200,
+        "rendered": true
+      },
+      {
+        "stage": "optional_ssr_restore",
+        "path": "/mfa",
+        "expectedPath": "/workspace",
+        "actualPath": "/workspace",
+        "initialStatus": 200,
+        "rendered": true
+      }
+    ]
+  }
+}
