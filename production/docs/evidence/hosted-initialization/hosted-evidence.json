@@ -1,0 +1,109 @@
+{
+  "kind": "nam-os-hosted-schema-initialization",
+  "observationDate": "2026-11-24",
+  "evidenceMethod": "Trusted project operator executed the complete installer and read-only verification in the actual Supabase SQL UI; results reported by the coordinating agent.",
+  "source": {
+    "repository": "nadimmokhtar-nam/NAM-OS",
+    "commit": "2227350898e5670e074ce7bf7bd0e3fa22dbcd0c",
+    "tree": "a17f712839febf771536481618a9f9ae61f897ad",
+    "installer": "NAM_OS_INSTALL_001_014.sql",
+    "installerSha256": "3c897c119f63f476a14c591586277a164a64b0ceb79bbb4808342e458e3739a4",
+    "installerBytes": 392883,
+    "manifestSha256": "ef8c1086068aab363bbfcec0adf4042ee5ab417e522e7098fb432c91a5a952e0"
+  },
+  "hostedSchema": {
+    "execution": "succeeded",
+    "verification": "observed",
+    "migrations": 14,
+    "minVersion": "202611240001",
+    "maxVersion": "202611240014",
+    "historyStatementsComplete": true,
+    "namTables": 38,
+    "tablesWithoutRLS": [],
+    "authUsers": 0,
+    "workspaces": 0,
+    "memberships": 0,
+    "storageBuckets": [
+      {
+        "id": "nam-task-attachments",
+        "limitBytes": 2097152,
+        "public": false
+      }
+    ]
+  },
+  "configurationObserved": {
+    "publicSignups": false,
+    "emailConfirmationRequired": true,
+    "anonymousSignIn": false,
+    "totp": "enabled; unchanged",
+    "authSiteURL": "https://nam-os-staging.netlify.app",
+    "authRedirectAllowlist": [
+      "https://nam-os-staging.netlify.app/auth/confirm"
+    ],
+    "netlifyPullRequestPreviews": false,
+    "netlifyPublicSupabaseURL": "saved; value omitted",
+    "netlifyPublishableKey": "saved; value omitted",
+    "netlifyAppOrigin": "saved",
+    "netlifyCSRFSecret": "independently random per context; saved hidden; values omitted",
+    "netlifyPrivilegedServerKey": "saved hidden; Contains secret observed; real credential only in Live app context",
+    "netlifyNonLiveServerKeyContexts": {
+      "Versions": "explicit disabled noncredential sentinel",
+      "Branches": "explicit disabled noncredential sentinel",
+      "Agent runs": "explicit disabled noncredential sentinel"
+    }
+  },
+  "hostingObservation": {
+    "plan": "Free",
+    "paidUpgrade": false,
+    "includedCreditsObserved": 300,
+    "remainingCreditsObserved": 285,
+    "creditScope": "Point-in-time dashboard observation after initial deployment and a subsequent main-branch automatic build; not a usage forecast or a guarantee of remaining capacity.",
+    "subsequentBuildResult": "not established by this evidence"
+  },
+  "runtimeVerification": {
+    "status": "pending",
+    "founderProvisioned": false,
+    "liveLoginVerified": false,
+    "liveMFAVerified": false,
+    "liveSessionRevocationVerified": false,
+    "livePermissionBoundariesVerified": false,
+    "liveTaskWorkflowVerified": false,
+    "liveAcademyWorkflowVerified": false,
+    "livePrivateAttachmentWorkflowVerified": false,
+    "salesIntegrationsVerified": false,
+    "readyForStaffUse": false
+  },
+  "privacy": "Contains counts, configuration state and source digests only; no personal identities, credentials, tokens, project reference or database connection strings.",
+  "credentialHandling": {
+    "transfer": "direct private provider-to-Netlify UI copy",
+    "clipboard": "replaced using nonsecret settings-URL UI copy",
+    "valuesPrinted": false,
+    "valuesWrittenToFiles": false
+  },
+  "sdkCompatibilityReview": {
+    "codeFixRequired": false,
+    "syntheticSDKTransportChecksPassed": 3,
+    "syntheticJobsChecksPassed": 11,
+    "hostedRuntimePass": false
+  },
+  "operatorBlocker": "Provider Create new user form has blank email/password; founder must privately create the confirmed account. No founder identity created yet.",
+  "nextSteps": [
+    "Founder privately creates confirmed Auth identity",
+    "Trusted workspace/founder bootstrap",
+    "Save Live app workspace environment",
+    "Protected rebuild",
+    "Hosted login/MFA and end-to-end verification"
+  ],
+  "isolatedQA5": {
+    "status": "passed",
+    "sourceCommit": "f781c4db18a6fe22abf3ce7e27f0ea13f7089305",
+    "browserConcurrencyPassed": 13,
+    "httpSecurityPassed": 6,
+    "syntheticManagedAuthAccounts": 8,
+    "sanitizedArtifactId": 14961801560,
+    "workflowRun": "https://github.com/nadimmokhtar-nam/NAM-OS/actions/runs/45479123159",
+    "certifiedFullReleaseQACycles": 0,
+    "requiredFullReleaseQACycles": 4,
+    "hostedNAMRuntimePass": false
+  }
+}

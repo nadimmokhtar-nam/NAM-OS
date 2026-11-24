@@ -9,23 +9,24 @@
 - HTTPS address: https://nam-os-staging.netlify.app. Netlify visitor access is **Private / only the owner**. The first Git build deployed successfully, and owner-authenticated browser navigation reached the actual NAM OS workspace error boundary.
 - Repository: `nadimmokhtar-nam/NAM-OS`, branch `main`, base `production`, build `npm run build`, publish `.next`, Node 24 and pinned official Next.js adapter.
 - Pull-request previews were switched **off**, with a saved confirmation observed. No other branch previews were enabled. Keep untrusted code away from credentials.
-- Supabase project: `ltkdycibqnqmwqeejcvs`, NAM Studio Free / Nano, Ireland (`eu-west-1`). A read-only SQL audit returned **0 Auth users, 0 NAM tables, 0 storage buckets**. No hosted application migration or credential was applied during that audit.
+- Supabase: NAM Studio Free / Nano, Ireland (`eu-west-1`). After the empty-project audit and explicit founder authorization, reviewed migrations 001–014 were applied atomically. Hosted SQL verification returned 14 complete history rows, 38 NAM tables with RLS enabled, zero Auth users/workspaces/memberships, and one private 2 MiB attachment bucket. Sanitized source digests and counts are in [the hosted checkpoint](evidence/hosted-initialization/HOSTED_INITIALIZATION.md).
 
-The website currently cannot open the workspace because the backend environment is not connected. This is not a usable team deployment yet. Do not publish or invite the studio on that basis.
+Invite-only Auth, required email confirmation, disabled anonymous sign-in, TOTP and exact staging callback settings are saved. Public provider configuration, application origin and independently random per-context hidden CSRF secrets are configured. The privileged server secret is saved hidden only for Live app; Versions, Branches and Agent runs use explicit disabled noncredential sentinels. The provider-to-host transfer exposed no credential values in chat, files or reports, and the clipboard was replaced using a nonsecret settings-URL copy. Three synthetic SDK transport checks and eleven jobs checks passed without a compatibility code change; this is not hosted runtime verification.
 
-## Concrete backend connection to authorize
+The workspace remains unavailable pending the real founder identity, trusted workspace bootstrap and workspace environment value. The provider's Create new user form is open with email/password blank; no founder identity has been created. The founder must enter their credentials privately and create the confirmed account before the trusted bootstrap can proceed. This is not a usable team deployment yet. Do not publish or invite the studio on that basis.
 
-1. Apply the reviewed numbered schema migrations 001–014 from the NAM-owned source, in order, to the confirmed empty NAM project. Keep synthetic CI accounts and test records out of this hosted database.
-2. Configure invite-only Auth and TOTP, then create the first confirmed founder identity through a secure provider flow. The founder chooses their own password and authenticator; neither belongs in chat, source, screenshots or reports.
-3. Use the reviewed `supabase/bootstrap-owner.sql` operator flow for that verified identity. Store any personalized operator copy privately and retain the generated workspace UUID as configuration.
-4. Set the project URL/publishable key, workspace UUID and exact staging origin in Netlify. Store the existing privileged project service key **only in protected server settings**; it supports account administration and file attestation. Never use a `NEXT_PUBLIC_` name for that key. Generate a separate server-only CSRF signing secret.
-5. Rebuild the protected site. Verify actual hosted sign-in, cookie refresh/logout/MFA, CSP/nonces/no-store, origin/CSRF rejection, private file round trips, role/grant behavior and callback URLs before changing visitor access or using business records.
+## Remaining owner setup and verification
 
-Using a privileged Supabase key gives the NAM staging server administrative capabilities within this project. Application routes separately enforce trusted membership, Founder MFA and live authorization. The infrastructure-owner approval for this credential connection is a distinct account-permission step; no credential should be sent through chat.
+1. Keep synthetic CI accounts and test records out of this hosted database. Create the first confirmed founder identity through a secure provider flow. The founder chooses their own password and authenticator; neither belongs in chat, source, screenshots or reports.
+2. Use the reviewed `supabase/bootstrap-owner.sql` operator flow for that verified identity. Store any personalized operator copy privately and retain the generated workspace UUID as configuration.
+3. Save the generated workspace UUID in Netlify's protected Live app environment. Retain the configured server-only credential and context isolation; never use a `NEXT_PUBLIC_` name for a privileged key.
+4. Rebuild the protected site. Verify actual hosted sign-in, cookie refresh/logout/MFA, CSP/nonces/no-store, origin/CSRF rejection, private file round trips, role/grant behavior and callback URLs before changing visitor access or using business records.
+
+Using a privileged Supabase key gives the NAM staging server administrative capabilities within this project. Application routes separately enforce trusted membership, Founder MFA and live authorization. The founder explicitly approved the empty-project initialization and protected server credential connection. No credential should be sent through chat.
 
 ## Cost and location boundaries
 
-Netlify Free permits commercial use but pauses projects if the shared credit allowance is exhausted. Free hosting is a bounded pilot option, not an availability guarantee. App users authenticate in Supabase; eight NAM users do not require eight hosting-console seats. The free host may show its provider badge.
+Netlify Free permits commercial use but pauses projects if the shared credit allowance is exhausted. The last observed balance was 285 of 300 included credits after deployment and a subsequent automatic main-branch build; this is a point-in-time value. Free hosting is a bounded pilot option, not an availability guarantee. App users authenticate in Supabase; eight NAM users do not require eight hosting-console seats. The free host may show its provider badge.
 
 The database is in Ireland. Netlify's documented free function default is Ohio, with custom region selection requiring an eligible paid plan. Do not describe this free arrangement as EU-only processing. Measure actual cross-region request latency and verify provider settings before release.
 
@@ -33,7 +34,7 @@ Supabase Free does not provide the production backup/recovery guarantees require
 
 ## Release status
 
-Core source milestones are merged after clean CI. Real-service runs have verified eight actual synthetic identities, six negative HTTP security checks and concurrent task traffic in isolated Docker infrastructure. Remaining browser defects, full manager scopes, live integrations, native PWA installation, sustained load and four full release QA cycles remain open. Four service-test executions are not four certified full cycles.
+Core source milestones are merged after clean CI. Real-service runs have verified eight actual synthetic identities, six negative HTTP security checks and concurrent task traffic in isolated Docker infrastructure. Full manager scopes, live integrations, native PWA installation, sustained load and four full release QA cycles remain open. QA5 completed successfully at source `f781c4db18a6fe22abf3ce7e27f0ea13f7089305`: all 13 required browser/concurrency cases and all 6 HTTP security checks passed using 8 synthetic managed Auth accounts. The sanitized artifact was retained and inspected; no hosted NAM identity or live integration pass is implied. Run: https://github.com/nadimmokhtar-nam/NAM-OS/actions/runs/45479123159. **Zero of four full release QA cycles are certified.**
 
 Private screenshot evidence is retained separately; public source contains sanitized results and the visual findings only.
 
