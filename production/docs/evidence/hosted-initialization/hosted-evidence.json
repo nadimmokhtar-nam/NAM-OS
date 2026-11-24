@@ -29,7 +29,8 @@
         "limitBytes": 2097152,
         "public": false
       }
-    ]
+    ],
+    "snapshotScope": "Immediately after schema install, before subsequent founder identity and workspace bootstrap"
   },
   "configurationObserved": {
     "publicSignups": false,
@@ -50,6 +51,12 @@
       "Versions": "explicit disabled noncredential sentinel",
       "Branches": "explicit disabled noncredential sentinel",
       "Agent runs": "explicit disabled noncredential sentinel"
+    },
+    "netlifyWorkspace": "saved hidden in Live app only; value omitted",
+    "netlifyNonLiveWorkspaceContexts": {
+      "Versions": "explicit disabled noncredential sentinel",
+      "Branches": "explicit disabled noncredential sentinel",
+      "Agent runs": "explicit disabled noncredential sentinel"
     }
   },
   "hostingObservation": {
@@ -58,11 +65,19 @@
     "includedCreditsObserved": 300,
     "remainingCreditsObserved": 285,
     "creditScope": "Point-in-time dashboard observation after initial deployment and a subsequent main-branch automatic build; not a usage forecast or a guarantee of remaining capacity.",
-    "subsequentBuildResult": "not established by this evidence"
+    "subsequentBuildResult": "not established by this evidence",
+    "latestRetry": {
+      "cache": "no cache",
+      "source": "main commit 53d3a873 (observed prefix)",
+      "status": "Live",
+      "stagesComplete": 5,
+      "stagesExpected": 5,
+      "exposedSecretsScanFindings": 0
+    }
   },
   "runtimeVerification": {
     "status": "pending",
-    "founderProvisioned": false,
+    "founderProvisioned": true,
     "liveLoginVerified": false,
     "liveMFAVerified": false,
     "liveSessionRevocationVerified": false,
@@ -71,7 +86,10 @@
     "liveAcademyWorkflowVerified": false,
     "livePrivateAttachmentWorkflowVerified": false,
     "salesIntegrationsVerified": false,
-    "readyForStaffUse": false
+    "readyForStaffUse": false,
+    "unauthenticatedLoginRendered": true,
+    "signedOutWorkspaceRedirectToLogin": true,
+    "authenticatedWorkflow": "pending private founder sign-in and MFA enrollment/verification"
   },
   "privacy": "Contains counts, configuration state and source digests only; no personal identities, credentials, tokens, project reference or database connection strings.",
   "credentialHandling": {
@@ -86,13 +104,14 @@
     "syntheticJobsChecksPassed": 11,
     "hostedRuntimePass": false
   },
-  "operatorBlocker": "Provider Create new user form has blank email/password; founder must privately create the confirmed account. No founder identity created yet.",
+  "operatorBlocker": "Actual hosted login is ready; founder must privately enter the account password and complete mandatory authenticator enrollment/verification. Authenticated workflows remain unverified.",
   "nextSteps": [
-    "Founder privately creates confirmed Auth identity",
-    "Trusted workspace/founder bootstrap",
-    "Save Live app workspace environment",
-    "Protected rebuild",
-    "Hosted login/MFA and end-to-end verification"
+    "Founder privately signs in to the rendered hosted login",
+    "Founder privately enrolls and verifies required TOTP without sharing password or QR",
+    "Verify authenticated workspace and role boundaries",
+    "Verify session refresh and logout/replay behavior",
+    "Verify tasks, Academy and private attachment round trips",
+    "Retain sanitized results; keep staff access closed until release gates pass"
   ],
   "isolatedQA5": {
     "status": "passed",
@@ -105,5 +124,23 @@
     "certifiedFullReleaseQACycles": 0,
     "requiredFullReleaseQACycles": 4,
     "hostedNAMRuntimePass": false
+  },
+  "hostedFounderSetup": {
+    "verification": "Actual provider SQL UI rows reported by coordinating agent",
+    "reviewedFlow": "production/supabase/bootstrap-owner.sql",
+    "execution": "succeeded",
+    "identityConfirmed": true,
+    "identityUnbanned": true,
+    "role": "founder",
+    "membershipActive": true,
+    "workspaceCount": 1,
+    "membershipCount": 1,
+    "bootstrapAuditCount": 1,
+    "identitiesAndWorkspaceUUIDs": "omitted"
+  },
+  "navigationObservation": {
+    "historicalTab": "Initial retry in an older pre-backend tab showed its historical error shell",
+    "freshNavigation": "Full navigation resolved to the correct login screen",
+    "codeChangeRequired": false
   }
 }
