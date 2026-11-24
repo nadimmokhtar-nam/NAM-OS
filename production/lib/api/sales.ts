@@ -16,7 +16,7 @@ async function manualSales(ctx:APIContext){
  salesAccess(ctx);const [activities,reports,targets,counts]=await Promise.all([
   ctx.supabase.from('nam_sales_activities').select('id,owner_id,type,context,outcome,note,occurred_on,created_at,updated_at,version').eq('workspace_id',ctx.workspaceId).is('deleted_at',null).order('created_at',{ascending:false}).limit(500),
   ctx.supabase.from('nam_sales_reports').select('id,owner_id,week_start,outcomes,blockers,next_week,submitted_at,reviewed_at,reviewed_by').eq('workspace_id',ctx.workspaceId).order('week_start',{ascending:false}).limit(500),
-  ctx.supabase.from('nam_sales_targets').select('id,owner_id,metric,period,target').eq('workspace_id',ctx.workspaceId).order('period',{ascending:false}).limit(1000),
+  ctx.supabase.from('nam_sales_targets').select('id,owner_id,metric,period,target,version').eq('workspace_id',ctx.workspaceId).order('period',{ascending:false}).limit(1000),
   ctx.supabase.rpc('nam_sales_activity_counts',{w:ctx.workspaceId}),
  ]);for(const result of [activities,reports,targets,counts])if(result.error)databaseFailure(result.error);
  return {activities:activities.data||[],reports:reports.data||[],targets:targets.data||[],activity_total:Number(counts.data?.total||0),activity_counts:counts.data?.by_month||[],activities_limit:500,activities_truncated:Number(counts.data?.total||0)>500};
@@ -53,7 +53,7 @@ export async function dispatchSales(ctx:APIContext,path:string[],request:Request
   requireFounder(ctx);const input=await readJSON(request);fields(input,[]);await rpc(ctx,'nam_review_sales_report',{w:ctx.workspaceId,report_id:identifier(path[2])});return json(await manualSales(ctx));
  }
  if(path.join('/')==='sales/targets'&&method==='POST'){
-  requireFounder(ctx);const input=await readJSON(request);fields(input,['owner_id','metric','period','target']);identifier(input.owner_id,'Sales member');if(typeof input.metric!=='string'||!METRICS.includes(input.metric))throw new ApiError(400,'Invalid target metric.');if(typeof input.period!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.period))throw new ApiError(400,'Choose a target month.');if(!Number.isInteger(input.target)||Number(input.target)<1||Number(input.target)>100000)throw new ApiError(400,'Target must be a positive whole number.');await rpc(ctx,'nam_set_sales_target',{w:ctx.workspaceId,payload:input});return json(await manualSales(ctx));
+  requireFounder(ctx);const input=await readJSON(request);fields(input,['owner_id','metric','period','target','expectedVersion']);if(input.expectedVersion!==undefined&&(!Number.isSafeInteger(input.expectedVersion)||Number(input.expectedVersion)<1||Number(input.expectedVersion)>2147483647))throw new ApiError(400,'The target revision is invalid.');identifier(input.owner_id,'Sales member');if(typeof input.metric!=='string'||!METRICS.includes(input.metric))throw new ApiError(400,'Invalid target metric.');if(typeof input.period!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.period))throw new ApiError(400,'Choose a target month.');if(!Number.isInteger(input.target)||Number(input.target)<1||Number(input.target)>100000)throw new ApiError(400,'Target must be a positive whole number.');await rpc(ctx,'nam_set_sales_target',{w:ctx.workspaceId,payload:input});return json(await manualSales(ctx));
  }
  return null;
 }
