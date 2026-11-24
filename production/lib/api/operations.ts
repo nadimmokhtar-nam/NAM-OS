@@ -14,7 +14,7 @@ function json(data:unknown,status=200){return Response.json(data,{status,headers
 function id(value:string){check(UUID.test(value),'Invalid attachment or task identifier.');return value;}
 function hash(bytes:Uint8Array){return createHash('sha256').update(bytes).digest('hex');}
 function dto(row:FileRow){return {id:row.id,task_id:row.task_id,name:row.name,mime:row.mime,size:row.byte_size,sha256:row.sha256,status:row.status,created_by:row.created_by,created_at:row.created_at,cleanupPending:row.status!=='ready'||!!row.cleanup_error};}
-function founder(ctx:APIContext){check(ctx.actor.role==='founder'&&ctx.mfa.verified,'Verified founder access is required.',403);}
+function founder(ctx:APIContext){check(ctx.actor.role==='founder'&&(!ctx.mfa.required||ctx.mfa.verified),'Verified founder access is required.',403);}
 function dbError(error:{code?:string;message?:string}|null){if(!error)return;
  const code=error.code||'';
  if(code==='42501')throw new ApiError(403,'You no longer have access to this action.');
