@@ -56,6 +56,8 @@
   --tab-height:28px;
   --task-properties-width:400px;
   --deliverable-panel-width:480px;
+  --timeline-label-width:320px;
+  --timeline-row-height:90px;
   --control-padding-block:6px;
   --control-padding-inline:10px;
   --nav-item-height:28px;
@@ -74,5 +76,5 @@
   --ease-out:cubic-bezier(.2,.7,.2,1);
 }
 @media(max-width:700px){
-  :root{--control-height:44px;--button-height:44px;--tab-height:44px;--nav-item-height:44px}
+  :root{--control-height:44px;--button-height:44px;--tab-height:44px;--nav-item-height:44px;--timeline-label-width:220px}
 }

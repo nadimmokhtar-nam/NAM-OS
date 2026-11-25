@@ -84,7 +84,7 @@ them with private/no-store, nosniff and sandbox headers. No public/signed downlo
 link is issued to clients. Original bytes are served only where the request
 explicitly allows downloading them.
 
-Business export format 7 includes client-review records and excludes all media
+Business export format 8 includes client-review and planning records and excludes all media
 bytes and authentication/session material. Contact emails remain Founder-only.
 
 ## Limits and recovery
@@ -117,6 +117,7 @@ revocation, view-only permissions, downloads, CSRF, mobile layout and accessibil
 Local/database checks and synthetic captures do not replace a live deployment
 rehearsal or direct visual comparison at matching viewport sizes.
 
-Remaining project scope includes richer project/client overview, timeline,
-reference/mood-board/document workflows, delivery packaging and animation media.
+Project overview, explicit phases and the timeline are documented in
+`PROJECT_PLANNING.md`. Remaining project scope includes reference/mood-board/
+document workflows, delivery packaging and animation media.
 The remaining module redesign and integration release gates also stay open.
