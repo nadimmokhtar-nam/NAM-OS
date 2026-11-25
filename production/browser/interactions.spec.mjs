@@ -2,9 +2,9 @@ import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {actor,profiles,mutate,screenshot} from './support.mjs';
 
-for(const width of [360,390,768,1024,1440])test(`Today, Work, Projects and Academy stay usable at ${width}px`,async({browser})=>{
+for(const width of [360,390,768,1024,1440])test(`Today, Work, Sales, Projects and Academy stay usable at ${width}px`,async({browser})=>{
  const {context,page}=await actor(browser,'founder',{viewport:{width,height:1000}});
- for(const route of ['overview','tasks','projects','academy']){
+ for(const route of ['overview','tasks','sales','projects','academy']){
   await page.goto('/workspace#'+route);await expect(page.locator('#app .sidebar')).toBeAttached();await expect(page.locator('#main h1')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),route+' must not overflow horizontally').toBe(true);
   expect(await page.locator('#main').evaluate(main=>main.getBoundingClientRect().right<=innerWidth+1)).toBe(true);
@@ -38,7 +38,7 @@ test('installation guidance remains keyboard accessible and never floats over wo
 
 test('key screens pass automated WCAG 2.2 AA checks and reduced-motion settings',async({browser})=>{
  const {context,page}=await actor(browser,'founder',{reducedMotion:'reduce'});
- for(const route of ['overview','tasks','projects','academy','settings']){
+ for(const route of ['overview','tasks','sales','projects','academy','settings']){
   await page.goto('/workspace#'+route);await expect(page.locator('#main h1')).toBeVisible();
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();expect(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length})),route+' accessibility violations').toEqual([]);
  }

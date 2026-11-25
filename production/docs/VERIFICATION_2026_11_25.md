@@ -51,7 +51,7 @@ on smaller windows and a readable vertical navigation. The collapsed mobile
 reader was observed after correction; expanded outline and all device sizes
 remain covered by pending native regressions.
 
-Academy authoring is being changed to selected-lesson editing, separate details,
+Academy authoring now uses selected-lesson editing, separate details,
 practical work and Publish & people. Local view navigation avoids backend reads,
 retains drafts/revisions, and defaults video/resources to the selected lesson.
 
@@ -70,6 +70,8 @@ retains drafts/revisions, and defaults video/resources to the selected lesson.
   and aggregate status.
 
 The local execution environment became unavailable during this checkpoint.
-GitHub remains the durable candidate source. Any reconstruction or newly added
-test must pass canonical CI before being treated as verified. No development
+GitHub remains the durable candidate source. The exact runtime source and added tests were recovered into a GitHub checkpoint;
+the responsive stylesheet's recovered SHA-256 matches the locally checked file.
+The assembled candidate is now queued for canonical checks. Reconstruction and
+new native tests must pass those checks before being treated as verified. No development
 after the active session, deployment or completed release is implied.
