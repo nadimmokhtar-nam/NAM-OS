@@ -4,6 +4,7 @@ export type TaskDTO=Record<string,unknown>&{id:string;owner_id:string;section:st
 const SECTIONS=['sales','academy','projects','library','team','operations'];
 const STATUSES=['Backlog','Todo','In progress','Blocked','Done','Canceled'];
 const PRIORITIES=['Low','Normal','High','Urgent'];
+const STAGES=['Brief','Modelling','Materials','Lighting','Internal review','Client review','Revisions','Delivery'];
 const UUID=/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 function check(ok:unknown,message:string):asserts ok{if(!ok)throw new ApiError(400,message);}
 function object(value:unknown):Record<string,unknown>{check(value&&typeof value==='object'&&!Array.isArray(value),'Invalid request.');return value as Record<string,unknown>;}
@@ -21,13 +22,15 @@ function dbError(error:{code?:string;message?:string}|null){if(!error)return;
  throw new ApiError(503,'The task service is temporarily unavailable. Please retry.');
 }
 function decorate(ctx:APIContext,row:Record<string,unknown>){const owner=ctx.members.find(m=>m.id===row.owner_id);return {...row,owner_name:owner?.name||'Studio member',owner_initials:owner?.initials||'—',can_archive:ctx.actor.role==='founder'&&(!ctx.mfa.required||ctx.mfa.verified===true)};}
-function changes(input:Record<string,unknown>,create=false){keys(input,['title','description','section','status','priority','due_date','owner_id','archived','confirmOpenSubtasks']);const out={...input};
+function changes(input:Record<string,unknown>,create=false){keys(input,['title','description','section','status','priority','due_date','owner_id','archived','confirmOpenSubtasks','project_id','production_stage']);const out={...input};
  if(create||'title'in out)out.title=text(out.title,'Task name',200);
  if('description'in out)out.description=text(out.description,'Description',10000,false);
  if(create||'section'in out)check(SECTIONS.includes(String(out.section)),'Choose a studio section.');
  if('status'in out)check(STATUSES.includes(String(out.status)),'Invalid task status.');
  if('priority'in out)check(PRIORITIES.includes(String(out.priority)),'Invalid priority.');
  if('owner_id'in out)out.owner_id=uuid(out.owner_id);
+ if('project_id'in out)out.project_id=out.project_id===null||out.project_id===''?null:uuid(out.project_id);
+ if('production_stage'in out)check(out.production_stage===null||STAGES.includes(String(out.production_stage)),'Choose a valid production stage.');
  if('archived'in out)check(typeof out.archived==='boolean','Invalid archive state.');
  if('confirmOpenSubtasks'in out)check(typeof out.confirmOpenSubtasks==='boolean','Confirm the open subtask decision.');
  if('due_date'in out){if(out.due_date===''||out.due_date===null)out.due_date=null;else{check(typeof out.due_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(out.due_date),'Invalid due date.');const parsed=new Date(`${out.due_date}T12:00:00Z`);check(Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===out.due_date,'Invalid due date.');}}
@@ -41,6 +44,8 @@ export async function taskPage(ctx:APIContext,input:URLSearchParams|Record<strin
  const filters:Record<string,unknown>={page,pageSize,archived:source.archived===true||source.archived==='1',mine:source.mine===true||source.scope==='mine'};
  for(const [field,allowed] of [['section',SECTIONS],['status',STATUSES],['priority',PRIORITIES]] as Array<[string,string[]]>){if(source[field]){check(allowed.includes(String(source[field])),`Invalid ${field} filter.`);filters[field]=source[field];}}
  if(source.owner)filters.owner=uuid(source.owner);
+ if(source.project_id)filters.project_id=uuid(source.project_id);
+ if(source.focus){check(['open','attention','today','upcoming','blocked','overdue','unscheduled','completed'].includes(String(source.focus)),'Invalid work view.');filters.focus=source.focus;}
  if(source.search)filters.search=text(source.search,'Search',200,false);
  const result=await rpc(ctx,'nam_task_page',{w:ctx.workspaceId,filters});
  return {...result,items:(result?.items||[]).map((row:Record<string,unknown>)=>decorate(ctx,row))};
@@ -53,10 +58,11 @@ async function detail(ctx:APIContext,id:string){
   ctx.supabase.from('nam_task_comments').select('*').eq('task_id',id).order('created_at',{ascending:false}).limit(200),
   ctx.supabase.from('nam_task_subtasks').select('*').eq('task_id',id).order('created_at').limit(200),
   ctx.supabase.from('nam_task_events').select('*').eq('task_id',id).order('id',{ascending:false}).limit(50),
-  ctx.supabase.from('nam_task_attachments').select('id,task_id,name,mime,byte_size,sha256,status,cleanup_error,created_by,created_at').eq('workspace_id',ctx.workspaceId).eq('task_id',id).neq('status','deleted').is('deleted_at',null).limit(200)
+  ctx.supabase.from('nam_task_attachments').select('id,task_id,name,mime,byte_size,sha256,status,cleanup_error,created_by,created_at').eq('workspace_id',ctx.workspaceId).eq('task_id',id).neq('status','deleted').is('deleted_at',null).limit(200),
+  task.project_id?ctx.supabase.from('nam_projects').select('id,title,brief,outcome,reference_url,due_date').eq('workspace_id',ctx.workspaceId).eq('id',task.project_id).maybeSingle():Promise.resolve({data:null,error:null})
  ]);for(const result of results)dbError(result.error);
  const names=new Map(ctx.members.map(m=>[m.id,m]));
- return {...decorate(ctx,task),attachments:(results[3].data||[]).map(file=>({id:file.id,task_id:file.task_id,name:file.name,mime:file.mime,size:file.byte_size,sha256:file.sha256,status:file.status,created_by:file.created_by,created_at:file.created_at,cleanupPending:file.status!=='ready'||!!file.cleanup_error})),comments:(results[0].data||[]).reverse().map(c=>({...c,author_name:names.get(c.author_id)?.name||'Studio member',initials:names.get(c.author_id)?.initials||'—'})),subtasks:results[1].data||[],events:(results[2].data||[]).map(e=>({...e,actor_name:names.get(e.actor_id)?.name||'Studio member',body:typeof e.body==='string'?e.body:typeof e.body?.message==='string'?e.body.message:Object.entries(e.body||{}).map(([k,v])=>`${k.replaceAll('_',' ')}: ${v??'not set'}`).join(' · ')}))};
+ return {...decorate(ctx,task),project:results[4].data,attachments:(results[3].data||[]).map(file=>({id:file.id,task_id:file.task_id,name:file.name,mime:file.mime,size:file.byte_size,sha256:file.sha256,status:file.status,created_by:file.created_by,created_at:file.created_at,cleanupPending:file.status!=='ready'||!!file.cleanup_error})),comments:(results[0].data||[]).reverse().map(c=>({...c,author_name:names.get(c.author_id)?.name||'Studio member',initials:names.get(c.author_id)?.initials||'—'})),subtasks:results[1].data||[],events:(results[2].data||[]).map(e=>({...e,actor_name:names.get(e.actor_id)?.name||'Studio member',body:typeof e.body==='string'?e.body:typeof e.body?.message==='string'?e.body.message:Object.entries(e.body||{}).map(([k,v])=>`${k.replaceAll('_',' ')}: ${v??'not set'}`).join(' · ')}))};
 }
 
 export async function dispatchTasks(ctx:APIContext,path:string[],request:Request):Promise<Response|null>{

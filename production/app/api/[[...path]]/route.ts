@@ -6,6 +6,9 @@ import {dispatchAcademy} from '@/lib/api/academy';
 import {dispatchSales} from '@/lib/api/sales';
 import {dispatchOperations} from '@/lib/api/operations';
 import {dispatchAccess} from '@/lib/api/access';
+import {dispatchProjects} from '@/lib/api/projects';
+import {dispatchDaily} from '@/lib/api/daily';
+import {dispatchAcademyVideo} from '@/lib/api/academy-video';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -17,12 +20,12 @@ async function route(request:Request,parameters:RouteContext):Promise<Response>{
   const open=await publicAuth(request,'/'+path.join('/'));if(open)return open;
   const context=await getContext(request,{allowMfaPending:path[0]==='auth'||path.join('/')==='bootstrap'});
   if(!['GET','HEAD'].includes(request.method))assertMutation(context,request);
-  if(path.length===1&&path[0]==='bootstrap'&&request.method==='GET')return json(await bootstrap(context));
+  if(path.length===1&&path[0]==='bootstrap'&&request.method==='GET'){const url=new URL(request.url);return json(await bootstrap(context,url.searchParams.get('scope')||undefined,url.searchParams.get('view')||'overview'));}
   const auth=await authAPI(context,request,'/'+path.join('/'));if(auth)return auth;
   // File URLs overlap task paths. Resolve the authorized private file routes
   // first; every dispatcher returns null for paths it does not own.
-  for(const dispatch of [dispatchAccess,dispatchOperations,dispatchTasks,dispatchAcademy,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
-  if(['projects','resources'].includes(path[0])&&path.length===1&&request.method==='GET')throw new ApiError(409,'This section currently supports tasks. Project and resource records are scheduled for the next milestone.','MODULE_NOT_AVAILABLE');
+  for(const dispatch of [dispatchAccess,dispatchDaily,dispatchProjects,dispatchOperations,dispatchTasks,dispatchAcademyVideo,dispatchAcademy,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
+  if(path[0]==='resources'&&path.length===1&&request.method==='GET')throw new ApiError(409,'This section currently supports tasks. Resource records are scheduled for the next milestone.','MODULE_NOT_AVAILABLE');
   throw new ApiError(404,'This page or record was not found.','NOT_FOUND');
  }catch(error){
   if(error instanceof ApiError)return json({error:error.message,code:error.code},error.status);

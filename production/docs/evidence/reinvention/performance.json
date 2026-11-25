@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-24T23:43:15.714Z",
+  "environment": "Isolated local Supabase: native PostgreSQL, GoTrue, PostgREST, Storage and actual Next.js application; eight distinct managed identities; no hosted tenant claims.",
+  "appMode": "production",
+  "browserTiming": "Signed-in navigation through the first visible enabled task. DOMContentLoaded and native visibility wait avoid unrelated load-event and coarse expect polling delay. Earlier retained runs used page load plus expect polling; timing protocols differ, so do not infer a direct percentage reduction.",
+  "identities": 8,
+  "roleTemplates": 6,
+  "loadTasks": 10000,
+  "httpReads": {
+    "samples": 80,
+    "p50_ms": 114.43,
+    "p95_ms": 137.6,
+    "max_ms": 155.13
+  },
+  "httpWriteIncludingContextRefresh": {
+    "samples": 8,
+    "p50_ms": 577.55,
+    "p95_ms": 620.78,
+    "max_ms": 620.78
+  },
+  "dailyBrief": {
+    "samples": 40,
+    "p50_ms": 193.1,
+    "p95_ms": 279.38,
+    "max_ms": 293.82
+  },
+  "eightConcurrentBrowserWorkspaces": {
+    "samples": 8,
+    "p50_ms": 1782.69,
+    "p95_ms": 1828.27,
+    "max_ms": 1828.27
+  },
+  "maximumSummaryBytes": 67855,
+  "parallelVersionConflict": {
+    "success": 1,
+    "conflict": 1
+  },
+  "limits": "Loopback networking, bounded bursts and synthetic records. Not a hosted capacity, long-duration stress, device accessibility or production SLA result."
+}
