@@ -94,3 +94,20 @@ Actual managed-session verification is performed separately in disposable QA.
 GitHub is the durable source checkpoint. The private operator package is
 preserved separately. No unobserved background development, production
 deployment or complete release is implied.
+
+## Verified correction and next regression
+
+Candidate102fa0d / native run45586187655 passed all34 checks with zero
+failures, skips or global errors. Linux CI45586187490 passed391 tests,
+TypeScript and the production build. The exact merge tested was5cfc41ecd345b036f4d058f0d4ea7955b55ca465.
+
+Source-bound loopback p95 results: summary reads147.04ms (80 samples), writes
+including context refresh560.55ms (8), daily brief190.58ms (40), usable task
+navigation1483.49ms (8); maximum summary67216 bytes. These passed the stated
+bounded targets. They do not establish hosted latency or sustained capacity.
+
+The follow-on candidate has396 passing local checks. Additional native
+regressions cover suspended-account discovery/restoration and eight managed
+learners completing, repeating and reopening lessons concurrently. Their actual
+native execution remains pending. Internal operational diagnostics and account
+configuration are retained privately rather than in this public evidence record.
