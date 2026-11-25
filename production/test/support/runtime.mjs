@@ -59,7 +59,7 @@ export async function context(db,user=ids.founder,options={}){
 const cache=new Map();
 export async function loadServerModule(relativePath){
  const file=resolve(root,relativePath);if(cache.has(file))return cache.get(file);
- const source=await readFile(file,'utf8'),code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const source=await readFile(file,'utf8'),code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
  const imports=new Map();
  for(const match of code.matchAll(/require\(["']([^"']+)["']\)/g)){
   const name=match[1];if(imports.has(name))continue;
