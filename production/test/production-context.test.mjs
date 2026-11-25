@@ -8,7 +8,7 @@ function harness(){
  const members=[{id:'founder',name:'Studio lead',role:'founder',sections:['projects']},{id:'artist',name:'Assigned artist',role:'artist',sections:['projects']},{id:'unshared',name:'Other artist',role:'artist',sections:['projects']},{id:'sales',name:'Sales member',role:'sales',sections:['sales']}];
  const data={actor:members[0],members},calls=[];
  const project={id:'shared',title:'Shared courtyard',lead_id:'founder',member_ids:['artist','founder'],brief:'Afternoon light',version:1};
- const module=createProductionProjects({getData:()=>data,openDialog(){},request:async path=>{calls.push(path);return structuredClone(project);}});
+ const module=createProductionProjects({getData:()=>data,openDialog(){},request:async path=>{calls.push(path);return path.startsWith('/projects?')?{items:[structuredClone(project)]}:structuredClone(project);}});
  return {module,data,project,calls};
 }
 
@@ -48,5 +48,55 @@ test('Project assignment choices reject responses after identity or role changes
 test('The project brief shows the accountable project lead',()=>{
  const {module,project}=harness();module.select(project);
  const html=module.render({taskWorkspace:()=>'',newTaskButton:()=>''});
- assert(html.includes('Project lead</span><strong>Studio lead</strong>'));
+ assert(html.includes('<dt>Project lead</dt><dd>Studio lead</dd>'));
+});
+
+test('The project directory uses bare cover regions and real captions without invented artwork or approvals',async()=>{
+ const {module,project}=harness();await module.load();
+ const html=module.render({taskWorkspace:()=>'<p>Shared work</p>',newTaskButton:()=>''});
+ assert(html.includes('class="project-card" data-action="project-open" data-id="'+project.id+'"'));
+ assert(html.includes('class="project-card-media" aria-hidden="true"'));
+ assert(html.includes('class="project-card-title">Shared courtyard'));
+ assert(html.includes('class="project-card-status">Active'));
+ assert(!html.includes('panel project-card'));assert(!html.includes('<img'));assert(!html.includes('Approved'));
+ assert(html.includes('data-action="project-archived" data-value="all" aria-pressed="true"'));
+ assert(html.includes('data-action="project-archived" data-value="archived" aria-pressed="false"'));
+});
+
+test('Archive tabs select an explicit scope and do not toggle when selected again',async()=>{
+ const {module,calls}=harness();module.toggleArchive('archived');await module.load();
+ module.toggleArchive('archived');await module.load();
+ assert.deepEqual(calls,['/projects?archived=1','/projects?archived=1']);
+ let html=module.render({taskWorkspace:()=>'',newTaskButton:()=>''});assert(html.includes('data-value="archived" aria-pressed="true"'));
+ module.toggleArchive('all');await module.load();assert.equal(calls.at(-1),'/projects?archived=0');
+ html=module.render({taskWorkspace:()=>'',newTaskButton:()=>''});assert(html.includes('data-value="all" aria-pressed="true"'));
+});
+
+test('A project overview keeps its real brief, team and shared work together without deriving fake metrics',()=>{
+ const {module,project}=harness();module.select({...project,due_date:'2026-12-10',outcome:'Reviewed final files',reference_url:'https://example.invalid/references'});
+ const html=module.render({taskWorkspace:section=>'<p>Actual '+section+' work</p>',newTaskButton:()=>'<button>New assigned work</button>'});
+ assert(html.includes('class="project-overview-grid"'));assert(html.includes('class="project-brief"'));
+ assert(html.includes('class="brief-copy">Afternoon light'));
+ assert(html.includes('class="project-overview-meta"'));assert(html.includes('Reviewed final files'));assert(html.includes('href="https://example.invalid/references"'));
+ assert(html.includes('class="project-team-list"'));assert(html.includes('Assigned artist'));assert(!html.includes('Other artist'));
+ assert(html.includes('<dt>Delivery deadline</dt><dd>10 December 2026</dd>'));
+ assert(html.includes('<dt>Brief access</dt><dd>2 participants</dd>'));
+ assert(html.includes('Actual projects work'));assert(html.indexOf('project-team-list')<html.indexOf('project-metric-strip'));assert(html.indexOf('project-metric-strip')<html.indexOf('project-work-section'));
+ assert(!html.includes('Approved'));assert(!html.includes('Revenue'));assert(!html.includes('Hours tracked'));
+});
+
+test('An artist overview does not expose the Founder participant list or editing actions',()=>{
+ const {module,project,data}=harness();data.actor=data.members[1];module.select({...project,member_ids:['artist']});
+ const html=module.render({taskWorkspace:()=>'<p>Only assigned work</p>',newTaskButton:()=>''});
+ assert(html.includes('This brief is shared with you.'));assert(html.includes('<dt>Brief access</dt><dd>Shared with you</dd>'));
+ assert(!html.includes('class="project-team-list"'));assert(!html.includes('data-action="project-edit"'));assert(!html.includes('data-action="project-archive"'));
+ assert(html.includes('Your assigned tasks in this project.'));assert(html.includes('Only assigned work'));
+});
+
+test('Missing optional context leaves a single calm brief column and archive retains its restore action',()=>{
+ const {module,project}=harness();module.select({...project,archived:true});
+ const html=module.render({taskWorkspace:()=>'',newTaskButton:()=>'<button>Unexpected new work</button>'});
+ assert(html.includes('project-overview-single'));assert(!html.includes('class="project-overview-meta"'));
+ assert(!html.includes('Unexpected new work'));assert(html.includes('data-action="project-archive">Restore project'));
+ assert(html.includes('<dt>Status</dt><dd>Archived</dd>'));
 });

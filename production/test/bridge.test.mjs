@@ -21,10 +21,10 @@ async function harness({demo=false,holdBootstrap=false}={}){
 }
 
 test('production workspace mounts the real module without demonstration member controls',async()=>{
-  const h=await harness();await h.mount();const html=h.nodes.get('#app').innerHTML;assert(html.includes('Today</a>'));assert(html.includes('Sign out'));assert(!html.includes('id="preview-member"'));assert(!html.includes('Demonstration · sample data'));assert(h.requests.some(r=>r.url==='/api/bootstrap'));assert(html.includes('Needs attention'));assert(!h.requests.some(r=>r.url.startsWith('/api/tasks?')),'The daily brief must not fetch a redundant personal task page.');
+  const h=await harness();await h.mount();const html=h.nodes.get('#app').innerHTML;assert(html.includes('Home</a>'));assert(html.includes('Sign out'));assert(!html.includes('id="preview-member"'));assert(!html.includes('Demonstration · sample data'));assert(h.requests.some(r=>r.url==='/api/bootstrap'));assert(html.includes('Needs attention'));assert(!h.requests.some(r=>r.url.startsWith('/api/tasks?')),'The daily brief must not fetch a redundant personal task page.');
 });
 test('cached module rebinds a new scaffold without duplicating document listeners',async()=>{
-  const h=await harness();await h.mount();const old=h.nodes.get('#app'),count=Object.values(h.listeners).reduce((n,x)=>n+x.length,0);h.unmount();const fresh=element(),dialog=element();h.nodes.set('#app',fresh);h.nodes.set('#dialog',dialog);await h.mount();assert(fresh.innerHTML.includes('Today</a>'));assert.notEqual(fresh,old);assert(dialog.listeners?.close);assert.equal(Object.values(h.listeners).reduce((n,x)=>n+x.length,0),count);
+  const h=await harness();await h.mount();const old=h.nodes.get('#app'),count=Object.values(h.listeners).reduce((n,x)=>n+x.length,0);h.unmount();const fresh=element(),dialog=element();h.nodes.set('#app',fresh);h.nodes.set('#dialog',dialog);await h.mount();assert(fresh.innerHTML.includes('Home</a>'));assert.notEqual(fresh,old);assert(dialog.listeners?.close);assert.equal(Object.values(h.listeners).reduce((n,x)=>n+x.length,0),count);
 });
 test('repeated mount on the same live scaffold performs one bootstrap',async()=>{
   const h=await harness();await Promise.all([h.mount(),h.mount()]);assert.equal(h.requests.filter(r=>r.url==='/api/bootstrap').length,1);
@@ -33,5 +33,5 @@ test('unmount aborts outstanding requests and prevents stale rendering',async()=
   const h=await harness({holdBootstrap:true});const pending=h.mount();await Promise.resolve();assert.equal(h.requests.length,1);h.unmount();await pending;assert.equal(h.requests[0].init.signal.aborted,true);assert.equal(h.nodes.get('#app').innerHTML,'');
 });
 test('production workspace refuses a demonstration bootstrap',async()=>{
-  const h=await harness({demo:true});await h.mount();const html=h.nodes.get('#app').innerHTML;assert(html.includes('This workspace could not verify its production data source.'));assert(html.includes('role="alert"'));assert(!html.includes('id="preview-member"'));assert(!html.includes('Today</a>'));assert.equal(h.requests.filter(r=>/^\/api\/(tasks|sales|integrations)(?:[/?]|$)/.test(r.url)).length,0);
+  const h=await harness({demo:true});await h.mount();const html=h.nodes.get('#app').innerHTML;assert(html.includes('This workspace could not verify its production data source.'));assert(html.includes('role="alert"'));assert(!html.includes('id="preview-member"'));assert(!html.includes('Home</a>'));assert.equal(h.requests.filter(r=>/^\/api\/(tasks|sales|integrations)(?:[/?]|$)/.test(r.url)).length,0);
 });

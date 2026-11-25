@@ -30,7 +30,7 @@ for(const width of [360,390,768,1024,1440])test(`Today, Work, Sales, Projects an
  for(const route of ['overview','tasks','sales','projects','academy']){
   await page.goto('/workspace#'+route);await expect(page.locator('#app .sidebar')).toBeAttached();await expect(page.locator('#main h1')).toBeVisible();
   await expect(page.locator('#main')).not.toHaveAttribute('aria-busy','true');
-  await expect(page.locator('#main h1')).toHaveText({overview:'Studio today',tasks:'Work',sales:'Sales',projects:'Projects',academy:'Academy'}[route]);
+  await expect(page.locator('#main h1')).toHaveText({overview:'Studio today',tasks:'Tasks',sales:'Sales',projects:'Projects',academy:'Academy'}[route]);
   await assertWorkspaceGeometry(page,route,width);
   if(width<=700){const menu=page.locator('#mobile-menu-trigger');await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');await expect(page.locator('.sidebar .nav-link[href="#overview"]')).toBeFocused();await page.locator('.sidebar a[href="#settings"]').focus();await page.keyboard.press('Tab');await expect(page.locator('.sidebar .brand')).toBeFocused();expect(await page.locator('#main').evaluate(node=>node.inert)).toBe(true);await page.keyboard.press('Escape');await expect(menu).toBeFocused();expect(await page.locator('#main').evaluate(node=>node.inert)).toBe(false);}
   if((width===390||width===1440)&&['overview','academy','projects'].includes(route))await screenshot(page,'after-'+route+'-'+width);
@@ -65,7 +65,7 @@ test('key screens pass automated WCAG 2.2 AA checks and reduced-motion settings'
  for(const route of ['overview','tasks','sales','projects','academy','settings']){
   await page.goto('/workspace#'+route);await expect(page.locator('#main h1')).toBeVisible();
   await expect(page.locator('#main')).not.toHaveAttribute('aria-busy','true');
-  await expect(page.locator('#main h1')).toHaveText({overview:'Studio today',tasks:'Work',sales:'Sales',projects:'Projects',academy:'Academy',settings:'Settings'}[route]);
+  await expect(page.locator('#main h1')).toHaveText({overview:'Studio today',tasks:'Tasks',sales:'Sales',projects:'Projects',academy:'Academy',settings:'Settings'}[route]);
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();expect(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length})),route+' accessibility violations').toEqual([]);
  }
  await page.goto('/workspace#tasks');await page.getByRole('button',{name:'Create task',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();expect(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.length}))).toEqual([]);await context.close();

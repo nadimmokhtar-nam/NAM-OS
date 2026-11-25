@@ -3,7 +3,7 @@ import {actor} from './support.mjs';
 
 async function begin(browser){
  const run=await actor(browser,'founder');await run.page.goto('/workspace#tasks');
- await expect(run.page.getByRole('heading',{name:'Work',exact:true})).toBeVisible();await expect(run.page.locator('#task-search')).toBeVisible();return run;
+ await expect(run.page.getByRole('heading',{name:'Tasks',exact:true})).toBeVisible();await expect(run.page.locator('#task-search')).toBeVisible();return run;
 }
 async function holdSales(page){
  let release,started;const hold=new Promise(resolve=>release=resolve),seen=new Promise(resolve=>started=resolve);

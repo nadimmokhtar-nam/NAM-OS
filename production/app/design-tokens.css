@@ -1,0 +1,69 @@
+/* NAM OS visual tokens, measured from the authenticated Programa reference.
+   NAM retains its own identity, content and behavior. Rhymes Display is not
+   distributed: the display face is an explicit local serif fallback.
+   Interaction/state tones and responsive touch sizes are NAM adaptations. */
+:root{
+  --font-ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-display:"Times New Roman",Times,serif;
+  --ink:#1a1916;
+  --text-primary:var(--ink);
+  --text-secondary:#5a534c;
+  --muted:#7b736c;
+  --primary:#2b2926;
+  --surface-canvas:#f8f6f3;
+  --surface-sidebar:var(--surface-canvas);
+  --surface-workspace:#fff;
+  --surface-raised:#fff;
+  --surface-muted:var(--surface-canvas);
+  --surface-hover:#f1eeea;
+  --surface-pressed:#e9e4de;
+  --line:rgba(43,41,38,.12);
+  --border-subtle:rgba(43,41,38,.08);
+  --border-strong:rgba(43,41,38,.24);
+  --input-border:#8b837b;
+  --panel:var(--surface-raised);
+  --focus-ring:#2b2926;
+  --status-progress-ink:#5a534c;
+  --status-progress-bg:#eeeae5;
+  --status-blocked-ink:#7a5d21;
+  --status-blocked-bg:#faf4e8;
+  --status-done-ink:#256b4a;
+  --status-done-bg:#edf6ef;
+  --status-danger-ink:#9b4438;
+  --status-danger-bg:#fcf0ed;
+  --radius-small:6px;
+  --radius-control:6px;
+  --radius-panel:8px;
+  --radius-workspace:10px;
+  --type-body:1rem;
+  --type-label:.928571rem;
+  --type-meta:.857143rem;
+  --type-display:24px;
+  --line-body:21px;
+  --line-label:20px;
+  --line-display:30px;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-8:32px;
+  --control-height:32px;
+  --control-padding-block:6px;
+  --control-padding-inline:10px;
+  --nav-item-height:28px;
+  --nav-width:220px;
+  --shell-inset:8px;
+  --header-height:52px;
+  --page-gutter:16px;
+  --shadow-nav-active:0 0 0 1px rgba(43,41,38,.08),0 1px 2px -1px rgba(43,41,38,.08),0 2px 4px rgba(43,41,38,.08);
+  --shadow-dialog:0 4px 24px rgba(43,41,38,.12);
+  --motion-press:90ms;
+  --motion-fast:120ms;
+  --motion-panel:200ms;
+  --ease-out:cubic-bezier(.2,.7,.2,1);
+}
+@media(max-width:700px){
+  :root{--control-height:44px;--nav-item-height:44px}
+}
