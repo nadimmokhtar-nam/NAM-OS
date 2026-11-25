@@ -1,0 +1,68 @@
+{
+  "checkedAt": "2026-11-24T23:58:04.859Z",
+  "sourceCommit": "31a22449ea93c4ce020f5240446322227ef025df",
+  "sourceRelease": "build-179776f15dd4250c",
+  "node": "v24.22.3",
+  "buildModule": "37.7.6",
+  "deno": "2.4.2",
+  "adapter": "@netlify/plugin-nextjs@5.16.9",
+  "buildMode": "Official public Build API, CLI mode, offline, deploy-preview context",
+  "engineSuccess": true,
+  "severityCode": 0,
+  "configurationInspectionComplete": false,
+  "warnings": [
+    {
+      "code": "EDGE_CONFIGURATION_INSPECTION_INCOMPLETE",
+      "detail": "The official Edge types import was blocked. Permit edge.netlify.com in the environment network policy and rerun."
+    }
+  ],
+  "artifacts": [
+    {
+      "kind": "SSR function ZIP",
+      "path": "production/.netlify/functions/___netlify-server-handler.zip",
+      "bytes": 17808431,
+      "sha256": "79bc1cadbf51d378d027d68ae1a217d7ffc142976d0947f30fd5f3c4ff0f888e"
+    },
+    {
+      "kind": "Proxy Edge bundle",
+      "path": "production/.netlify/edge-functions-dist/ad60e7419c5b27f06dc5ab49a8a2037dbe227adf4f402c5cc8882b2d3ce061fd.eszip",
+      "bytes": 2035455,
+      "sha256": "ad60e7419c5b27f06dc5ab49a8a2037dbe227adf4f402c5cc8882b2d3ce061fd"
+    }
+  ],
+  "middlewareCoverage": {
+    "workspace": true,
+    "bootstrap": true,
+    "privateVideo": true,
+    "staticChunkExcluded": true,
+    "imageExcluded": true
+  },
+  "edgeRoutes": [
+    {
+      "function": "___netlify-edge-handler-node-middleware",
+      "pattern": "^(?:/(_next/data/[^/]{1,}))?(?:/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\.json|\\.rsc|\\.segments/.+\\.segment\\.rsc)?[/#\\?]?$",
+      "excluded_patterns": []
+    }
+  ],
+  "edgeBundlerVersion": "16.2.0",
+  "functionRuntimes": [
+    {
+      "name": "___netlify-server-handler",
+      "runtimeVersion": "nodejs24.x",
+      "invocationMode": "stream",
+      "routes": [
+        {
+          "pattern": "/*",
+          "expression": "^(?:\\/(.*))\\/?$",
+          "methods": [],
+          "prefer_static": true
+        }
+      ]
+    }
+  ],
+  "packageLockSha256": "aca47b962d325bd0ac2ed3e412a315d7e6c9c795b7af0425d0d631997a987a63",
+  "hostedDeployment": false,
+  "credentialsUsed": false,
+  "hostedRuntimeVerified": false,
+  "limitation": "Packaging evidence only. No hosted Auth/cookies, private uploads/playback, integration tenants or deployment were verified."
+}

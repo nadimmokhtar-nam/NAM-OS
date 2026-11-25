@@ -58,3 +58,5 @@ Verify the deployed Netlify adapter, not just `next start`: password login, elec
 Confirm provider attribution/freshness against the actual permitted sales tenants. Verify recovery, private-file backup/restore and existing scheduled jobs. Batch deploys within Free allowances. Preserve the previous deploy for code rollback; additive schema should remain until an explicitly reviewed data migration is justified. Do not roll back by dropping business tables.
 
 Executed results and open hosted gates are in [REINVENTION_VALIDATION.md](docs/REINVENTION_VALIDATION.md). No production deployment or protected-hosted acceptance is claimed without that evidence.
+
+Accountless packaging of the reinvention source is recorded in [NETLIFY_REINVENTION_PACKAGING.md](docs/NETLIFY_REINVENTION_PACKAGING.md). SSR/Edge artifacts and protected route manifests were produced; the official Edge-types configuration inspection still needs `edge.netlify.com` permitted in the live environment. This is separate from hosted runtime acceptance.

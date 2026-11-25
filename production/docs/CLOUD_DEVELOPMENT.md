@@ -48,3 +48,7 @@ The browser suite uses eight distinct managed sessions across six role templates
 Screenshots and safe aggregate performance JSON are under `docs/evidence/reinvention/`; detailed private failure artifacts remain in the cache. The checked-in 2.5 KiB MP4 is a generated H.264 synthetic test video. The range fixture adds a valid free box and adjusts MP4 chunk offsets so actual media lies beyond the first 4 MiB response, requiring a subsequent range to play. No real client artwork or employee credentials are used.
 
 These tests establish behavior on actual local provider software. They do not establish protected Netlify acceptance, Internet/EU-database latency, maximum upload size, real provider reconciliation, device/screen-reader certification or a long-duration capacity result. See [the current validation log](REINVENTION_VALIDATION.md) and [deployment guide](../DEPLOYMENT.md).
+
+## Optional Netlify adapter packaging
+
+[NETLIFY_REINVENTION_PACKAGING.md](NETLIFY_REINVENTION_PACKAGING.md) records the actual accountless build and its incomplete Edge-types inspection. `tools/verify-netlify.mjs` archives committed HEAD, removes hosted bindings from its child environment and builds outside the checkout using pinned tooling. It never deploys. Exit 2 deliberately marks the known network-dependent inspection warning; do not call it a clean release pass.

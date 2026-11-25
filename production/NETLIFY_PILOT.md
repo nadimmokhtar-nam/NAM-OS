@@ -1,4 +1,4 @@
-> Historical adapter-build assessment. The owner subsequently supplied the existing protected `nam-os-staging` site and Ireland Supabase project. Use [DEPLOYMENT.md](DEPLOYMENT.md) and [current reinvention evidence](docs/REINVENTION_VALIDATION.md) for this branch. The older source hashes, counts and accountless packaging results below are retained as historical evidence.
+> Historical adapter-build assessment. The owner subsequently supplied the existing protected `nam-os-staging` site and Ireland Supabase project. Use [DEPLOYMENT.md](DEPLOYMENT.md), [current reinvention evidence](docs/REINVENTION_VALIDATION.md) and [the new source packaging check](docs/NETLIFY_REINVENTION_PACKAGING.md) for this branch. The older source hashes, counts and accountless packaging results below are retained as historical evidence.
 
 # Free online pilot: Netlify + Supabase
 

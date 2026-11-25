@@ -70,6 +70,10 @@ Product source identity: **build-179776f15dd4250c**. The QA build embeds loopbac
 
 Founder-only business JSON export version 4 now includes projects/participants/history, published learning structure, access grants/history and video metadata/references. It excludes Auth, credentials and binary media. Database and private Storage backup/restore remain separate recovery requirements. Existing migrations 001–015 and published data are not rewritten.
 
+## Additional Netlify packaging check
+
+Committed application source `31a2244` was packaged in a separate accountless snapshot with official Netlify Build 37.7.6, Deno 2.4.2 and the pinned Next.js adapter. The engine returned success and produced Node 24 SSR and Proxy Edge artifacts. Generated middleware routes retain workspace/private APIs and exclude static chunks/images. **Edge configuration inspection remains incomplete** because its official types import from `edge.netlify.com` is denied by the live network policy. The helper returns exit 2 for that warning instead of treating engine success as a full pass. No hosted runtime or deployment is inferred. [Executed details and reproduction](NETLIFY_REINVENTION_PACKAGING.md) · [bounded proof](evidence/reinvention/netlify-packaging.json).
+
 ## Before-and-after evidence
 
 | Workflow | Baseline client | Implemented client |
@@ -86,7 +90,7 @@ Baseline screenshots render exact client/CSS assets from the deployed commit aga
 
 [Cloud development](CLOUD_DEVELOPMENT.md) documents executable helpers, managed-Docker loopback health correction, private state, exact test commands and restoration limits. The required services are healthy; no health checks, TLS or artifact verification were disabled. The runtime was rechecked after environment-start notices; retained processes were present. A brand-new snapshot restoration has not been verified.
 
-The reusable environment configuration draft is saved, including install/start instructions and the required Figma, staging/Supabase, Netlify API and image-registry hosts. It is **not applied or published**. Review and save it in environment settings, then publish to activate it. The live environment still has no custom allowed hosts or injected hosted credentials.
+The reusable environment configuration draft is saved, including install/start instructions and the required Figma, staging/Supabase, Netlify API/Edge bootstrap and image-registry hosts. It is **not applied or published**. Review and save it in environment settings, then publish to activate it. The live environment still has no custom allowed hosts or injected hosted credentials.
 
 Open gates:
 
