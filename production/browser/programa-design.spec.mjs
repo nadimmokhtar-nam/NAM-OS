@@ -16,6 +16,10 @@ async function ready(page,title){
 async function navigate(page,route,title){
  const menu=page.locator('#mobile-menu-trigger');
  if(await menu.isVisible()&&await menu.getAttribute('aria-expanded')!=='true')await menu.click();
+ if(await page.locator('[data-project-navigation]').count()){
+  await page.getByRole('button',{name:'Back to projects',exact:true}).click();await ready(page,'Projects');
+  if(await menu.isVisible()&&await menu.getAttribute('aria-expanded')!=='true')await menu.click();
+ }
  const link=page.locator('.sidebar .nav-link[href="#'+route+'"]');
  await link.click();await ready(page,title);await expect(link).toHaveAttribute('aria-current','page');
  await expect(page.locator('.sidebar .nav-link[aria-current="page"]')).toHaveCount(1);

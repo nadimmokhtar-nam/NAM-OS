@@ -42,6 +42,20 @@ async function harness({intercept,sales,defaultTimeZone,initialHash='#overview'}
   return {ui,model,nodes,requests,redirects,location,response,document,windowEvents,setConfirm(value){confirmValue=value;},async dispatch(type,event){for(const listener of listeners[type]||[])await listener(event);}};
 }
 
+test('status groups retain each loaded task once, including backlog and canceled work, with permission-bound creation',async()=>{
+ const records=['Backlog','Todo','In progress','Blocked','Done','Canceled'].map((status,index)=>({...task(),id:'grouped-'+index,status}));
+ const h=await harness({initialHash:'#tasks',intercept:(url,init,model,response)=>url.startsWith('/api/tasks?')?response({items:records,total:120,page:1,hasMore:true}):null});
+ let html=h.nodes.get('#app').innerHTML;
+ for(const record of records){
+  assert.equal((html.match(new RegExp('data-action="open-task" data-id="'+record.id+'"','g'))||[]).length,1);
+  assert(html.includes('data-group-status="'+record.status+'"'));
+  assert(html.includes('data-status="'+record.status+'"'));
+ }
+ assert.equal((html.match(/aria-label="1 loaded task"/g)||[]).length,6);assert(html.includes('6 of 120 matching tasks loaded'));
+ h.ui.state.data.capabilities.createTaskSections=[];h.ui.render();html=h.nodes.get('#app').innerHTML;
+ assert(!html.includes('data-action="create-task"'));assert.equal((html.match(/data-action="open-task"/g)||[]).length,6);
+});
+
 test('task pages retain a navigable sidebar, one record URL and restore the parent workspace on close',async()=>{
  const h=await harness({initialHash:'#tasks'}),dialog=h.nodes.get('#dialog');
  await h.ui.openTask('task-1');
@@ -69,6 +83,18 @@ test('Back to the parent task list preserves its filters and does not refetch a 
  assert.equal(h.nodes.get('#dialog').open,false);assert.equal(h.nodes.get('#main').inert,false);
  assert.equal(h.ui.state.search,'lighting pass');assert.equal(h.ui.state.focus,'today');
  assert.equal(h.requests.length,count);
+});
+
+test('a queued native close from Back cannot cancel the task request started by Forward',async()=>{
+ let hold=false,release,markStarted;const lookupStarted=new Promise(resolve=>markStarted=resolve);
+ const h=await harness({initialHash:'#tasks',intercept:(url,init,model,response)=>hold&&url==='/api/tasks/task-1'?new Promise(resolve=>{release=()=>resolve(response(task()));markStarted();}):null});
+ await h.ui.openTask('task-1');const dialog=h.nodes.get('#dialog');let queuedClose;
+ dialog.close=function(){this.open=false;queuedClose=()=>this.listeners.close();};
+ h.location.hash='#tasks';await h.ui.navigate();
+ hold=true;h.location.hash='#tasks?task=task-1';const forward=h.ui.navigate();await lookupStarted;
+ queuedClose();assert.equal(h.location.hash,'#tasks?task=task-1');release();await forward;
+ assert.equal(dialog.open,true);assert.equal(h.ui.state.task.id,'task-1');assert.equal(dialog.dataset.workspace,'task');
+ assert.equal(h.nodes.get('#main').inert,true);
 });
 
 test('declining navigation keeps the task draft and its URL; accepting it opens the requested section',async()=>{
@@ -392,6 +418,10 @@ for(const editWhilePending of [false,true])test('parent Save keeps Close and Esc
  h.nodes.get('#dialog').querySelector=s=>s==='form[data-form="edit-task"]'?edit:s==='form[data-form="edit-task"] [type="submit"]'?save:s==='[data-action="close-dialog"]'?close:null;
  const request=h.dispatch('submit',{target:edit,preventDefault(){}});await seen;assert.equal(close.disabled,true);assert.equal(save.disabled,true);assert.equal(h.ui.state.task.status,'Done');
  h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert.equal(h.nodes.get('#dialog').open,true);let prevented=false;h.nodes.get('#dialog').listeners.cancel({preventDefault(){prevented=true;}});assert(prevented);
+ const taskURL=h.location.hash,view=h.ui.state.view;
+ h.location.hash='#sales';await h.ui.navigate();
+ assert.equal(h.location.hash,taskURL);assert.equal(h.ui.state.view,view);assert.equal(h.nodes.get('#dialog').open,true);
+ await h.ui.action({dataset:{action:'project-back'}});assert.equal(h.location.hash,taskURL);assert.equal(h.nodes.get('#dialog').open,true);
  if(editWhilePending)edit.values.description='Typed after the save request';
  release();await request;assert.equal(close.disabled,false);assert.equal(save.disabled,false);
  if(editWhilePending){assert(h.nodes.get('#dialog').innerHTML.includes('Typed after the save request'));assert.equal(h.ui.dirtyTask(),true);}

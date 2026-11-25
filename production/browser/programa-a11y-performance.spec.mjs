@@ -128,8 +128,12 @@ test('Artist reduced-motion work remains keyboard accessible with the real PWA f
   const response=await run.context.request.get('/api/tasks/'+fixture.records.tasks[0]);expect(response.status()).toBe(200);const task=await response.json();
   const opener=await openTask(run.page,task),dialog=run.page.getByRole('dialog'),save=dialog.locator('.task-detail-actions button[type="submit"]'),close=dialog.getByRole('button',{name:'Close dialog',exact:true});
   await expect(run.page.locator('.pwa-install-slot')).toHaveCount(1);await expect(run.page.locator('.pwa-install-slot')).toBeVisible();
-  await hit(save,{mobile:true});await save.focus();await run.page.keyboard.press('Tab');await expect(close).toBeFocused();
-  await run.page.keyboard.press('Shift+Tab');await expect(save).toBeFocused();
+  await hit(save,{mobile:true});await save.focus();await run.page.keyboard.press('Tab');
+  expect(await dialog.evaluate(node=>node.contains(document.activeElement)),'The task workspace must allow keyboard navigation outside its page surface').toBe(false);
+  const skip=run.page.locator('.skip');if(!await skip.evaluate(node=>node===document.activeElement))await run.page.keyboard.press('Tab');
+  await expect(skip).toBeFocused();
+  await run.page.keyboard.press('Tab');await expect(dialog.locator('#task-menu-trigger')).toBeFocused();
+  await save.focus();
   const focused=await save.evaluate(node=>({visible:node.matches(':focus-visible'),outline:parseFloat(getComputedStyle(node).outlineWidth)}));expect(focused.visible).toBe(true);expect(focused.outline).toBeGreaterThanOrEqual(budget.focusOutlinePx);
   await noOverflow(run.page,'#dialog');await run.page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();await expect(opener).toBeFocused();
   const menu=run.page.locator('#mobile-menu-trigger');await menu.click();await run.page.locator('.sidebar .nav-link[href="#academy"]').click();await ready(run.page,'Academy');

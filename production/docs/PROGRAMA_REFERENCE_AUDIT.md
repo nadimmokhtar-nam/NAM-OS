@@ -18,11 +18,27 @@ desktop actions/pills use the measured 28px size, warm control surfaces and subt
 elevation; mobile controls keep 44px touch targets. Task properties use a fixed
 400px desktop rail. Mobile comments precede the properties/files area.
 
-The updated local source passes 123 existing/new source checks. New disposable-
-provider browser coverage checks real task routing, native nonmodal behavior,
+The shared task list now groups the existing records by their authoritative
+status. All six NAM statuses remain visible when populated, including Backlog and
+Canceled. Group creation actions use the existing permission checks and create
+records with that group's status. The 720px groups, 44px warm headers and 46px
+rows follow the live reference; counts describe loaded records and the existing
+pagination total remains separate.
+
+The updated local source passes 138 existing/new source checks, including the
+upload recovery suite. Upload timing checks now await transfer/refresh signals
+instead of counting event-loop cycles; cancellation assertions remain intact.
+New disposable-provider browser coverage checks real task routing, native nonmodal behavior,
 400px geometry, mobile reading order, unsaved navigation and denied task links.
-GitHub CI build and native-provider browser results are pending. The earlier UI
-differences and execution limits below describe the recovered baseline.
+The first CI run passed TypeScript and the isolated production build. The source
+suite passed 443 of 444 checks; its upload-start timing assumption is corrected
+above. Native checks passed 51 of 58 scenarios and exposed a queued-close race
+between browser Back and Forward. Task navigation now clears the old page
+synchronously and consumes its deferred native close without invalidating the new
+request. A regression case covers that order. Keyboard and cross-module browser
+checks now use the nonmodal task page and Back-to-projects navigation. The full
+rerun and visual captures remain pending. The earlier UI differences and execution
+limits below describe the recovered baseline.
 
 ## Authoritative acceptance brief
 

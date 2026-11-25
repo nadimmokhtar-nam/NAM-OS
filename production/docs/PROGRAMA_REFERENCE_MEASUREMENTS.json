@@ -36,6 +36,7 @@
   "tasks": {
     "presentation": "Full workspace page retaining project navigation and breadcrumb",
     "list_group_width_px": 720,
+    "list_group_header": {"height_px": 44, "horizontal_padding_px": 12, "background": "#fcfbf9", "group_radius_px": 8, "group_elevation": "active_shadow"},
     "list_task_link_height_px": 46,
     "board_task_link_width_px": 280,
     "desktop_properties_width_px": 400,

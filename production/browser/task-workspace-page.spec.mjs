@@ -12,6 +12,11 @@ test('task workspace keeps project context, direct URLs, Back and mobile reading
   expect(taskResponse.status()).toBe(201);const task=await taskResponse.json();
   const parent='/workspace#projects/'+project.id+'/work';
   await run.page.goto(parent);await expect(run.page.locator('#main h1')).toHaveText('Project Management');
+  const group=run.page.locator('.task-group[data-group-status="Todo"]');
+  await expect(group.locator('[data-action="open-task"]')).toHaveCount(1);
+  const list=await group.evaluate(node=>({width:node.getBoundingClientRect().width,header:node.querySelector('.task-group-head').getBoundingClientRect().height,row:node.querySelector('.task-row').getBoundingClientRect().height}));
+  expect(list.width).toBeCloseTo(720,0);expect(list.header).toBeCloseTo(44,0);expect(list.row).toBeCloseTo(46,0);
+  await run.page.screenshot({path:testInfo.outputPath('task-fidelity-list-1440.png'),animations:'disabled'});
   await run.page.locator('[data-action="open-task"][data-id="'+task.id+'"]').click();
   const detail=run.page.getByRole('dialog'),title=detail.getByLabel('Task name',{exact:true});
   await expect(title).toHaveValue(task.title);await expect(run.page).toHaveURL(new RegExp('task='+task.id+'$'));

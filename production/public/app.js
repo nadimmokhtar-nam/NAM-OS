@@ -50,6 +50,7 @@ const isTaskPage=()=>!!dialog?.open&&dialog.dataset.workspace==='task';
 const pending=new Set();
 const pendingSubtasks=new Map();
 let taskOpenVersion=0;
+const taskNavigationCloseEvents=new WeakMap();
 const partialTaskWrites=new Map();
 const parentTaskWrites=new Map();
 const dialogDrafts=new WeakMap();
@@ -146,7 +147,15 @@ function board(tasks,section){const cols=state.status?[state.status]:['Todo','In
 function taskWorkspace(section=''){const tasks=filteredTasks(section);return workViews()+`<div class="toolbar"><div class="filters"><label class="sr-only" for="task-search">Search tasks</label><input id="task-search" placeholder="Search tasks…" value="${esc(state.search)}" type="search">${!section?`<label class="sr-only" for="filter-section">Section</label><select id="filter-section">${options(state.data.sections.map(s=>[s,label(s)]),state.section,'All sections')}</select>`:''}${founder()?`<label class="sr-only" for="filter-owner">Owner</label><select id="filter-owner">${options(state.data.members.map(m=>[m.id,m.name]),state.owner,'All owners')}</select>`:''}<label class="sr-only" for="filter-status">Status</label><select id="filter-status">${options(statuses,state.status,'All statuses')}</select><label class="sr-only" for="filter-priority">Priority</label><select id="filter-priority">${options(priorities,state.priority,'All priorities')}</select>${button(state.archived?'Archived':'Active','archive-filter','small')}</div><div class="view-switch" aria-label="Task view"><button class="${state.mode==='list'?'active':''}" data-action="view-mode" data-value="list" aria-pressed="${state.mode==='list'}">${icon('list')} List</button><button class="${state.mode==='board'?'active':''}" data-action="view-mode" data-value="board" aria-pressed="${state.mode==='board'}">${icon('board')} Board</button></div></div><div id="task-results">${taskResults(tasks,section)}</div><div class="spread"><small>${state.taskPage?`${state.data.tasks.length} of ${state.taskPage.total} matching tasks loaded`:'Task workspace'}</small>${state.taskPage?.hasMore?button('Load more tasks','load-more'):''}</div>`;}
 function workViews(){const views=[['','All work'],['attention','Attention'],['today','Today'],['upcoming','Next 7 days'],['blocked','Blocked'],['completed','Completed']],extra={open:'Open work',overdue:'Overdue',unscheduled:'No deadline'};if(extra[state.focus])views.push([state.focus,extra[state.focus]]);return '<div class="work-views" aria-label="Work focus">'+views.map(([id,title])=>'<button class="work-view '+(state.focus===id?'active':'')+'" data-action="task-focus" data-focus="'+id+'" aria-pressed="'+(state.focus===id)+'">'+title+'</button>').join('')+'</div>';}
 function visibleTask(id){return state.data.tasks.find(t=>t.id===id)||['attention','priorities','upcoming','completed'].flatMap(k=>state.data.brief?.[k]||[]).find(t=>t.id===id);}
-function taskResults(tasks,section){return state.mode==='board'?board(tasks,section):`<section class="panel task-results-panel"><div class="panel-head"><h2>${section==='projects'&&production.getProject()?'Project tasks':section?`${label(section)} work`:state.studio?'Studio tasks':'Your tasks'}</h2><small>${tasks.length} task${tasks.length===1?'':'s'}</small></div>${taskRows(tasks)}<div class="panel-foot">${state.archived?'Archived tasks can be restored in task details.':'Every task has an owner, a status and a place in the studio.'}</div></section>`;}
+function taskResults(tasks,section){
+ if(state.mode==='board')return board(tasks,section);
+ if(!tasks.length)return empty('No tasks in this view','Try another filter, or create the next piece of work.');
+ const title=section==='projects'&&production.getProject()?'Project tasks':section?`${label(section)} work`:state.studio?'Studio tasks':'Your tasks';
+ return `<div class="task-groups" role="region" aria-label="${esc(title)}">${statuses.map((status,index)=>{
+  const records=tasks.filter(task=>task.status===status);if(!records.length)return '';
+  return `<section class="task-group" data-group-status="${esc(status)}" aria-labelledby="task-group-${index}"><div class="task-group-head"><h2 id="task-group-${index}">${badge(status)}<span class="task-group-count" aria-label="${records.length} loaded task${records.length===1?'':'s'}">${records.length}</span></h2>${canCreate(section)?button(icon('plus'),'create-task','icon-btn',`data-section="${esc(section)}" data-status="${esc(status)}" aria-label="Add ${esc(status.toLowerCase())} task"`):''}</div>${taskRows(records)}</section>`;
+ }).join('')}</div>`;
+}
 function tasksPage(){return pageHead('Tasks','Every next action, with the context to do it well.','<div class="filters">'+(founder()?button('Deleted records','deleted-tasks'):'')+newTaskButton()+'</div>')+(founder()?tabs([['mine','My tasks'],['studio','Studio tasks']],state.studio?'studio':'mine'):'')+taskWorkspace();}
 function sectionTaskPage(section,subtitle){return pageHead(label(section),subtitle,newTaskButton(section))+taskWorkspace(section);}
 function academy(){if(state.course)return coursePage();const header=pageHead('Academy','The craft, the method, the NAM standard.')+tabs([['learning','My learning'],['tasks','Learning tasks'],...(founder()?[['manage','Manage courses']]:[])],state.tab||'learning');if(state.tab==='manage')return header+academyAdmin.render();if(state.tab==='tasks')return header+taskWorkspace('academy');return header+renderLearning({courses:state.data.courses,area:state.area,search:state.learningSearch,areas,founder:founder()});}
@@ -179,7 +188,13 @@ async function navigate(){
   if(dialog.open){
    const page=isTaskPage(),origin=taskPageRoute;
    if(parentTaskWrites.get(state.task?.id)||dirtyDialog()&&!confirm('Discard your unsaved changes and leave this page?')){if(origin)history.replaceState(null,'',origin.hash);return;}
-   dialog.close();syncNavigation();
+   if(page){
+    const key=dialogReturn;taskOpenVersion++;taskNavigationCloseEvents.set(dialog,(taskNavigationCloseEvents.get(dialog)||0)+1);
+    taskPageRoute=null;dialogReturn=null;state.task=null;state.menu=false;dialog.inert=false;
+    dialog.dataset.workspace='';dialog.classList.remove('workspace-task');dialog.removeAttribute('aria-modal');
+    dialog.close();syncNavigation();document.title=`NAM ${label(state.view)} — Studio workspace`;
+    const active=document.activeElement;if(!active||active===document.body||active===dialog||dialog.contains(active))restoreFocus(key);
+   }else{dialog.close();syncNavigation();}
    if(page&&!route.taskId&&route.parentHash===origin?.parentHash)return;
   }
   clearTimeout(searchTimer);const previousView=state.view,generation=++state.routeVersion,actor=state.data.actor.id,requested=route.view,recordId=route.recordId,projectView=route.projectView;
@@ -348,7 +363,10 @@ function bindDialog(){if(boundDialogs.has(dialog))return;boundDialogs.add(dialog
   const items=Array.from(dialog.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')).filter(node=>!node.disabled&&node.tabIndex>=0&&node.getClientRects().length&&getComputedStyle(node).visibility!=='hidden');
   const first=items[0],last=items.at(-1),active=document.activeElement;if(!first)return;
   if(event.shiftKey&&(active===first||!dialog.contains(active))||!event.shiftKey&&(active===last||!dialog.contains(active))){event.preventDefault();(event.shiftKey?last:first).focus();}
- });dialog.addEventListener('cancel',e=>{if(parentTaskWrites.get(state.task?.id)){e.preventDefault();return;}if(dirtyDialog()&&!confirm('Discard your unsaved changes?'))e.preventDefault();});dialog.addEventListener('close',()=>{
+ });dialog.addEventListener('cancel',e=>{if(parentTaskWrites.get(state.task?.id)){e.preventDefault();return;}if(dirtyDialog()&&!confirm('Discard your unsaved changes?'))e.preventDefault();});dialog.addEventListener('close',event=>{
+  const closed=event?.currentTarget||dialog,handled=taskNavigationCloseEvents.get(closed)||0;
+  if(handled){taskNavigationCloseEvents.set(closed,handled-1);return;}
+  if(closed!==dialog)return;
   if(dialog.open)return;taskOpenVersion++;
   const key=dialogReturn,page=dialog.dataset.workspace==='task',route=taskPageRoute;
   dialogReturn=null;state.task=null;dialog.inert=false;
