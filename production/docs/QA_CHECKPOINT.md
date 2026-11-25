@@ -1,3 +1,5 @@
+> Historical checkpoint. Current implementation and executed reinvention checks are in [REINVENTION_VALIDATION.md](REINVENTION_VALIDATION.md). The owner’s latest requirements and migration 015 permit password-only Founder sign-in; verified authenticator enrollment is optional. Earlier feature/assurance statements below describe their recorded revision.
+
 # NAM OS verified development checkpoint
 
 24 November 2026. **Not a production release or a completed full QA cycle.**

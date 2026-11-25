@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-24T23:22:22.979Z",
+  "environment": "Isolated local Supabase: native PostgreSQL, GoTrue, PostgREST, Storage and actual Next.js application; eight distinct managed identities; no hosted tenant claims.",
+  "appMode": "production",
+  "identities": 8,
+  "roleTemplates": 6,
+  "loadTasks": 10000,
+  "httpReads": {
+    "samples": 80,
+    "p50_ms": 142.18,
+    "p95_ms": 176.3,
+    "max_ms": 182.24
+  },
+  "httpWriteIncludingContextRefresh": {
+    "samples": 8,
+    "p50_ms": 606.85,
+    "p95_ms": 695.05,
+    "max_ms": 695.05
+  },
+  "dailyBrief": {
+    "samples": 40,
+    "p50_ms": 180.65,
+    "p95_ms": 233.54,
+    "max_ms": 239.06
+  },
+  "eightConcurrentBrowserWorkspaces": {
+    "samples": 8,
+    "p50_ms": 1996.31,
+    "p95_ms": 2084.23,
+    "max_ms": 2084.23
+  },
+  "maximumSummaryBytes": 67718,
+  "parallelVersionConflict": {
+    "success": 1,
+    "conflict": 1
+  },
+  "limits": "Loopback networking, bounded bursts and synthetic records. Not a hosted capacity, long-duration stress, device accessibility or production SLA result."
+}

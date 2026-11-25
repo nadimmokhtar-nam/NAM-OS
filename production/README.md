@@ -1,54 +1,36 @@
-# NAM OS online application
+# NAM OS
 
-Next.js, TypeScript and Supabase source for NAM Studio's private workspace. **This is development source, not a released team application.** The production build has passed. Hosted identity, real integration tenants, PWA installation, recovery and all four full QA cycles remain release gates.
+NAM Studio's private operating workspace, built with Next.js 16, Node 24 and Supabase. The implementation branch is `codex/nam-os-reinvention`, based on trial commit `7f07fa7c88c82c87e58931cf15efc9c3c74d96c9`. The existing trial, database and `main` have not been changed by this initiative.
 
-## Implemented source
+## Daily experience
 
-- Invite-only server-managed authentication, MFA, password setup/recovery, trusted membership and signed mutation protection. HttpOnly cookies and database checks reject revoked sessions and insufficient assurance.
-- Shared section tasks, personal/studio views, lists/boards, ownership, priorities, dates, comments, subtasks, optimistic edits, archive/restore, notifications and history.
-- Written Academy across Sales, 3D and Post-production, immutable publications, pinned enrollments, persistent progress and practical submissions/review. Module/resource expansion is tracked in the current workstream.
-- Sales activities, reports and founder targets. Read-only Attio, Lemlist and JustCall adapters with source freshness, ownership mapping, bounded pages and protected sync leases. App credentials and real tenant reconciliation remain required. Attio is the CRM; Apollo prospecting is an external dependency.
-- Private small task attachments. Actual stored bytes are validated before a service-only attestation makes files available. Ordinary data and file access use the user's JWT and database policies.
-- Approved NAM logo, shared interface and task-first Projects/Library workspaces. Expanded production management and asset catalogues remain phased work.
+- **Today:** personal priorities or a Founder studio brief, project deadlines, blockers, production reviews, recent completions, team commitments, sales activity and direct sales-report/Academy decisions. Returning to Today refreshes the brief; Refresh is also explicit.
+- **Work:** one shared task system with ownership, dates, priority, project/production context, checklists, comments, private files and history. Server-side time/attention filters, list/board views, bounded pages, version conflicts and retry protection remain intact. `N` creates work, `/` focuses search and `?` explains shortcuts outside forms.
+- **Projects:** real shared briefs and explicit participants. Existing tasks become image/deliverable work through a project link and CGI production stage. No duplicated ownership, due date or completion record. Project participation shares the brief; assigned-only users still see only their own tasks.
+- **Academy:** assigned learning leads with the next unfinished course/lesson. Immutable publications, pinned enrollment, modules, written resources, completion history and practical reviews remain. Actual private MP4/WebM uploads support native playback, authenticated seeking, optional WebVTT captions and publication-pinned media.
+- **Studio:** existing Sales, Library, Team, Operations, account/security and integration capabilities remain accessible. Attio remains the CRM, Apollo remains external prospecting, and Lemlist/JustCall data retain source attribution and freshness. Today labels manually logged activity separately from provider figures.
 
-## Reproducible checks
+Password sign-in works for every role, including Founder. An elected verified authenticator requires its challenge; enrollment is optional. Existing explicit section grants and assigned-only manager/artist access remain unchanged.
 
-Use Node.js 24 and the committed lockfile:
+## Checks
 
 ```sh
-npm ci
+npm ci --no-audit --no-fund --cache /workspace/.cache/npm
 npm run typecheck
 npm test
 npm run build
-npm start
 ```
 
-The production build uses webpack, which has been executed successfully. Tests include actual PostgreSQL/RLS/RPC execution in PGlite and controlled API/UI contracts. Managed Auth/Storage schemas and provider network boundaries are fixtures. These checks do not prove hosted Supabase behavior, real network concurrency, device accessibility or desktop installation.
+Tests execute application code and all numbered migrations under actual PostgreSQL/RLS in PGlite. The separate browser suite uses eight real synthetic identities and native Supabase Auth/PostgREST/Storage in a disposable local stack. See [cloud development](docs/CLOUD_DEVELOPMENT.md) for executable startup instructions and [validation evidence](docs/REINVENTION_VALIDATION.md) for results, corrections and limits.
 
-Additional local/provider tests live in the parent implementation. That SQLite server is a development reference, not the production persistence layer.
+The normal build regenerates the PWA source identity. A changed public Supabase build binding requires a new build. Never deploy the compiled isolated-QA `.next` directory to the real studio host.
 
-## Configuration and deployment
+## Existing infrastructure
 
-Start with an isolated Supabase staging project. Review and apply **all** numbered SQL migrations in order; later migrations enforce the current identity and data policies. Disable public signup. Provision the first founder through the reviewed operator path using a confirmed Auth identity. There is no public setup or self-promotion endpoint.
+Netlify site `nam-os-staging`, deployment branch `main`, base `production`, build `npm run build`, Free plan. Supabase project `ltkdycibqnqmwqeejcvs`, Ireland, already has migrations 001–015. Preserve its data and accounts: **do not rerun an initial installer, owner bootstrap or reset**. This branch adds migrations 016–021; hosted application remains a separate verified delivery step.
 
-Set configuration only through secure local/provider settings. The project reference alone is not account access. Never commit credentials, database files or runtime state.
+Use [DEPLOYMENT.md](DEPLOYMENT.md) for the actual infrastructure and preview/release procedure. Server credentials and workspace identifiers belong in secure environment/provider settings. Do not paste them into chat or commit them.
 
-| Variable | Purpose |
-| --- | --- |
-| NEXT_PUBLIC_SUPABASE_URL | Project URL |
-| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | Public API key, with RLS protecting records |
-| NAM_APP_ORIGIN | Exact HTTPS application origin |
-| NAM_CSRF_SECRET | Independent server secret, at least 32 characters |
-| NAM_WORKSPACE_ID | Explicit studio workspace UUID |
-| SUPABASE_SERVICE_ROLE_KEY | Server-only account administration and stored-file attestation |
-| NAM_INTEGRATIONS_WORKSPACE_ID | Workspace bound to integration credentials |
-| ATTIO_API_KEY, ATTIO_DEALS_OBJECT | Optional Attio connection and object mapping |
-| LEMLIST_API_KEY | Optional Lemlist connection |
-| JUSTCALL_API_KEY, JUSTCALL_API_SECRET | Optional JustCall connection |
-| NAM_CRON_SECRET | Protected job authentication when enabled |
+Private video is limited to 50 MiB per upload and a 512 MiB workspace reservation safeguard. Playback ranges are capped at 4 MiB for the documented Netlify binary response envelope. There is no transcoding or automatic caption service. Business JSON export includes project, learning, access-grant and video metadata; database and private Storage backups remain necessary for recovery.
 
-Never prefix privileged/provider secrets with NEXT_PUBLIC_. Follow the job documentation for newer key aliases and scheduler settings. No unattended sync is claimed until configuration and execution have been verified.
-
-Use the directory containing this package.json as Vercel's Root Directory: `nam-os/production` in the complete source tree, or `production` in the standalone upload package. Do not deploy the parent SQLite server to Vercel.
-
-See `docs`, `TASKS.md` and the deployment guide for exact provisioning and operational steps. Run hosted negative permission tests with isolated identities before inviting the team. Back up and restore the database **and private Storage objects**; JSON business export alone is not a disaster-recovery backup. A passing build or isolated suite does not complete the four required full-platform QA cycles.
+Hosted Netlify, the owner's real Supabase tenant, sales-provider reconciliation, protected Figma frames and device/screen-reader acceptance require access and direct verification. Local tests do not establish those checks or deployment.
