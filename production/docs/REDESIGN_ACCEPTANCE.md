@@ -16,6 +16,7 @@ continuation. All native test identities, project data and emails are disposable
 | --- | --- | --- |
 | Design system | Shared measured palette, Newsreader/Inter fonts, controls, borders, shadows, spacing, shell/sidebar and touch sizes. | Complete remaining controls, states and matching-size visual comparisons across all modules. |
 | Authentication | Password/recovery/reset, invitations, session revocation, optional MFA, role/section access and separate guest sign-in. | Missing live reference screens, complete error/activation comparison and hosted email rehearsal. |
+| Home | Existing permission-scoped daily brief, tasks, projects, deadlines, learning and review queues.036 adds real dated role-audience announcements and source-labelled shortcuts into production, client review, Sales and Academy. | Consolidated announcement/privacy/native verification, populated role-by-role workflow and design acceptance. |
 | Task workspaces | Shared task identity, List/Board, status groups, properties, priorities, dates, assignees, subtasks, comments, private files and linkable task pages. Calendar, server sorting, dependencies and completion-driven recurring successors are added in029. | Consolidated DB/API/native verification of029; final cross-module workflow and visual acceptance. |
 | Projects | Real directory, contextual navigation, brief, lead, explicit participants, deadline, history and archive/restore. Private files/folders, references, pinboards and meeting notes are added in028. | Consolidated verification of all resource paths and participant/Founder boundaries; broader visual acceptance. |
 | Production | Camera/deliverable inventory, ten production stages, assigned artists and linked central tasks. Real revision rounds and immutable final-file deliveries are added in033. | Consolidated revision/task/client delivery tests, animation media and complete production UX comparison. |
@@ -29,7 +30,7 @@ continuation. All native test identities, project data and emails are disposable
 
 ## Remaining production scope
 
-New migrations028–034 and their browser controllers are an unaccepted development
+New migrations028–036 and their browser controllers are an unaccepted development
 batch until consolidated source, database, API and native browser checks pass.
 Private resource reads and downloads, real cross-module task handoffs, retained
 issued files and current authorization require behavioral verification. Existing
@@ -37,7 +38,7 @@ native tests do not imply new workflows have been exercised. Animation review
 and optional bulk delivery ZIP packaging are not part of the current JPEG/PNG
 render pipeline.
 
-Home still needs announcements and a complete role-by-role acceptance pass for
+Home needs a complete role-by-role acceptance pass for its announcements,
 projects, deadlines, activity, approvals, quick actions and meaningful indicators.
 The remaining Tasks, Academy, Sales, Team and Settings requirements above must be
 verified individually against the original brief. Existing functions should be

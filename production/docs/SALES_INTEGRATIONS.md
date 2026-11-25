@@ -165,6 +165,22 @@ Those suites cover owner/tenant/section/session/MFA denial, private relationship
 
 Live Attio, Lemlist and JustCall application credentials, plan entitlements, real account identity, attribute/status mappings and external owner mappings are **not verified**. A connected ChatGPT service is not a deployed application credential. Hosted migration execution, real provider smoke tests, browser/layout/accessibility checks and the existing release gates remain required. No deployment, migration, outreach or vendor mutation is performed by this implementation.
 
+### Read-only Lemlist compatibility probe, 25 November 2026
+
+The connected service returned two bounded pages of actual recent activities.
+Their wire fields (`_id`, `type`, `sendUserId`, `createdBy`, `createdAt`,
+`campaignId`, `leadId`, `bot`) match the existing raw adapter, and available
+sender identities matched the connected provider roster. Missing optional
+lead email remains null. Campaign/report connector tables use presentation
+fields different from the documented raw endpoints; these are not a reason
+to change the raw adapter. No confirmed field mismatch was found.
+
+The report request succeeded but its raw rows were unavailable to this probe,
+so report values and full synchronization remain unverified. This connection
+does not install an application key, tenant binding or NAM owner mapping.
+Private samples and provider identities were not committed. No campaigns,
+outreach, settings or other vendor records were changed.
+
 ### Primary API references checked for this extension
 
 - [Attio list/query records and required scopes](https://docs.attio.com/rest-api/endpoint-reference/records/list-records)
