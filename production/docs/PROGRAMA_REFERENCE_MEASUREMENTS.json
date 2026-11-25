@@ -1,0 +1,65 @@
+{
+  "reference": "https://app.programa.design/",
+  "measured_on": "2026-11-25",
+  "method": "Authenticated rendered UI, DOM geometry and computed styles; independently implemented NAM components required",
+  "viewports": {
+    "desktop": {"width": 1440, "height": 1000},
+    "mobile_task": {"width": 390, "height": 844},
+    "approval_drawer": {"width": 1280, "height": 720}
+  },
+  "fonts": {"body": "Inter", "controls": "InterVariable", "display": "Rhymes Display", "note": "Observed names only; no Programa font redistribution. NAM's current Times fallback is a mismatch."},
+  "colors": {"canvas": "#f8f6f3", "workspace": "#ffffff", "menu": "#fcfbf9", "text": "#1a1916", "muted": "#7b736c", "primary": "#2b2926", "property_border": "#eeece6"},
+  "shell": {
+    "outer_inset_px": 8,
+    "sidebar_width_px": 220,
+    "workspace_left_px": 228,
+    "workspace_width_at_1440_px": 1204,
+    "workspace_height_at_1000_px": 984,
+    "content_gutter_px": 16,
+    "breadcrumb": {"size_px": 12, "line_height_px": 20, "weight": 500},
+    "navigation_item": {"height_px": 28, "width_px": 188, "radius_px": 6, "font_size_px": 13, "line_height_px": 20, "weight": 500, "gap_px": 8}
+  },
+  "typography": {
+    "body": {"size_px": 14, "line_height_px": 21, "weight": 400},
+    "page_heading": {"size_px": 24, "line_height_px": 30, "weight": 400},
+    "card_title": {"size_px": 14, "line_height_px": 20, "weight": 500},
+    "task_title": {"size_px": 18, "line_height_px": 28.8}
+  },
+  "controls": {
+    "primary_small": {"height_px": 28, "radius_px": 6, "font_size_px": 13, "line_height_px": 20, "weight": 500, "padding_px": [4, 8], "gap_px": 6},
+    "settings_select": {"height_px": 32, "radius_px": 6, "font_size_px": 13},
+    "active_pill": {"height_px": 28, "radius": "9999px", "font_size_px": 13, "line_height_px": 20, "weight": 500, "padding_px": [4, 10]},
+    "view_menu": {"width_px": 280, "padding_px": 4, "radius_px": 8},
+    "menu_shadow": "0 0 0 1px rgba(0,0,0,.08), 0 4px 8px rgba(0,0,0,.08), 0 8px 16px rgba(0,0,0,.08)",
+    "active_shadow": "0 0 0 1px rgba(0,0,0,.08), 0 1px 2px -1px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04)"
+  },
+  "tasks": {
+    "presentation": "Full workspace page retaining project navigation and breadcrumb",
+    "list_group_width_px": 720,
+    "list_task_link_height_px": 46,
+    "board_task_link_width_px": 280,
+    "desktop_properties_width_px": 400,
+    "main_padding_px": 16,
+    "properties_padding_px": [16, 24, 24, 24],
+    "mobile_order": ["Title and description", "Subtasks", "Comments", "Properties and attachments"],
+    "mobile_content_width_at_390_px": 374
+  },
+  "compact_table": {"row_height_px": 48, "gap_px": 2, "row_radius_px": 10, "horizontal_padding_px": [8, 16], "cell_gap_px": 12, "hover_timing_css_ms": 75, "timing_note": "Value observed in rendered row class; hover animation was not recorded"},
+  "dialogs": {
+    "large_form": {"inset_px": 8, "radius_px": 8, "width_at_1440_px": 1424, "height_at_1000_px": 984},
+    "approval_drawer": {"width_px": 560, "inset_px": 8, "radius_px": 8, "height_at_720_px": 704},
+    "approval_tabs": ["Outstanding", "History"],
+    "date_picker_months": 2
+  },
+  "authentication_inherited": {
+    "evidence": "Previous checkpoint; not remeasured in the current authenticated session",
+    "desktop_form_width_px": 480,
+    "image_rail_width_at_1280_px": 282,
+    "mobile_form_width_at_390_px": 311,
+    "heading": {"size_px": 22, "line_height_px": 33, "weight": 600},
+    "primary": {"height_px": 40, "radius_px": 8, "size_px": 16, "line_height_px": 20, "weight": 500},
+    "input_wrapper": {"height_px": 32, "radius_px": 6, "horizontal_inset_px": 8},
+    "focus": "Neutral 1px ring and soft 4px outer ring"
+  },
+  "unverified": ["Activation/invitation and authentication-error screens", "Populated client decisions/history", "Notification inbox", "Hover/transition recordings", "Tablet/broader mobile sweep", "Deliberate server/network errors"]
+}

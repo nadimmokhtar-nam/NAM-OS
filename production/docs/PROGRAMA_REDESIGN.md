@@ -1,5 +1,11 @@
 # NAM OS — Programa redesign
 
+> Historical checkpoint. The authenticated reference study and source recovery
+> below were superseded on 25 November 2026 by
+> [the continuation audit](PROGRAMA_REFERENCE_AUDIT.md). Use that audit and its
+> measured reference data for current implementation status. Authentication
+> measurements below remain inherited evidence, not a current remeasurement.
+
 25 November 2026 · Phase 1: actual-reference collection
 
 ## Authoritative direction
