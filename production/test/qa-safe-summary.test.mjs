@@ -99,6 +99,15 @@ test('failure-site extraction rejects traversal, unknown files and private exter
  assert(result.output.tests[0].results[0].failureSites.every(site=>site.location===null));
 });
 
+test('image diagnostics retain bounded dimensions and scalar shapes while removing all record values',async()=>{
+ const file=resolve(app,'browser/project-deliverables.spec.mjs');
+ const messages=['Expected: 374\nReceived: 356','Expected: "20000000-0000-4000-8000-000000000001"\nReceived: null','Expected: "'+marker+'"\nReceived: "'+marker+'"'];
+ const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:messages.map(message=>({message:'expect(received).toBe(expected)\n'+message,location:{file,line:29,column:56}}))}]});
+ const result=await summarize(fixture),sites=result.output.tests[0].results[0].failureSites;
+ assert.deepEqual(sites[0].imageAssertion,{expected:374,received:356});assert.deepEqual(sites[1].imageAssertion,{expectedShape:'record-id',receivedShape:'null'});assert.deepEqual(sites[2].imageAssertion,{expectedShape:'redacted',receivedShape:'redacted'});
+ assert.equal(JSON.stringify(result.output).includes('20000000-0000-4000-8000-000000000001'),false);
+});
+
 for(const [name,fixture] of [
  ['zero tests',{config:{rootDir:app},suites:[],errors:[]}],
  ['a skipped test',example({status:'skipped',results:[{status:'skipped',duration:0}]})],

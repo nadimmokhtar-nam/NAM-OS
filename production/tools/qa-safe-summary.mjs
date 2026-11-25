@@ -23,7 +23,16 @@ const safeFailure=error=>{
  // For an exact HTTP creation assertion, retain only bounded numeric codes.
  // Never include response bodies, assertion diffs or arbitrary error messages.
  const expected=message.match(/^Expected:\s*(201)\s*$/m),received=message.match(/^Received:\s*([1-5][0-9]{2})\s*$/m);
- return {location,assertion,...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:201,received:Number(received[1])}}:{})};
+ // Image-workspace diagnostics may retain only bounded dimensions/status codes
+ // or scalar types. Record identities, titles, DOM and error text stay private.
+ let imageAssertion;
+ if(file==='browser/project-deliverables.spec.mjs'&&assertion==='toBe'){
+  const left=message.match(/^Expected:\s*(.+?)\s*$/m)?.[1],right=message.match(/^Received:\s*(.+?)\s*$/m)?.[1];
+  const shape=value=>['null','undefined','true','false'].includes(value)?value:/^["']?[\da-f]{8}-[\da-f-]{27}["']?$/i.test(value||'')?'record-id':'redacted';
+  if(['200','374','480'].includes(left)&&/^\d{1,4}$/.test(right||''))imageAssertion={expected:Number(left),received:Number(right)};
+  else if(left&&right)imageAssertion={expectedShape:shape(left),receivedShape:shape(right)};
+ }
+ return {location,assertion,...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:201,received:Number(received[1])}}:{}),...(imageAssertion?{imageAssertion}:{})};
 };
 // Performance evidence is a numeric allowlist bound to this exact CI source.
 // No user labels, endpoints, raw timings, errors or arbitrary evidence fields
