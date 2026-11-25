@@ -115,7 +115,7 @@ export async function dispatchRenders(ctx:APIContext,path:string[],request:Reque
    if((x===null)!==(y===null)||x!==null&&(typeof x!=='number'||typeof y!=='number'||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1||y<0||y>1))throw new ApiError(400,'Choose a point within the render image.');
    await rpc(ctx,'nam_post_render_comment',{w:ctx.workspaceId,rid,message:body,x,y,retry_key:retryKey(request)});
   }else if(method!=='GET')throw new ApiError(405,'Method not allowed.');
-  const {data,error,count}=await ctx.supabase.from('nam_render_comments').select('id,render_id,author_id,body,point_x,point_y,created_at',{count:'exact'}).eq('workspace_id',ctx.workspaceId).eq('render_id',rid).order('created_at',{ascending:false}).order('id',{ascending:false}).range((page-1)*100,page*100-1);if(error)failure(error);
+  const {data,error,count}=await ctx.supabase.from('nam_render_comments').select('id,render_id,author_id,number,body,point_x,point_y,created_at',{count:'exact'}).eq('workspace_id',ctx.workspaceId).eq('render_id',rid).order('created_at',{ascending:false}).order('id',{ascending:false}).range((page-1)*100,page*100-1);if(error)failure(error);
   return json({items:(data||[]).map(comment=>({...comment,author_name:ctx.members.find(member=>member.id===comment.author_id)?.name||'Studio member'})),total:count||0,page,hasMore:page*100<(count||0)},method==='POST'?201:200);
  }
  return null;

@@ -146,22 +146,22 @@ begin
 end $$;
 
 create table public.nam_render_comments (
- id uuid primary key default gen_random_uuid(),workspace_id uuid not null,render_id uuid not null,author_id uuid not null references auth.users(id),body text not null check(length(trim(body)) between 1 and 5000),
+ id uuid primary key default gen_random_uuid(),workspace_id uuid not null,render_id uuid not null,author_id uuid not null references auth.users(id),number integer not null check(number>0),body text not null check(length(trim(body)) between 1 and 5000),
  point_x numeric,point_y numeric,request_key text not null,created_at timestamptz not null default now(),
- unique(workspace_id,author_id,request_key),foreign key(workspace_id,render_id) references public.nam_render_versions(workspace_id,id),
+ unique(workspace_id,author_id,request_key),unique(render_id,number),foreign key(workspace_id,render_id) references public.nam_render_versions(workspace_id,id),
  check((point_x is null and point_y is null) or (point_x between 0 and 1 and point_y between 0 and 1 and point_x is not null and point_y is not null))
 );
 alter table public.nam_render_comments enable row level security;
 create policy render_comments_read on public.nam_render_comments for select to authenticated using(public.nam_render_access(workspace_id,render_id));
 revoke all on public.nam_render_comments from public,anon,authenticated;
-grant select(id,workspace_id,render_id,author_id,body,point_x,point_y,created_at) on public.nam_render_comments to authenticated;
+grant select(id,workspace_id,render_id,author_id,number,body,point_x,point_y,created_at) on public.nam_render_comments to authenticated;
 create function public.nam_post_render_comment(w uuid,rid uuid,message text,x numeric,y numeric,retry_key text) returns uuid
 language plpgsql security definer set search_path='' as $$
-declare result public.nam_render_comments;r public.nam_render_versions;
+declare result public.nam_render_comments;r public.nam_render_versions;next_number integer;
 begin
  if not public.nam_render_access(w,rid) then raise exception 'Render not found' using errcode='P0002';end if;
  if retry_key is null or retry_key !~ '^[A-Za-z0-9_-]{8,128}$' then raise exception 'Retry key required' using errcode='22023';end if;
- select * into r from public.nam_render_versions where workspace_id=w and id=rid for share;
+ select * into r from public.nam_render_versions where workspace_id=w and id=rid for update;
  if r.status<>'ready' or not exists(select 1 from public.nam_deliverables d join public.nam_projects p on p.id=d.project_id where d.id=r.deliverable_id and not d.archived and not p.archived) then raise exception 'An active verified render is required' using errcode='22023';end if;
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(w::text||auth.uid()::text||retry_key||':render-comment',0));
  select * into result from public.nam_render_comments where workspace_id=w and author_id=auth.uid() and request_key=retry_key;
@@ -169,7 +169,8 @@ begin
   if result.render_id<>rid or result.body is distinct from trim(message) or result.point_x is distinct from x or result.point_y is distinct from y then raise exception 'Comment retry differs' using errcode='40001';end if;
   return result.id;
  end if;
- insert into public.nam_render_comments(workspace_id,render_id,author_id,body,point_x,point_y,request_key) values(w,rid,auth.uid(),trim(message),x,y,retry_key) returning * into result;
+ select coalesce(max(number),0)+1 into next_number from public.nam_render_comments where render_id=rid;
+ insert into public.nam_render_comments(workspace_id,render_id,author_id,number,body,point_x,point_y,request_key) values(w,rid,auth.uid(),next_number,trim(message),x,y,retry_key) returning * into result;
  return result.id;
 end $$;
 revoke all on function public.nam_deliverable_page(uuid,uuid,jsonb),public.nam_render_write(uuid,uuid),public.nam_render_access(uuid,uuid),public.nam_render_storage_access(text,text),public.nam_reserve_render(uuid,uuid,integer,jsonb,text),public.nam_attest_render(uuid,uuid,integer,uuid,uuid,boolean,jsonb),public.nam_cancel_render(uuid,uuid,text),public.nam_render_page(uuid,uuid,integer),public.nam_post_render_comment(uuid,uuid,text,numeric,numeric,text) from public,anon,authenticated,service_role;
@@ -177,7 +178,7 @@ grant execute on function public.nam_render_write(uuid,uuid),public.nam_render_a
 grant execute on function public.nam_deliverable_page(uuid,uuid,jsonb) to authenticated;
 grant execute on function public.nam_attest_render(uuid,uuid,integer,uuid,uuid,boolean,jsonb) to service_role;
 
-create or replace function public.nam_export_business(w uuid) returns jsonb language plpgsql security definer set search_path='' as $
+create or replace function public.nam_export_business(w uuid) returns jsonb language plpgsql security definer set search_path='' as $$
 declare export_table text; rows jsonb; result jsonb:='{}';
 begin
  if not public.nam_founder(w) then raise exception 'Founder access is required' using errcode='42501'; end if;
@@ -202,7 +203,7 @@ begin
  end loop;
  select coalesce(jsonb_agg(to_jsonb(a)),'[]'::jsonb) into rows from public.nam_task_attachments a where a.workspace_id=w;
  return jsonb_build_object('format','NAM OS business data export','version',6,'exportedAt',now(),'attachmentBytesIncluded',false,'videoBytesIncluded',false,'renderBytesIncluded',false,'data',result||jsonb_build_object('nam_task_attachments',rows));
-end $;
+end $$;
 
 
 commit;

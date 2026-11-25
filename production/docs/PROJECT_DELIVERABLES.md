@@ -54,7 +54,8 @@ drawer. The item drawer uses the newly measured 480px width, with 8px viewport
 insets on narrow layouts. Narrow layouts wrap metadata rather than hiding production information.
 NAM uses the authorized Newsreader display face with Inter for the UI.
 
-This inventory does not implement render uploads, version comparisons, image
-annotations, revision-round decisions, client portal access or image approval.
-Those need independent permissioned records and actual populated Programa
-references. Ordinary task attachments are not a substitute for a review system.
+The continuation adds private image uploads, immutable render history,
+comparison and internal feedback markers; see `RENDER_VERSION_WORKFLOW.md` for
+its permissions, recovery and verification boundary. Client review requests,
+revision-round decisions, guest portal access and image approval remain open.
+Ordinary task attachments remain independent of this render-review system.

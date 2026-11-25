@@ -29,6 +29,7 @@ const denied=e=>['42501','P0002'].includes(e.code)||[403,404].includes(e.status)
 
 test('actual image decoding produces bounded, oriented WebP previews while preserving original bytes',async()=>{
  const image=await prepareRender(bytes,'image/png');assert.equal(image.sha256,hash(bytes));assert.equal(image.width,100);assert.equal(image.height,60);assert.equal((await sharp(image.preview).metadata()).format,'webp');
+ const rotated=await sharp({create:{width:80,height:40,channels:3,background:'#9b826d'}}).jpeg().withMetadata({orientation:6}).toBuffer(),oriented=await prepareRender(rotated,'image/jpeg');assert.equal(oriented.width,40);assert.equal(oriented.height,80);assert.equal((await sharp(oriented.preview).metadata()).width,40);assert.equal(oriented.sha256,hash(rotated));
  for(const data of [Buffer.from('<svg></svg>'),bytes.subarray(0,40),Buffer.alloc(80)])await assert.rejects(prepareRender(data,'image/png'),e=>e.status===400);
  await assert.rejects(prepareRender(bytes,'image/jpeg'),e=>e.status===400);
  const large=await sharp({create:{width:9000,height:9000,channels:3,background:'#fff'}}).png().toBuffer();await assert.rejects(prepareRender(large,'image/png'),e=>e.status===400);
@@ -72,6 +73,19 @@ test('bad or substituted stored bytes cannot be published and failed cleanup kee
  const meta=(await db.query('select * from nam_render_versions where id=$1',[a.id])).rows[0];await rpc(ids.artist,'nam_cancel_render',{w:ids.w,rid:a.id,phase:'prepare'});await assert.rejects(rpc(ids.artist,'nam_cancel_render',{w:ids.w,rid:a.id,phase:'complete'}),e=>e.code==='40001');
  await rpc(ids.artist,'nam_cancel_render',{w:ids.w,rid:a.id,phase:'failed'});assert.equal((await db.query('select cleanup_error from nam_render_versions where id=$1',[a.id])).rows[0].cleanup_error,true);
  await call(ids.artist,'renders/'+a.id+'/cancel','POST',{});assert(!objects.has(meta.storage_path));assert.equal((await (await call(ids.artist,'deliverables/'+did+'/renders')).json()).pending.length,0);
+});
+
+test('a matching fingerprint cannot turn malformed or active image content into a verified render',async()=>{
+ const {did}=await fixture(),bad=Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>invalid</script></svg>'),a=await reserve(did,{content:bad});await upload(a,bad);
+ await assert.rejects(finish(a),e=>e.status===400);assert.equal((await detail(did)).version,1);assert.equal((await (await call(ids.artist,'deliverables/'+did+'/renders')).json()).total,0);
+});
+
+test('trusted attestation rechecks original session, account status and elected factors even on a saved version',async()=>{
+ const {did}=await fixture(),a=await reserve(did);await upload(a);await finish(a);
+ const evidence={sha256:hash(bytes)},args={w:ids.w,rid:a.id,expected_version:2,verified_actor:ids.artist,verified_session:ids.artist,verified_aal2:false,verified_image:evidence};
+ await assert.rejects(rpc(null,'nam_attest_render',{...args,verified_session:ids.sales},{role:'service_role'}),denied);
+ await db.query("update auth.users set banned_until=now()+interval '1 hour' where id=$1",[ids.artist]);try{await assert.rejects(rpc(null,'nam_attest_render',args,{role:'service_role'}),denied);}finally{await db.query('update auth.users set banned_until=null where id=$1',[ids.artist]);}
+ await db.query("insert into auth.mfa_factors(id,user_id,status) values($1,$1,'verified')",[ids.artist]);try{await assert.rejects(rpc(null,'nam_attest_render',args,{role:'service_role'}),denied);assert.equal(await rpc(null,'nam_attest_render',{...args,verified_aal2:true},{role:'service_role'}),a.id);}finally{await db.query('delete from auth.mfa_factors where user_id=$1',[ids.artist]);}
 });
 
 test('revoked project access and assignment changes block pending uploads and verified render reads',async()=>{
