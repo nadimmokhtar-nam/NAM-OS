@@ -5,6 +5,15 @@ remaining implementation. It does not establish redesign or release acceptance.
 
 ## Implementation continuation
 
+The user authorized a different display font on 25 November 2026. NAM now selects
+Newsreader for editorial headings, paired with the existing Inter UI face.
+Newsreader's normal variable Latin/Latin Extended files and OFL licence are
+self-hosted; automatic optical sizing follows the existing 24px/30px headings.
+This replaces the Times fallback and removes the need to acquire Rhymes Display.
+Font provenance is recorded in `public/fonts/README.md`. Programa remains the
+layout, density and interaction reference. The authenticated session was reopened
+successfully; current task controls were inspected without changing records.
+
 The continuation now implements linkable task workspaces through the existing
 authorized task API. Task pages retain the sidebar, use a nonmodal native surface,
 keep the underlying list out of the focus/accessibility tree, and support direct
@@ -125,10 +134,11 @@ Mobile task geometry used 390 × 844. Temporary viewport changes were reset.
 Project Grid, task List and schedule Classic preferences were restored.
 
 [Measured values](PROGRAMA_REFERENCE_MEASUREMENTS.json) are implementation inputs,
-not a claim that NAM already matches them. Inter/InterVariable is the UI face;
-Rhymes Display is the page-heading face. NAM bundles licensed Inter but currently
-falls back to Times New Roman for display text: a known mismatch. Do not
-redistribute Programa's fonts, branding or imagery.
+not a claim that NAM already matches them. Inter/InterVariable is the reference UI
+face; Rhymes Display is the reference page-heading face. NAM's approved adaptation
+uses Newsreader for headings and retains Inter for the UI. The reference names are
+kept in the measurement record. Do not redistribute Programa's fonts, branding or
+imagery.
 
 Remaining evidence: invitation/activation/reset-error screens, populated client
 decision/history and notification-inbox states, hover/transition recordings,
@@ -210,7 +220,7 @@ unavailable. Read the relevant installed Next.js guide as required by `AGENTS.md
 before changing Next APIs; the matching official v16.4.6 SPA/CSS documentation was
 read for this continuation.
 
-Complete missing references and typeface provenance; finish the shared
+Complete missing references and direct typography review; finish the shared
 tokens/primitives; implement and compare one connected authentication/shell/project/
 task flow at matching desktop/mobile sizes; extend the remaining modules and
 additive production models; complete functional, permissions, accessibility,

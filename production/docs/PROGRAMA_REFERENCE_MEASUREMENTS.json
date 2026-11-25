@@ -7,7 +7,7 @@
     "mobile_task": {"width": 390, "height": 844},
     "approval_drawer": {"width": 1280, "height": 720}
   },
-  "fonts": {"body": "Inter", "controls": "InterVariable", "display": "Rhymes Display", "note": "Observed names only; no Programa font redistribution. NAM's current Times fallback is a mismatch."},
+  "fonts": {"body": "Inter", "controls": "InterVariable", "display": "Rhymes Display", "nam_display": "Newsreader", "note": "Observed Programa names retained as evidence. User authorized an alternate display face on 2026-11-25; NAM self-hosts OFL Newsreader with Inter for the UI. No Programa font redistribution."},
   "colors": {"canvas": "#f8f6f3", "workspace": "#ffffff", "menu": "#fcfbf9", "text": "#1a1916", "muted": "#7b736c", "primary": "#2b2926", "property_border": "#eeece6"},
   "shell": {
     "outer_inset_px": 8,

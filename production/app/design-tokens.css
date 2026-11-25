@@ -1,10 +1,10 @@
 /* NAM OS visual tokens, measured from the authenticated Programa reference.
-   NAM retains its own identity, content and behavior. Rhymes Display is not
-   distributed: the display face is an explicit local serif fallback.
+   NAM retains its own identity, content and behavior. Newsreader is the
+   user-approved, independently licensed display face; Inter serves the UI.
    Interaction/state tones and responsive touch sizes are NAM adaptations. */
 :root{
   --font-ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  --font-display:"Times New Roman",Times,serif;
+  --font-display:Newsreader,Georgia,serif;
   --ink:#1a1916;
   --text-primary:var(--ink);
   --text-secondary:#5a534c;
