@@ -21,7 +21,7 @@ async function render(action,dataset={}){
   const {createAcademyAdmin}=await loadBrowserModule(context,'academy-admin.js');
   const controller=createAcademyAdmin({request:async path=>path==='/bootstrap'?{members:[]}:path==='/academy/admin/courses'?[structuredClone(course)]:structuredClone(course),openDialog:(title,body)=>{modal=body;},toast:message=>{throw new Error(message);},onChange:async()=>{}});
   async function click(name,extra={}){const element={dataset:{academyAction:name,...extra},isConnected:true,setAttribute(){},removeAttribute(){},closest(selector){return selector==='[data-academy-action]'?this:null;}};for(const fn of listeners.click||[])fn({target:element,preventDefault(){}});await tick();}
-  await controller.load();await click('open',{course:course.id});
+  await controller.load();await click('open',{course:course.id});await click('authoring-view',{view:'details'});
   const persistent=controller.render();if(action)await click(action,dataset);
   return {persistent,modal,combined:persistent+modal};
 }

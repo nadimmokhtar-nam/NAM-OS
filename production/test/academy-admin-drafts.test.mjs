@@ -20,7 +20,7 @@ async function harness(){
  function form(id='one',{revision=courses.get(id).revision,values={},baseline}={}){const course=courses.get(id),original=baseline||{title:course.title,area:course.area,summary:course.summary},error={innerHTML:'',replaceChildren(){this.innerHTML='';},focus(){}};return {dataset:{academyForm:'metadata',course:id,revision:String(revision),base:JSON.stringify(original)},values:{...original,...values},error,submit:button(),matches:()=>true,querySelector(selector){return selector==='.form-error'?error:this.submit;}};}
  async function edit(form,values){Object.assign(form.values,values);const target={closest:selector=>selector==='[data-academy-form="metadata"]'?form:null};await emit('input',target);}
  async function submit(form){await emit('submit',form,{submitter:form.submit});}
- await module.load();await action('open',{course:'one'});
+ await module.load();await action('open',{course:'one'});await action('authoring-view',{view:'details'});
  return {module,courses,calls,messages,action,form,edit,submit,setFailure:fn=>failure=fn,holdSave(){hold={};return {release:()=>hold.resolve()};}};
 }
 
