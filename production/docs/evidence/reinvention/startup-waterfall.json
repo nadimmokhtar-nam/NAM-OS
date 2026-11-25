@@ -1,0 +1,298 @@
+[
+  {
+    "actor": "founder",
+    "usable_ms": 1762.82,
+    "document_response_ms": 49.5,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 189.8,
+        "duration_ms": 192.4
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 796.3,
+        "duration_ms": 113.1
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 796.4,
+        "duration_ms": 113.7
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 807.6,
+        "duration_ms": 234.3
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 1054.4,
+        "duration_ms": 285.5
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1342.3,
+        "duration_ms": 173.2
+      }
+    ]
+  },
+  {
+    "actor": "sales_manager",
+    "usable_ms": 1712.92,
+    "document_response_ms": 76.3,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 187.4,
+        "duration_ms": 386.7
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 724.5,
+        "duration_ms": 26.1
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 725.7,
+        "duration_ms": 24.3
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 727.8,
+        "duration_ms": 59.3
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 948,
+        "duration_ms": 235.4
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1187.5,
+        "duration_ms": 175.2
+      }
+    ]
+  },
+  {
+    "actor": "sales_1",
+    "usable_ms": 1781.82,
+    "document_response_ms": 87.2,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 201.6,
+        "duration_ms": 367.3
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 823.9,
+        "duration_ms": 132.5
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 824.1,
+        "duration_ms": 135.1
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 824.2,
+        "duration_ms": 220.7
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 1054.2,
+        "duration_ms": 215.7
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1276.4,
+        "duration_ms": 151
+      }
+    ]
+  },
+  {
+    "actor": "sales_2",
+    "usable_ms": 1791.36,
+    "document_response_ms": 106.9,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 292.9,
+        "duration_ms": 272.4
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 804.5,
+        "duration_ms": 146.9
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 804.6,
+        "duration_ms": 98.8
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 809.3,
+        "duration_ms": 220.5
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 1041.1,
+        "duration_ms": 229.6
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1278.6,
+        "duration_ms": 142.7
+      }
+    ]
+  },
+  {
+    "actor": "production_manager",
+    "usable_ms": 1782.69,
+    "document_response_ms": 122.1,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 286.5,
+        "duration_ms": 288.5
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 816.5,
+        "duration_ms": 134.4
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 816.8,
+        "duration_ms": 134.6
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 818,
+        "duration_ms": 219.5
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 1046.7,
+        "duration_ms": 215.7
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1266.8,
+        "duration_ms": 152.7
+      }
+    ]
+  },
+  {
+    "actor": "artist_1",
+    "usable_ms": 1828.27,
+    "document_response_ms": 141.9,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 282.7,
+        "duration_ms": 316.4
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 893.9,
+        "duration_ms": 121.1
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 894.6,
+        "duration_ms": 122.6
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 894.9,
+        "duration_ms": 183.3
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 1088.8,
+        "duration_ms": 168.3
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1260.5,
+        "duration_ms": 152.3
+      }
+    ]
+  },
+  {
+    "actor": "artist_2",
+    "usable_ms": 1827.6,
+    "document_response_ms": 149.2,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 283.4,
+        "duration_ms": 310.3
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 1026.1,
+        "duration_ms": 56.5
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 1026.9,
+        "duration_ms": 56.5
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 1027.3,
+        "duration_ms": 89.4
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 1129.9,
+        "duration_ms": 176.8
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1311,
+        "duration_ms": 107.7
+      }
+    ]
+  },
+  {
+    "actor": "freelancer",
+    "usable_ms": 1810.66,
+    "document_response_ms": 145.6,
+    "resources": [
+      {
+        "path": "/app.js",
+        "start_ms": 279.4,
+        "duration_ms": 309.2
+      },
+      {
+        "path": "/daily.js",
+        "start_ms": 843.9,
+        "duration_ms": 92.1
+      },
+      {
+        "path": "/academy-admin.js",
+        "start_ms": 843.9,
+        "duration_ms": 91.9
+      },
+      {
+        "path": "/production.js",
+        "start_ms": 844.1,
+        "duration_ms": 177
+      },
+      {
+        "path": "/api/bootstrap",
+        "start_ms": 1031,
+        "duration_ms": 180.5
+      },
+      {
+        "path": "/api/tasks",
+        "start_ms": 1217.6,
+        "duration_ms": 180.4
+      }
+    ]
+  }
+]

@@ -6,12 +6,68 @@ import ts from 'typescript';
 import * as helpers from '../lib/api/security-helpers.ts';
 
 const uid='20000000-0000-4000-8000-000000000001',wid='10000000-0000-4000-8000-000000000001';
-async function fixture({role='sales',aal='aal1',factors=[],membership=true,claimUser=uid,failMembership=false}={}){const jar=new Map(),claims={sub:claimUser,aal,session_id:uid};let lookup=0;const supabase={auth:{getUser:async()=>({data:{user:{id:uid,email:'member@example.test',user_metadata:{role:'founder'}}},error:null}),getClaims:async()=>({data:{claims},error:null}),mfa:{listFactors:async()=>({data:{all:factors},error:null})}},from(table){assert.equal(table,'nam_memberships');lookup++;const result=lookup%2===1?{data:membership?[{workspace_id:wid,user_id:uid,name:'Member',role,active:true}]:[],error:failMembership?{message:'private DB detail'}:null}:{data:[{user_id:uid,name:'Member',role}],error:null};const chain={select(){return this;},eq(){return this;},order(){return Promise.resolve(result);},then(resolve,reject){return Promise.resolve(result).then(resolve,reject);}};return chain;}};const source=await readFile(new URL('../lib/api/context.ts',import.meta.url),'utf8'),compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,module={exports:{}};const context=vm.createContext({Buffer,URL,Response,Request,console,process:{env:{NAM_CSRF_SECRET:'a stable test-only secret longer than32chars',NAM_WORKSPACE_ID:wid}},require(name){if(name==='server-only')return {};if(name==='next/headers')return {cookies:async()=>({get:name=>jar.has(name)?{value:jar.get(name)}:undefined,set(name,value){jar.set(name,value);}})};if(name==='@/lib/supabase/server')return {supabaseServer:async()=>supabase};if(name==='./security-helpers')return helpers;throw new Error(`Unexpected import ${name}`);},module,exports:module.exports});vm.runInContext(compiled,context,{filename:'context.ts'});return {api:module.exports,jar,supabase};}
+async function fixture({role='sales',aal='aal1',factors=[],membership=true,claimUser=uid,failMembership=false}={}){
+ const jar=new Map(),claims={sub:claimUser,aal,session_id:uid},calls={getUser:0,listFactors:0},state={factors};
+ const supabase={auth:{
+  async getUser(){calls.getUser++;return {data:{user:{id:uid,email:'member@example.test',user_metadata:{role:'founder'},factors:state.factors}},error:null};},
+  async getClaims(){return {data:{claims},error:null};},
+  mfa:{async listFactors(){calls.listFactors++;throw new Error('A second Auth user fetch is unnecessary.');}}
+ },from(table){
+  assert.equal(table,'nam_memberships');
+  return {filters:{},select(){return this;},eq(name,value){this.filters[name]=value;return this;},order(){return this;},then(resolve,reject){
+   const own=Object.hasOwn(this.filters,'user_id'),result=own?{data:membership?[{workspace_id:wid,user_id:uid,name:'Member',role,active:true}]:[],error:failMembership?{message:'private DB detail'}:null}:{data:[{user_id:uid,name:'Member',role}],error:null};
+   return Promise.resolve(result).then(resolve,reject);
+  }};
+ }};
+ const source=await readFile(new URL('../lib/api/context.ts',import.meta.url),'utf8'),compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,module={exports:{}};
+ const context=vm.createContext({Buffer,URL,Response,Request,console,process:{env:{NAM_CSRF_SECRET:'a stable test-only secret longer than32chars',NAM_WORKSPACE_ID:wid}},require(name){
+  if(name==='server-only')return {};
+  if(name==='next/headers')return {cookies:async()=>({get:name=>jar.has(name)?{value:jar.get(name)}:undefined,set(name,value){jar.set(name,value);}})};
+  if(name==='@/lib/supabase/server')return {supabaseServer:async()=>supabase};
+  if(name==='./security-helpers')return helpers;
+  throw new Error('Unexpected import '+name);
+ },module,exports:module.exports});
+ vm.runInContext(compiled,context,{filename:'context.ts'});
+ return {api:module.exports,jar,supabase,calls,state};
+}
 const request=()=>new Request('https://studio.example.test/api/bootstrap');
 test('trusted context ignores editable metadata roles and uses database membership',async()=>{const f=await fixture(),ctx=await f.api.getContext();assert.equal(ctx.actor.role,'sales');assert.equal(ctx.actor.id,uid);assert.equal(ctx.workspaceId,wid);assert.equal(ctx.user.id,uid);assert(ctx.csrf);});
 test('verified claims must match the remote authenticated user; missing membership fails closed',async()=>{const mismatch=await fixture({claimUser:'another-user'});await assert.rejects(()=>mismatch.api.getContext(),{status:401});const absent=await fixture({membership:false});await assert.rejects(()=>absent.api.getContext(),{status:403});const failed=await fixture({failMembership:true});await assert.rejects(()=>failed.api.getContext(),e=>e.status===503&&!e.message.includes('private DB'));});
 test('password-only Founder enters at AAL1; only elected verified factors require AAL2',async()=>{const first=await fixture({role:'founder',aal:'aal1'}),passwordContext=await first.api.getContext();assert.equal(passwordContext.mfa.required,false);assert.equal(passwordContext.mfa.verified,false);assert.doesNotThrow(()=>first.api.requireFounder(passwordContext));const factors=[{id:'factor-1',status:'verified',factor_type:'totp'}],pending=await fixture({role:'founder',aal:'aal1',factors});const rejected=await fixture({role:'founder',aal:'aal1',factors});await assert.rejects(()=>rejected.api.getContext(),e=>e.status===403&&e.code==='MFA_REQUIRED');const ctx=await pending.api.getContext(undefined,{allowMfaPending:true});assert.equal(ctx.mfa.required,true);assert.throws(()=>pending.api.requireFounder(ctx),e=>e.status===403);const verified=await fixture({role:'founder',aal:'aal2',factors});assert.equal((await verified.api.getContext()).mfa.verified,true);});
 test('optional verified factors require MFA for non-founders too',async()=>{const f=await fixture({factors:[{id:'factor-1',status:'verified',factor_type:'totp'}]});await assert.rejects(()=>f.api.getContext(),e=>e.code==='MFA_REQUIRED');});
+
+test('each request reads authoritative identity once and does not cache elected-factor state across requests',async()=>{
+ const f=await fixture({role:'founder'});
+ assert.equal((await f.api.getContext()).mfa.required,false);
+ assert.deepEqual(f.calls,{getUser:1,listFactors:0});
+ f.state.factors=[{id:'new-factor',status:'verified',factor_type:'totp',friendly_name:'Studio authenticator'}];
+ await assert.rejects(()=>f.api.getContext(),e=>e.status===403&&e.code==='MFA_REQUIRED');
+ assert.deepEqual(f.calls,{getUser:2,listFactors:0});
+ const pending=await f.api.getContext(undefined,{allowMfaPending:true});
+ assert.equal(pending.mfa.required,true);
+ assert.equal(pending.mfa.factors[0].friendly_name,'Studio authenticator');
+ assert.deepEqual(f.calls,{getUser:3,listFactors:0});
+});
+
+test('unfinished or absent factors preserve password access; malformed authoritative factor data fails closed',async()=>{
+ for(const factors of [undefined,[],[{id:'pending',status:'unverified',factor_type:'totp',friendly_name:null}]]){
+  const f=await fixture({role:'founder'});f.state.factors=factors;
+  assert.equal((await f.api.getContext()).mfa.required,false);
+  assert.deepEqual(f.calls,{getUser:1,listFactors:0});
+ }
+ for(const factors of [null,{},[null],[{id:'broken',factor_type:'totp'}],[{id:'broken',status:'unknown',factor_type:'totp'}],[{id:'broken',status:'verified',factor_type:'totp',friendly_name:{invalid:true}}]]){
+  const f=await fixture({factors});
+  await assert.rejects(()=>f.api.getContext(undefined,{allowMfaPending:true}),e=>e.status===503&&e.code==='MFA_UNAVAILABLE');
+  assert.deepEqual(f.calls,{getUser:1,listFactors:0});
+ }
+});
+
+test('a later provider rejection cannot reuse the preceding request identity or factor state',async()=>{
+ const f=await fixture({role:'founder'});await f.api.getContext();
+ f.supabase.auth.getUser=async()=>{f.calls.getUser++;return {data:{user:null},error:{message:'Provider rejected session'}};};
+ await assert.rejects(()=>f.api.getContext(),e=>e.status===401&&e.code==='SIGN_IN_REQUIRED');
+ assert.deepEqual(f.calls,{getUser:2,listFactors:0});
+});
 
 test('privileged live checks preserve the original session and recheck current database authorization',async()=>{const f=await fixture({role:'founder',aal:'aal1'}),context=await f.api.getContext();let permitted=true,calls=0;f.supabase.rpc=async(name,args)=>{calls++;assert.equal(name,'nam_founder');assert.equal(args.w,wid);return {data:permitted,error:null};};await f.api.requireLiveContext(context,{founder:true});permitted=false;await assert.rejects(()=>f.api.requireLiveContext(context,{founder:true}),e=>e.status===403&&e.code==='FOUNDER_REQUIRED');const before=calls;f.supabase.auth.getClaims=async()=>({data:{claims:{sub:uid,session_id:'20000000-0000-4000-8000-000000000002',aal:'aal2'}},error:null});await assert.rejects(()=>f.api.requireLiveContext(context,{founder:true}),e=>e.status===401&&e.code==='SIGN_IN_REQUIRED');assert.equal(calls,before);});
 
