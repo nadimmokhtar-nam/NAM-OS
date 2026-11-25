@@ -61,5 +61,5 @@ test('archive freezes the current draft while pending and preserves it when the 
 });
 
 test('task creation requires the draft guard and passes the actual linked deliverable identity',async()=>{
- const h=await fixture();await h.ui.open('image-one');h.allow(false);await h.click('create-task');assert.equal(h.changes.length,0);h.allow(true);await h.click('create-task');assert.equal(h.changes[0].id,'image-one');assert.equal(h.changes[0].project_id,'project-one');
+ const h=await fixture();await h.ui.open('image-one');const created=()=>h.changes.filter(change=>change&&typeof change==='object');h.allow(false);await h.click('create-task');assert.equal(created().length,0);h.allow(true);await h.click('create-task');assert.equal(created().length,1);assert.equal(created()[0].id,'image-one');assert.equal(created()[0].project_id,'project-one');
 });

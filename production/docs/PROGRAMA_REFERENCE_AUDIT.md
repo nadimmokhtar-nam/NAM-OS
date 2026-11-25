@@ -5,12 +5,21 @@ remaining implementation. It does not establish redesign or release acceptance.
 
 ## Implementation continuation
 
-The next increment adds a real project camera/deliverable inventory, linked
-existing tasks and all ten production stages. Its additive schema, access rules,
-interaction behavior and remaining render-review scope are documented in
-`PROJECT_DELIVERABLES.md`. Local UI/navigation checks pass 130 cases. The new
-schema, server endpoints and browser workflows are awaiting complete CI and
-isolated-provider verification; no hosted migration or deployment has occurred.
+The continuation adds a real project camera/deliverable inventory, linked
+existing tasks and all ten production stages, followed by private render uploads,
+immutable versions, comparison and version-specific internal image feedback.
+Schema/access rules and interaction boundaries are documented in
+`PROJECT_DELIVERABLES.md` and `RENDER_VERSION_WORKFLOW.md`.
+
+Current validation counts and exact implementation/run links are maintained in
+[draft PR 15](https://github.com/nadimmokhtar-nam/NAM-OS/pull/15). Earlier counts
+below describe their stated checkpoints. They do not establish final visual
+acceptance. No hosted migration or deployment has occurred.
+
+The local workspace disconnected after the render implementation was saved.
+Subsequent recovery fixes are committed on the redesign branch through GitHub;
+the local copy must be reconciled when its connection returns. Client approvals,
+remaining module redesign and direct visual acceptance remain open.
 
 The user authorized a different display font on 25 November 2026. NAM now selects
 Newsreader for editorial headings, paired with the existing Inter UI face.
