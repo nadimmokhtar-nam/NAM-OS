@@ -1,77 +1,96 @@
 # NAM OS reinvention verification — 25 November 2026
 
 Status: candidate under refinement. The protected hosted trial is unchanged.
-Do not infer release readiness from a successful build.
+A successful build is not release acceptance.
 
-## Product model
+## Product model and implemented changes
 
-Today surfaces decisions, blockers and commitments. Work keeps one shared task
-record. Projects supply the brief, accountable lead and delivery context.
-Academy supplies assigned methods and reviewed practical learning. Sales opens
-on follow-ups and outcomes while connected reporting retains source/freshness.
-No permission is inferred from a task link or project UUID.
+Today surfaces decisions, blockers and commitments before secondary summaries.
+Work keeps one shared task record; Projects supplies its brief, accountable lead
+and production stage. Standalone operational work remains valid. An unshared
+project link does not expose its brief or silently detach an existing task.
 
-The current corrections preserve standalone and unshared project associations,
-make non-lead project participation visible in Today, remove canceled work from
-completion denominators, reduce redundant authenticated requests, recover failed
-video transfers and keep keyboard focus coherent.
+Sales opens on next follow-ups, recorded outcomes, targets and weekly commitments.
+Inactive sales staff remain visible with zero activity. Attio remains the CRM;
+disconnected provider metrics are not reported as live. Academy opens on assigned
+learning. Its authoring workspace edits one selected lesson, with separate course
+details, practical work and publication/assignment. Private video recovery reuses
+the reservation, preserves a selected file and distinguishes a verified save from
+a failed subsequent refresh. Existing published versions and completion records
+remain intact.
 
-## Executed evidence
+The responsive reader uses an expandable outline on smaller windows. Shared
+spacing, typography, surfaces, focus and reduced-motion rules apply throughout.
+Pending subtasks stay keyboard-focusable, acknowledge busy state and deduplicate
+repeated actions. Task detail honors the most recent selection; delayed responses
+cannot reopen a closed dialog or release another session's write guard.
 
-| Boundary | Source | Result |
+## Executed evidence and findings
+
+| Boundary | Reviewed source / run | Executed result |
 | --- | --- | --- |
-| Local combined unit/database/controller suite | candidate771b4b9 |353 passed,0failed/skipped |
-| Canonical Linux TypeScript/tests/build |771b4b9, run45573163776 |Passed |
-| Canonical Linux TypeScript/tests/build |1690772, run45573430418 |Passed |
-| Actual isolated provider and Chromium, eight identities |1690772 / PR merge f7a3087, run45573430340 |21/24 passed,3failed,0skipped |
-| Later assembled local unit/database/controller checks |Post169 working files |377 passed,0failed/skipped; exact remote assembly needs a fresh run |
-| Additive migration operator proofs |001–022 canonical source |15distinct checks passed;1490catalog records matched direct migration execution |
+| Local unit/database/controller suite | candidate771b4b9 |353 passed,0failed/skipped |
+| Linux TypeScript/tests/build |771b4b9 /45573163776 |Passed |
+| Actual isolated provider + Chromium, eight identities |1690772 /45573430340 |21/24 passed,3failed,0skipped |
+| Linux TypeScript/tests/build |03399dd /45581759790 |377 passed; TypeScript/build passed |
+| Expanded actual provider + Chromium |03399dd /45581759998 |26/31 passed,5failed,0skipped/global errors |
+| Diagnostic-only repeat |4a06b63 /45582898231 |Same26/31; not a separate quality cycle |
+| Corrected local unit/database/controller suite |Working correction candidate |391 passed,0failed/skipped; TypeScript/build passed |
+| Additive migration operator proofs |001–022 source |15 distinct proofs passed;1490 catalog records equivalent |
 
-Native failures were retained: the renamed Founder landing heading, the Sales
-zero-activity summary expectation and task-dialog closure during a pending
-subtask update. Corrections keep zero-activity sales staff visible, update
-intentional navigation assertions and prevent delayed close events stealing
-focus or clearing a newly opened task. Regression verification remains required.
+The initial native findings included an obsolete landing-heading assertion,
+visibility of sales staff with no activity, and Escape during a pending child
+save. Expanded testing found a module fixture with no actual modules (three
+viewport failures) and a tablet Sales heading that could exceed its container.
+The module tests now create and clean up their own real published course. The
+Sales heading wraps and aligns controls to its content edge without concealing
+overflow. Subtasks retain focus instead of becoming disabled outside the dialog.
+Assertions for dismissal, persistence, draft recovery and permissions remain.
 
-The native run passed the bounded eight-user/10,000-task scenario, permission
-isolation, optimistic conflicts, private video/publication/playback workflows,
-five responsive viewport checks, automated accessibility and checkbox recovery.
-This is loopback testing, not Internet capacity or a hosted certification.
+The next native run must verify these corrections, active-session grant/role
+revocation, task-opening intent and opener focus. These added checks are pending
+until an actual run records their results. Earlier successful performance,
+private-video, optimistic-conflict and accessibility cases do not certify later
+source automatically.
 
-## Rendered review
+## Measurable acceptance
 
-Direct native-browser inspection used the production client against an explicitly
-synthetic read-only local fixture. It checked desktop Today and mobile390×844
-Today/learning. Attention appeared before production summaries and mobile task
-ownership remained visible. This did not exercise persistence or provider Auth.
+The bounded performance case uses eight managed identities over10000 synthetic
+tasks:80 summary reads, eight independent writes,40 daily-brief queries, two
+conflicting edits and eight concurrent signed-in browser workspaces. Targets are
+p95 under2000ms for reads/brief/usable task navigation, under1000ms for a write
+including context refresh, and summary responses under100000 bytes. One edit
+must succeed and its competitor receive409; cross-user reads must be denied.
+Only source-bound numeric aggregates may appear in retained CI evidence.
 
-It exposed a real lesson-outline layout defect: flex layout squeezed module
-headings vertically. The corrected reader uses a compact native details outline
-on smaller windows and a readable vertical navigation. The collapsed mobile
-reader was observed after correction; expanded outline and all device sizes
-remain covered by pending native regressions.
+Responsive checks cover360,390,768,1024 and1440px plus a320px learning outline.
+Task status, deadline and owner must remain visible and contained. Automated
+WCAG2.2AA checks, reduced motion, native keyboard/focus behavior and failure
+recovery run against the actual application. No claim of human usability
+validation, sustained capacity or Internet latency follows from loopback tests.
 
-Academy authoring now uses selected-lesson editing, separate details,
-practical work and Publish & people. Local view navigation avoids backend reads,
-retains drafts/revisions, and defaults video/resources to the selected lesson.
+## Direct rendered inspection
 
-## Delivery gates
+Native Chrome reviewed the production client with a clearly synthetic local
+fixture, including desktop Today,390×844 learning and768px Sales. It exposed
+the squeezed module heading and awkward wrapped Sales-action alignment; both
+were corrected in source. The fixture does not prove Auth or persistent writes.
+Actual managed-session verification is performed separately in disposable QA.
 
-- Assemble and verify the exact updated GitHub candidate, including authoring and
-  responsive corrections; rerun the complete native suite and affected failures.
-- Complete all four documented release/refinement cycles; the earlier cloud
-  cycles and individual runs are not interchangeable with hosted acceptance.
-- Preserve a recoverable database and object backup before applying additive
-  migrations016–022. No empty installer, reset or Founder bootstrap is needed.
-- Verify the protected HTTPS runtime, callbacks, sessions, private uploads/ranges,
-  installation, real provider attribution and longer-duration capacity.
-- Keep credentials, private profiles, screenshots and raw failure artifacts out
-  of public evidence. The CI summary retains only validated checked-in locations
-  and aggregate status.
+## Release gates
 
-The local execution environment became unavailable during this checkpoint.
-GitHub remains the durable candidate source. The exact runtime source and added tests were recovered into a GitHub checkpoint;
-the responsive stylesheet's recovered SHA-256 matches the locally checked file.
-The assembled candidate is now queued for canonical checks. Reconstruction and
-new native tests must pass those checks before being treated as verified. No development
-after the active session, deployment or completed release is implied.
+- Finish all affected native regressions; keep any failure a release blocker.
+- Execute and document all four meaningful release/refinement cycles. Individual
+  reruns and the earlier cloud report are not equivalent to hosted acceptance.
+- Preserve a recoverable database and object backup before additive016–022.
+  Never rerun the empty installer, reset or Founder bootstrap.
+- Verify protected HTTPS runtime, exact callbacks, original-session enforcement,
+  private uploads/range playback and installed desktop PWA behavior.
+- Configure real provider credentials securely and reconcile records/ownership.
+  No external tenant or entitlement has been verified by these fixtures.
+- Complete longer-duration/load, recovery and final Founder/Sales workflows.
+  No critical/high defect may remain at delivery.
+
+GitHub is the durable source checkpoint. The private operator package is
+preserved separately. No unobserved background development, production
+deployment or complete release is implied.

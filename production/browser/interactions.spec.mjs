@@ -2,12 +2,34 @@ import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {actor,profiles,mutate,screenshot} from './support.mjs';
 
+async function assertWorkspaceGeometry(page,route,width){
+ const geometry=await page.evaluate(()=>{
+  const viewport=document.documentElement.clientWidth,main=document.querySelector('#main'),rowIssues=[];
+  const bounded=Array.from(main.querySelectorAll('*')).map(node=>{const box=node.getBoundingClientRect();return {node,box};}).filter(({node,box})=>box.width>0&&box.right>viewport+1&&getComputedStyle(node).visibility!=='hidden').slice(0,8).map(({node,box})=>({tag:node.tagName.toLowerCase(),class:typeof node.className==='string'?node.className:'',right:+box.right.toFixed(1),width:+box.width.toFixed(1),scrollWidth:node.scrollWidth,clientWidth:node.clientWidth,display:getComputedStyle(node).display,overflowX:getComputedStyle(node).overflowX}));
+  for(const [index,row] of Array.from(main.querySelectorAll('.task-row')).entries()){
+   const box=row.getBoundingClientRect();if(!box.width)continue;
+   if(row.scrollWidth>row.clientWidth+1)rowIssues.push({index,reason:'task row internal overflow',scrollWidth:row.scrollWidth,clientWidth:row.clientWidth});
+   for(const selector of ['.badge','.due','.avatar']){
+    const node=row.querySelector(selector);if(!node)continue;
+    const rect=node.getBoundingClientRect(),style=getComputedStyle(node);
+    if(rect.width===0||rect.height===0||style.visibility==='hidden')rowIssues.push({index,selector,reason:'task metadata is hidden'});
+    else if(rect.left<box.left-1||rect.right>box.right+1)rowIssues.push({index,selector,reason:'task metadata leaves its row',left:+rect.left.toFixed(1),right:+rect.right.toFixed(1)});
+    if(selector!=='.avatar'&&parseFloat(style.fontSize)<12)rowIssues.push({index,selector,reason:'task metadata below 12px',fontSize:style.fontSize});
+   }
+  }
+  return {viewport,documentWidth:document.documentElement.scrollWidth,mainRight:+main.getBoundingClientRect().right.toFixed(1),bounded,rowIssues:rowIssues.slice(0,12)};
+ });
+ const diagnostic=route+' @ '+width+'px '+JSON.stringify(geometry);
+ expect(geometry.documentWidth,diagnostic).toBeLessThanOrEqual(geometry.viewport+1);
+ expect(geometry.mainRight,diagnostic).toBeLessThanOrEqual(geometry.viewport+1);
+ expect(geometry.rowIssues,diagnostic).toEqual([]);
+}
+
 for(const width of [360,390,768,1024,1440])test(`Today, Work, Sales, Projects and Academy stay usable at ${width}px`,async({browser})=>{
  const {context,page}=await actor(browser,'founder',{viewport:{width,height:1000}});
  for(const route of ['overview','tasks','sales','projects','academy']){
   await page.goto('/workspace#'+route);await expect(page.locator('#app .sidebar')).toBeAttached();await expect(page.locator('#main h1')).toBeVisible();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),route+' must not overflow horizontally').toBe(true);
-  expect(await page.locator('#main').evaluate(main=>main.getBoundingClientRect().right<=innerWidth+1)).toBe(true);
+  await assertWorkspaceGeometry(page,route,width);
   if(width<=700){const menu=page.locator('#mobile-menu-trigger');await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');await expect(page.locator('.sidebar .nav-link[href="#overview"]')).toBeFocused();await page.locator('.sidebar a[href="#settings"]').focus();await page.keyboard.press('Tab');await expect(page.locator('.sidebar .brand')).toBeFocused();expect(await page.locator('#main').evaluate(node=>node.inert)).toBe(true);await page.keyboard.press('Escape');await expect(menu).toBeFocused();expect(await page.locator('#main').evaluate(node=>node.inert)).toBe(false);}
   if((width===390||width===1440)&&['overview','academy','projects'].includes(route))await screenshot(page,'after-'+route+'-'+width);
  }

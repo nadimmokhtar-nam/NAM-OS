@@ -13,10 +13,11 @@ const example=(overrides={})=>({config:{rootDir:app},suites:[{file:testFile,spec
  status:'expected',results:[{status:'passed',duration:37}],...overrides,
  }]}]}],errors:[]});
 
-async function summarize(report,{missing=false,raw}={}){
+async function summarize(report,{missing=false,raw,performance}={}){
  const root=await mkdtemp(resolve(tmpdir(),'nam-safe-summary-'));
  try{
   if(!missing)await writeFile(resolve(root,'browser-results.json'),raw??JSON.stringify(report),{mode:0o600});
+  if(performance!==undefined)await writeFile(resolve(root,'performance.json'),JSON.stringify(performance),{mode:0o600});
   const result=spawnSync(process.execPath,[resolve(app,'tools/qa-safe-summary.mjs')],{
    cwd:app,env:{...process.env,NAM_QA_ROOT:root,GITHUB_SHA:'1'.repeat(40)},encoding:'utf8',timeout:10000,
   });
@@ -28,6 +29,26 @@ async function summarize(report,{missing=false,raw}={}){
   return {exit:result.status,output:JSON.parse(output),stdout:result.stdout};
  }finally{await rm(root,{recursive:true,force:true});}
 }
+
+function performanceReport(){const value=example();value.suites[0].specs[0].file=resolve(app,'browser/performance.spec.mjs');value.suites[0].specs[0].line=1;return value;}
+const performanceFixture=()=>({commit:'1'.repeat(40),identities:8,loadTasks:10000,maximumSummaryBytes:65536,...Object.fromEntries(['httpReads','httpWriteIncludingContextRefresh','dailyBrief','eightConcurrentBrowserWorkspaces'].map(key=>[key,{samples:8,p50_ms:10,p95_ms:50,max_ms:70,private:marker}])),private:marker,endpoint:marker});
+test('performance evidence retains only exact-source numeric aggregates after the real case passes',async()=>{
+ const result=await summarize(performanceReport(),{performance:performanceFixture()});
+ assert.equal(result.exit,0);assert.equal(result.output.evidenceIncomplete,false);
+ assert.equal(result.output.performance.protocol,'loopback-bounded-eight-user-v1');
+ assert.deepEqual(result.output.performance.httpReads,{samples:8,p50_ms:10,p95_ms:50,max_ms:70});
+ assert.equal(result.output.performance.identities,8);assert.equal(result.output.performance.loadTasks,10000);
+ assert.equal(result.stdout.includes('"performance"'),true);
+});
+test('a passing performance case fails closed if its measurement evidence is missing',async()=>{
+ const result=await summarize(performanceReport());assert.equal(result.exit,1);assert.equal(result.output.evidenceIncomplete,true);assert.equal(result.output.performance,null);
+});
+for(const [name,change]of [['stale source',value=>value.commit='2'.repeat(40)],['text instead of latency',value=>value.httpReads.p95_ms=marker],['inconsistent percentiles',value=>value.httpReads.p50_ms=80],['wrong load identity count',value=>value.identities=7]])test('performance evidence rejects '+name,async()=>{
+ const value=performanceFixture();change(value);const result=await summarize(performanceReport(),{performance:value});assert.equal(result.exit,1);assert.equal(result.output.performance,null);assert.equal(result.output.evidenceIncomplete,true);
+});
+test('an unrelated passing test cannot publish unexecuted performance evidence',async()=>{
+ const result=await summarize(example(),{performance:performanceFixture()});assert.equal(result.exit,0);assert.equal('performance'in result.output,false);assert.equal(result.stdout.includes('"performance"'),false);
+});
 
 test('safe QA summary accepts a fully executed passing report and retains only bounded facts',async()=>{
  const fixture=example();fixture.suites[0].title=marker;fixture.suites[0].specs[0].title=marker;

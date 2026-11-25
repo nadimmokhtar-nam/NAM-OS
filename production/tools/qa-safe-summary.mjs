@@ -21,6 +21,24 @@ const safeFailure=error=>{
  const location=file&&line?file+':'+line+(Number.isInteger(column)&&column>0&&column<100000?':'+column:''):null;
  return {location,assertion:String(error?.message||'').match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toHaveText|toContainText|toEqual|toBe|toHaveCount)\b/)?.[1]||null};
 };
+// Performance evidence is a numeric allowlist bound to this exact CI source.
+// No user labels, endpoints, raw timings, errors or arbitrary evidence fields
+// may cross this boundary.
+function safePerformance(value){
+ const commit=process.env.GITHUB_SHA;
+ if(!/^[a-f0-9]{40}$/i.test(commit||'')||value?.commit!==commit||value.identities!==8||value.loadTasks!==10000)return null;
+ const metric=value=>{
+  if(!value||!Number.isInteger(value.samples)||value.samples<1||value.samples>1000000)return null;
+  const keys=['p50_ms','p95_ms','max_ms'];
+  if(keys.some(key=>typeof value[key]!=='number'||!Number.isFinite(value[key])||value[key]<0||value[key]>=3600000))return null;
+  if(value.p50_ms>value.p95_ms||value.p95_ms>value.max_ms)return null;
+  return Object.fromEntries(['samples',...keys].map(key=>[key,value[key]]));
+ };
+ const keys=['httpReads','httpWriteIncludingContextRefresh','dailyBrief','eightConcurrentBrowserWorkspaces'];
+ const metrics=Object.fromEntries(keys.map(key=>[key,metric(value[key])]));
+ if(Object.values(metrics).some(value=>!value)||!Number.isInteger(value.maximumSummaryBytes)||value.maximumSummaryBytes<1||value.maximumSummaryBytes>10000000)return null;
+ return {protocol:'loopback-bounded-eight-user-v1',identities:8,loadTasks:10000,...metrics,maximumSummaryBytes:value.maximumSummaryBytes};
+}
 let report;
 try{report=JSON.parse(await readFile(resolve(root,'browser-results.json'),'utf8'));if(!report||typeof report!=='object'||Array.isArray(report)||!Array.isArray(report.suites)||!Array.isArray(report.errors))throw Error('Invalid report');}
 catch{const result={status:'incomplete',reason:'The native suite did not produce a complete report.',commit:/^[a-f0-9]{40}$/i.test(process.env.GITHUB_SHA||'')?process.env.GITHUB_SHA:null};await mkdir(root,{recursive:true});await writeFile(resolve(root,'safe-summary.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});console.log(JSON.stringify(result));process.exitCode=1;report=null;}
@@ -36,6 +54,10 @@ if(report){
  for(const suite of report.suites)visit(suite);
  const passed=test=>test.status==='expected'&&test.file&&test.line&&test.results.length&&test.results.every(result=>result.status==='passed');
  const incomplete=tests.length===0||tests.some(test=>!passed(test))||report.errors.length>0;
- const result={status:incomplete?'failed_or_incomplete':'passed',commit:/^[a-f0-9]{40}$/i.test(process.env.GITHUB_SHA||'')?process.env.GITHUB_SHA:null,counts:{total:tests.length,passed:tests.filter(passed).length,unexpected:tests.filter(test=>test.status==='unexpected').length,skipped:tests.filter(test=>test.status==='skipped').length,globalErrors:report.errors.length},tests};
- await writeFile(resolve(root,'safe-summary.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});console.log(JSON.stringify({status:result.status,commit:result.commit,counts:result.counts,failedTests:tests.filter(test=>!passed(test))}));if(incomplete)process.exitCode=1;
+ const performanceRequired=tests.some(test=>test.file==='browser/performance.spec.mjs'&&passed(test));
+ let performanceEvidence=null;
+ if(performanceRequired){try{performanceEvidence=safePerformance(JSON.parse(await readFile(resolve(root,'performance.json'),'utf8')));}catch{}}
+ const evidenceIncomplete=performanceRequired&&!performanceEvidence;
+ const result={status:incomplete||evidenceIncomplete?'failed_or_incomplete':'passed',commit:/^[a-f0-9]{40}$/i.test(process.env.GITHUB_SHA||'')?process.env.GITHUB_SHA:null,counts:{total:tests.length,passed:tests.filter(passed).length,unexpected:tests.filter(test=>test.status==='unexpected').length,skipped:tests.filter(test=>test.status==='skipped').length,globalErrors:report.errors.length},...(performanceRequired?{performance:performanceEvidence,evidenceIncomplete}:{}),tests};
+ await writeFile(resolve(root,'safe-summary.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});console.log(JSON.stringify({status:result.status,commit:result.commit,counts:result.counts,...(performanceEvidence?{performance:performanceEvidence}:{}),failedTests:tests.filter(test=>!passed(test))}));if(incomplete||evidenceIncomplete)process.exitCode=1;
 }

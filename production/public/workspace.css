@@ -209,10 +209,12 @@ progress::-moz-progress-bar{background:#262626}
 kbd{font-family:inherit;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d9d9d9;background:#f4f4f4;border-radius:5px;font-size:11px;min-width:26px;min-height:24px;padding:2px 6px;box-shadow:0 1px 0 #d9d9d9}
 .daily-more{display:inline-flex;align-items:center;gap:var(--space-2);min-height:var(--control-height);font-size:var(--type-label);text-decoration:underline;text-underline-offset:4px}
 .daily-summary-note{font-size:var(--type-meta);color:var(--text-secondary);line-height:1.6}
-.sales-desk-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-6);margin-bottom:var(--space-6)}
+.sales-desk-heading{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:var(--space-6);margin-bottom:var(--space-6)}
+.sales-desk-heading>div:first-child{flex:1 1 260px;min-width:0}
 .sales-desk-heading h2{font-size:22px;line-height:1.3;letter-spacing:-.5px}
 .sales-desk-heading p{color:var(--text-secondary);font-size:var(--type-body);line-height:1.6;margin-top:var(--space-2);max-width:60ch}
-.sales-desk-heading>.filters{flex-shrink:0;justify-content:flex-end}
+.sales-desk-heading>.filters{flex:1 1 340px;min-width:0;max-width:100%;justify-content:flex-start;align-content:flex-start;gap:var(--space-2)}
+.sales-desk-heading>.filters>*{max-width:100%}
 .sales-desk .data-row b,.sales-desk .data-row small{display:block;line-height:1.6}
 .sales-desk .data-row small{font-size:var(--type-meta);margin-top:var(--space-1)}
 .context-title>.icon,.reference-link>.icon{width:16px;height:16px}
