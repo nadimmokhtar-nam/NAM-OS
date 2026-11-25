@@ -22,4 +22,27 @@ test('subtask response preserves focus moved to another field while the checkbox
 for(const changed of ['route','actor','task','dialog'])test('subtask keyboard response cannot restore focus after '+changed+' context changed',async()=>{
  const f=await pendingSubtaskFocus(),pending=f.start();await f.seen;if(changed==='route')f.h.ui.state.routeVersion++;if(changed==='actor')f.h.ui.state.data={...f.h.ui.state.data,actor:{...actor,id:'replacement-actor'}};if(changed==='task')f.h.ui.state.task={...task(),id:'different-task'};if(changed==='dialog')f.h.nodes.get('#dialog').open=false;f.release();await pending;assert.equal(f.h.document.activeElement,f.h.document.body);
 });
+
+function closeEventFixture(h){
+ const opener=node();opener.dataset={action:'open-task',id:'task-1'};opener.focus=()=>h.document.activeElement=opener;
+ h.document.body=node();h.document.querySelectorAll=selector=>selector==='[data-action]'?[opener]:[];
+ opener.focus();h.ui.openDialog('A task','<p>Task details</p>');
+ return {opener,dialog:h.nodes.get('#dialog')};
+}
+test('a delayed native close event does not steal focus already moved to navigation',async()=>{
+ const h=await harness(),{dialog}=closeEventFixture(h),navigation=node();
+ dialog.open=false;navigation.focus=()=>h.document.activeElement=navigation;navigation.focus();
+ dialog.listeners.close();assert.equal(h.document.activeElement,navigation);
+});
+test('native close restores the logical opener when focus remains vacated',async()=>{
+ const h=await harness(),{dialog,opener}=closeEventFixture(h);
+ dialog.open=false;h.document.activeElement=h.document.body;dialog.listeners.close();
+ assert.equal(h.document.activeElement,opener);
+});
+test('an old close event cannot clear a newly opened task dialog',async()=>{
+ const h=await harness(),{dialog}=closeEventFixture(h);
+ dialog.open=false;h.ui.openDialog('New task','<p>New task details</p>');h.ui.state.task={...task(),id:'new-task'};
+ const focus=node();h.document.activeElement=focus;dialog.listeners.close();
+ assert.equal(dialog.open,true);assert.equal(h.ui.state.task.id,'new-task');assert.equal(h.document.activeElement,focus);
+});
 }
