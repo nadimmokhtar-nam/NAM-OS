@@ -9,6 +9,8 @@ async function assertWorkspaceGeometry(page,route,width){
   for(const [index,row] of Array.from(main.querySelectorAll('.task-row')).entries()){
    const box=row.getBoundingClientRect();if(!box.width)continue;
    if(row.scrollWidth>row.clientWidth+1)rowIssues.push({index,reason:'task row internal overflow',scrollWidth:row.scrollWidth,clientWidth:row.clientWidth});
+   const group=row.closest('.task-group');
+   if(group){const status=group.querySelector('.task-group-head .badge'),rect=status?.getBoundingClientRect();if(!status||!rect.width||!rect.height||getComputedStyle(status).visibility==='hidden')rowIssues.push({index,reason:'grouped task status is hidden'});}
    for(const selector of ['.badge','.due','.avatar']){
     const node=row.querySelector(selector);if(!node)continue;
     const rect=node.getBoundingClientRect(),style=getComputedStyle(node);

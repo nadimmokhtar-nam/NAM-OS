@@ -30,15 +30,20 @@ upload recovery suite. Upload timing checks now await transfer/refresh signals
 instead of counting event-loop cycles; cancellation assertions remain intact.
 New disposable-provider browser coverage checks real task routing, native nonmodal behavior,
 400px geometry, mobile reading order, unsaved navigation and denied task links.
-The first CI run passed TypeScript and the isolated production build. The source
-suite passed 443 of 444 checks; its upload-start timing assumption is corrected
-above. Native checks passed 51 of 58 scenarios and exposed a queued-close race
-between browser Back and Forward. Task navigation now clears the old page
-synchronously and consumes its deferred native close without invalidating the new
-request. A regression case covers that order. Keyboard and cross-module browser
-checks now use the nonmodal task page and Back-to-projects navigation. The full
-rerun and visual captures remain pending. The earlier UI differences and execution
-limits below describe the recovered baseline.
+The continuation CI passes TypeScript, all 446 source/database checks and the
+production build. The second native-provider run passes 53 of 58 scenarios,
+including Back/Forward, direct URLs, native nonmodal behavior, measured desktop
+geometry, mobile reading order and denied task links. Its five remaining viewport
+failures checked for a per-row status badge that grouping had visually concealed.
+Grouped rows now omit that duplicate badge, and geometry checks require their
+shared status header to remain visible. The complete rerun and direct visual
+review remain pending.
+
+Task navigation clears the old page synchronously and consumes its deferred
+native close without invalidating the new request. A source regression case and
+the passing native Back/Forward case cover that order. Keyboard and cross-module
+browser checks use the nonmodal task page and Back-to-projects navigation. The
+earlier UI differences and execution limits below describe the recovered baseline.
 
 ## Authoritative acceptance brief
 
@@ -170,13 +175,13 @@ The current styling enters through `app/design-tokens.css`, `app/styles.css` and
 system and project navigation already exist. The earlier note that no Programa
 UI had been implemented is historical.
 
-Measured differences include NAM's 32px generic controls versus Programa's 28px
+At recovery, measured differences included NAM's 32px generic controls versus Programa's 28px
 small actions; pill and menu-elevation differences; modal task detail that hides
 project navigation; a proportional properties rail instead of 400px; and mobile
-properties appearing before comments. Consolidate shared components instead of
-adding another blanket override sheet.
+properties appearing before comments. The continuation above addresses those
+structural differences; direct visual acceptance remains open.
 
-## Current verification and execution limit
+## Recovery verification and execution limits (before continuation)
 
 Node 24.22.3 ran six existing suites successfully: **114/114** checks for the
 workspace bridge, project workspace, private attachment UI, security UI, access
@@ -192,19 +197,20 @@ node --test --test-concurrency=2 \
 
 An attempted API suite stopped because `typescript` is not installed. npm
 dependencies are missing, and a read-only registry check failed DNS resolution.
-The full TypeScript/PostgreSQL/RLS suites, Next build and isolated multi-user
-browser QA have not been rerun here. Earlier 435-check/56-workflow reports remain
-historical evidence. No new runtime UI changes or hosted release were made by
-this checkpoint.
+At that recovery checkpoint, the full TypeScript/PostgreSQL/RLS suites, Next build
+and isolated multi-user browser QA had not been rerun. The continuation now uses
+GitHub CI for those checks. Earlier 435-check/56-workflow reports remain historical
+evidence. No hosted release has been made by this continuation.
 
-## Next executable step
+## Remaining work
 
-Use the original development computer, or a workspace with dependency access and
-the isolated Supabase test stack. Reconcile unpushed source, select the continuation
-branch and run the full baseline. Read the relevant installed Next.js guide as
-required by `AGENTS.md` before code changes.
+Keep the continuation branch and reconcile any unpushed work from the original
+computer. The full baseline runs in GitHub CI while local dependency access is
+unavailable. Read the relevant installed Next.js guide as required by `AGENTS.md`
+before changing Next APIs; the matching official v16.4.6 SPA/CSS documentation was
+read for this continuation.
 
-Then complete missing references and typeface provenance; finish the shared
+Complete missing references and typeface provenance; finish the shared
 tokens/primitives; implement and compare one connected authentication/shell/project/
 task flow at matching desktop/mobile sizes; extend the remaining modules and
 additive production models; complete functional, permissions, accessibility,

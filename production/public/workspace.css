@@ -30,7 +30,6 @@
 .task-group-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding-inline:4px;border:1px solid var(--border-subtle);border-radius:var(--radius-small);font-size:var(--type-meta);line-height:18px;font-variant-numeric:tabular-nums;color:var(--text-secondary)}
 .task-group-head>.icon-btn{width:28px;height:28px;min-height:28px;color:var(--text-secondary)}
 .task-group .task-row{grid-template-columns:20px minmax(0,1fr) 62px 24px}
-.task-group .task-row>.badge{display:none}
 .task-group .task-row:last-child{border-radius:0 0 var(--radius-panel) var(--radius-panel)}
 .task-list{min-width:0}
 .task-row{display:grid;grid-template-columns:20px minmax(0,1fr) 86px 62px 24px;gap:var(--space-2);align-items:center;min-height:46px;padding:var(--space-1) var(--space-3);border-top:1px solid var(--border-subtle)}
