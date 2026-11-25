@@ -33,7 +33,7 @@ test('camera inventory creates one real image and its task remains the same reco
   const task=await taskResponse.json();
   expect(task.deliverable_id).toBe(image.id);
   await expect(dialog.getByLabel('Task name',{exact:true})).toHaveValue(title);
-  await dialog.locator('[data-action="close-dialog"]').click();await page.goto('/workspace#tasks');await page.getByRole('button',{name:'Studio tasks',exact:true}).click();await page.locator('#task-search').fill(title);const central=page.locator('.task-open[data-id="'+task.id+'"]');await expect(central).toHaveCount(1);await expect(central).toContainText('INT-01');await central.click();await expect(dialog.getByLabel('Image / deliverable',{exact:true})).toHaveValue(image.id);
+  await dialog.getByRole('button',{name:'Close dialog',exact:true}).click();await page.goto('/workspace#tasks');await page.getByRole('button',{name:'Studio tasks',exact:true}).click();await page.locator('#task-search').fill(title);const central=page.locator('.task-open[data-id="'+task.id+'"]');await expect(central).toHaveCount(1);await expect(central).toContainText('INT-01');await central.click();await expect(dialog.getByLabel('Image / deliverable',{exact:true})).toHaveValue(image.id);
   const completed=await mutate(run.founder.context,'/tasks/'+task.id,{expectedVersion:task.version,changes:{status:'Done'}},'PATCH');expect(completed.status()).toBe(200);
   const unchanged=await (await run.founder.context.request.get('/api/deliverables/'+image.id)).json();expect(unchanged.stage).toBe('Camera approval');expect(unchanged).not.toHaveProperty('approved');
  }finally{await run.close();}
