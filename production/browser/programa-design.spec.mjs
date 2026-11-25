@@ -56,7 +56,7 @@ async function actionable(control,width,{compact=false}={}){
  });
  expect(result.left).toBeGreaterThanOrEqual(-1);expect(result.right).toBeLessThanOrEqual(result.viewport+1);
  expect(result.top).toBeGreaterThanOrEqual(-1);expect(result.bottom).toBeLessThanOrEqual(result.viewportHeight+1);
- expect(result.height).toBeGreaterThanOrEqual(width<=700?44:compact?24:32);
+ expect(result.height).toBeGreaterThanOrEqual(width<=700?44:compact?24:28);
  expect(result.hit,'The intended action must not be covered by the header, another control or an overlay').toBe(true);
 }
 

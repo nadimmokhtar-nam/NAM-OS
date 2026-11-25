@@ -9,7 +9,7 @@ import vm from 'node:vm';
 // Execute the production application and its actual imported UI factories.
 // The document/HTTP boundary is simulated. This checks behavior, not layout,
 // native focus, RLS, live providers or accessibility conformance.
-function node(){return {id:'',innerHTML:'',textContent:'',open:false,disabled:false,dataset:{},attributes:{},classList:{toggle(){},add(){},remove(){}},setAttribute(k,v){this.attributes[k]=v;},removeAttribute(k){delete this.attributes[k];},querySelector(){return null;},querySelectorAll(){return [];},contains(){return false;},closest(){return null;},matches(){return false;},focus(){},addEventListener(type,listener){const previous=(this.listeners??={})[type];this.listeners[type]=previous?event=>{previous(event);listener(event);}:listener;},showModal(){this.open=true;},close(){this.open=false;this.listeners?.close?.();}};}
+function node(){return {id:'',innerHTML:'',textContent:'',open:false,disabled:false,dataset:{},attributes:{},classList:{toggle(){},add(){},remove(){}},setAttribute(k,v){this.attributes[k]=v;},removeAttribute(k){delete this.attributes[k];},querySelector(){return null;},querySelectorAll(){return [];},contains(){return false;},closest(){return null;},matches(){return false;},focus(){},addEventListener(type,listener){const previous=(this.listeners??={})[type];this.listeners[type]=previous?event=>{previous(event);listener(event);}:listener;},show(){this.open=true;this.nonmodal=true;},showModal(){this.open=true;this.nonmodal=false;},close(){this.open=false;this.listeners?.close?.();}};}
 const endpoint=(url,path)=>new URL(url,'https://nam.example').pathname==='/api/'+path;
 const actor={id:'founder-1',name:'Nadim',initials:'NM',role:'founder'},omar={id:'sales-1',name:'Omar',initials:'OM',role:'sales'};
 function bootstrap(){return {actor,members:[{...actor,sections:['sales','academy','projects','library','team','operations']},{...omar,sections:['sales','academy','operations']}],sections:['sales','academy','projects','library','team','operations'],tasks:[],courses:[],notifications:[],today:'2026-11-24',mode:'authenticated',capabilities:{createTaskSections:['sales','academy','projects','library','team','operations'],productionAuth:true,database:'postgresql',projects:'tasks_only',library:'tasks_only'},roleLabels:{founder:'Founder',sales:'Sales Representative'},csrf:'test-csrf'};}
@@ -22,7 +22,7 @@ async function harness({intercept,sales,defaultTimeZone,initialHash='#overview'}
   const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>structuredClone(body)});
   const fixtureSales=sales||{activities:[],reports:[],targets:[],activity_total:0,activity_counts:[],activities_truncated:false};
   const runtimeIntl=defaultTimeZone?Object.create(Intl):Intl;if(defaultTimeZone)runtimeIntl.DateTimeFormat=function(locales,options={}){return new Intl.DateTimeFormat(locales,{timeZone:defaultTimeZone,...options});};
-  const sandbox=vm.createContext({console,Intl:runtimeIntl,Date,URL,URLSearchParams,AbortController,WeakSet,structuredClone,setTimeout:()=>1,clearTimeout(){},confirm:()=>confirmValue,location,history:{replaceState(a,b,url){location.hash=url;}},window:{addEventListener(type,listener){windowEvents[type]=listener;},matchMedia(){return {matches:false};},scrollTo(){},location},document,FormData:class {constructor(form){this.values=form.values||{};}*[Symbol.iterator](){yield*Object.entries(this.values);}},fetch:async(url,init={})=>{
+  const sandbox=vm.createContext({console,Intl:runtimeIntl,Date,URL,URLSearchParams,AbortController,WeakSet,structuredClone,setTimeout:()=>1,clearTimeout(){},confirm:()=>confirmValue,location,history:{pushState(a,b,url){location.hash=url;},replaceState(a,b,url){location.hash=url;}},window:{addEventListener(type,listener){windowEvents[type]=listener;},matchMedia(){return {matches:false};},scrollTo(){},location},document,FormData:class {constructor(form){this.values=form.values||{};}*[Symbol.iterator](){yield*Object.entries(this.values);}},fetch:async(url,init={})=>{
     requests.push({url,init});const overridden=await intercept?.(url,init,model,response);if(overridden)return overridden;
     if(endpoint(url,'bootstrap'))return response(model);
     if(url.startsWith('/api/brief?'))return response(model.brief||{scope:'studio',today:model.today,counts:{today:0,overdue:0,blocked:0,upcoming:0,unscheduled:0},attention:[],priorities:[],upcoming:[],completed:[],workload:[]});
@@ -42,6 +42,54 @@ async function harness({intercept,sales,defaultTimeZone,initialHash='#overview'}
   return {ui,model,nodes,requests,redirects,location,response,document,windowEvents,setConfirm(value){confirmValue=value;},async dispatch(type,event){for(const listener of listeners[type]||[])await listener(event);}};
 }
 
+test('task pages retain a navigable sidebar, one record URL and restore the parent workspace on close',async()=>{
+ const h=await harness({initialHash:'#tasks'}),dialog=h.nodes.get('#dialog');
+ await h.ui.openTask('task-1');
+ assert.equal(dialog.nonmodal,true);assert.equal(dialog.attributes['aria-modal'],'false');
+ assert.equal(dialog.dataset.workspace,'task');assert.equal(h.location.hash,'#tasks?task=task-1');
+ assert.equal(h.nodes.get('#main').inert,true);assert.equal(h.nodes.get('#studio-navigation').inert,false);
+ assert(dialog.innerHTML.includes('Review project lighting'));assert(dialog.innerHTML.includes('task-page-parent'));
+ await h.ui.action({dataset:{action:'close-dialog'}});
+ assert.equal(dialog.open,false);assert.equal(h.location.hash,'#tasks');
+ assert.equal(h.nodes.get('#main').inert,false);assert.equal(h.nodes.get('#main').attributes['aria-hidden'],undefined);
+});
+
+test('a direct task URL loads the same authorized detail instead of a second task record',async()=>{
+ const h=await harness({initialHash:'#tasks?task=task-1'});
+ assert.equal(h.ui.state.view,'tasks');assert.equal(h.ui.state.task.id,'task-1');
+ assert.equal(h.nodes.get('#dialog').nonmodal,true);
+ assert.equal(h.requests.filter(request=>request.url==='/api/tasks/task-1').length,1);
+});
+
+test('Back to the parent task list preserves its filters and does not refetch a different workspace',async()=>{
+ const h=await harness({initialHash:'#tasks'});
+ h.ui.state.search='lighting pass';h.ui.state.focus='today';
+ await h.ui.openTask('task-1');const count=h.requests.length;
+ h.location.hash='#tasks';await h.ui.navigate();
+ assert.equal(h.nodes.get('#dialog').open,false);assert.equal(h.nodes.get('#main').inert,false);
+ assert.equal(h.ui.state.search,'lighting pass');assert.equal(h.ui.state.focus,'today');
+ assert.equal(h.requests.length,count);
+});
+
+test('declining navigation keeps the task draft and its URL; accepting it opens the requested section',async()=>{
+ const h=await harness({initialHash:'#tasks'}),dialog=h.nodes.get('#dialog');
+ await h.ui.openTask('task-1');
+ const form={values:{title:'Unsaved lighting notes'},elements:[]};
+ dialog.querySelector=selector=>selector==='form[data-form="edit-task"]'?form:null;
+ h.setConfirm(false);h.location.hash='#sales';await h.ui.navigate();
+ assert.equal(dialog.open,true);assert.equal(h.ui.state.view,'tasks');
+ assert.equal(h.location.hash,'#tasks?task=task-1');assert.equal(form.values.title,'Unsaved lighting notes');
+ h.setConfirm(true);h.location.hash='#sales';await h.ui.navigate();
+ assert.equal(dialog.open,false);assert.equal(h.ui.state.view,'sales');assert.equal(h.location.hash,'#sales');
+ assert.equal(h.nodes.get('#main').inert,false);
+});
+
+test('denied task deep links retain the server error and do not display a task workspace',async()=>{
+ const h=await harness({initialHash:'#tasks?task=not-shared',intercept:(url,init,model,response)=>url==='/api/tasks/not-shared'?response({error:'Task not found.'},404):null});
+ assert.equal(h.nodes.get('#dialog').open,false);assert.equal(h.ui.state.task,null);
+ assert(h.nodes.get('#main').innerHTML.includes('Task not found.'));
+});
+
 test('project routes mount their shared work only in Project Management and keep one active navigation link',async()=>{
  const project={id:'shared-project',title:'Shared courtyard',brief:'A shared production brief.',member_ids:[actor.id],lead_id:actor.id,version:1};
  const h=await harness({intercept:(url,init,model,response)=>{
@@ -56,6 +104,7 @@ test('project routes mount their shared work only in Project Management and keep
  assert(html.includes('A shared production brief.'));assert(html.includes('project-task-total">120</strong>'));
  assert(!html.includes('id="task-results"'));assert.equal((html.match(/aria-current="page"/g)||[]).length,1);
  assert(html.includes('href="#projects/shared-project" aria-current="page"'));
+ assert(!html.includes('href="#academy"'),'Project navigation replaces the global module navigation');
  h.location.hash='#projects/shared-project/work';await h.ui.navigate();html=h.nodes.get('#app').innerHTML;
  assert(html.includes('<h1>Project Management</h1>'));assert(html.includes('id="task-results"'));
  assert(html.includes('data-id="task-1"'));assert(!html.includes('project-brief-title'));

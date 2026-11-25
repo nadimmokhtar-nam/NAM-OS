@@ -14,6 +14,7 @@
   --surface-sidebar:var(--surface-canvas);
   --surface-workspace:#fff;
   --surface-raised:#fff;
+  --surface-control:#fcfbf9;
   --surface-muted:var(--surface-canvas);
   --surface-hover:#f1eeea;
   --surface-pressed:#e9e4de;
@@ -50,6 +51,9 @@
   --space-6:24px;
   --space-8:32px;
   --control-height:32px;
+  --button-height:28px;
+  --tab-height:28px;
+  --task-properties-width:400px;
   --control-padding-block:6px;
   --control-padding-inline:10px;
   --nav-item-height:28px;
@@ -59,11 +63,14 @@
   --page-gutter:16px;
   --shadow-nav-active:0 0 0 1px rgba(43,41,38,.08),0 1px 2px -1px rgba(43,41,38,.08),0 2px 4px rgba(43,41,38,.08);
   --shadow-dialog:0 4px 24px rgba(43,41,38,.12);
+  --shadow-control:0 0 0 1px rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --shadow-primary:inset 0 .75px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.4),0 0 0 1px #18181b;
+  --shadow-menu:0 0 0 1px rgba(0,0,0,.08),0 4px 8px rgba(0,0,0,.08),0 8px 16px rgba(0,0,0,.08);
   --motion-press:90ms;
   --motion-fast:120ms;
   --motion-panel:200ms;
   --ease-out:cubic-bezier(.2,.7,.2,1);
 }
 @media(max-width:700px){
-  :root{--control-height:44px;--nav-item-height:44px}
+  :root{--control-height:44px;--button-height:44px;--tab-height:44px;--nav-item-height:44px}
 }

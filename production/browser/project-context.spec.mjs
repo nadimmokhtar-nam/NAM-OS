@@ -58,6 +58,8 @@ test('opening a project then editing standalone Work preserves its explicit lack
   await founder.page.goto('/workspace#projects/'+project.id);await expect(founder.page.getByRole('heading',{name:project.title,exact:true})).toBeVisible();
   // Keep the same mounted application so the previously selected project remains
   // in the controller; a full reload would fail to reproduce the original defect.
+  await founder.page.getByRole('button',{name:'Back to projects',exact:true}).click();
+  await expect(founder.page.locator('#main h1')).toHaveText('Projects');
   await founder.page.locator('.sidebar .nav-link[href="#tasks"]').click();
   await openWorkTask(founder.page,title);
   const dialog=founder.page.getByRole('dialog');await expect(dialog.getByLabel('Project',{exact:true})).toHaveValue('');

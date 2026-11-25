@@ -21,7 +21,7 @@ test('No selected project produces no contextual navigation or invented project 
 test('Contextual navigation exposes real Overview and Project Management routes with one selected view',()=>{
  const {module,project}=fixture();module.select(project);
  const overview=module.navigation('overview');
- assert(overview.includes('data-action="project-back">Back to projects'));
+ assert(overview.includes('aria-label="Back to projects"'));assert(overview.includes('data-action="project-back"'));
  assert(overview.includes('href="#projects/shared-project" aria-current="page"'));
  assert(overview.includes('href="#projects/shared-project/work" >'));
  assert.equal((overview.match(/aria-current="page"/g)||[]).length,1);

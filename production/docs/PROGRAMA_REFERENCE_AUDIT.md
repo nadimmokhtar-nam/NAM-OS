@@ -3,6 +3,27 @@
 25 November 2026. This checkpoint records recovery, reference evidence and the
 remaining implementation. It does not establish redesign or release acceptance.
 
+## Implementation continuation
+
+The continuation now implements linkable task workspaces through the existing
+authorized task API. Task pages retain the sidebar, use a nonmodal native surface,
+keep the underlying list out of the focus/accessibility tree, and support direct
+URLs, reload and browser Back/Forward. Unsaved-change and save-in-progress guards
+also cover sidebar navigation. Existing task forms, versions, comments, subtasks
+and private-file behavior are reused.
+
+Project navigation now replaces the global module links while inside a project.
+The header provides a Back action and an authorized project switcher. Shared
+desktop actions/pills use the measured 28px size, warm control surfaces and subtle
+elevation; mobile controls keep 44px touch targets. Task properties use a fixed
+400px desktop rail. Mobile comments precede the properties/files area.
+
+The updated local source passes 123 existing/new source checks. New disposable-
+provider browser coverage checks real task routing, native nonmodal behavior,
+400px geometry, mobile reading order, unsaved navigation and denied task links.
+GitHub CI build and native-provider browser results are pending. The earlier UI
+differences and execution limits below describe the recovered baseline.
+
 ## Authoritative acceptance brief
 
 Programa's actual application is the single visual, experiential and interaction

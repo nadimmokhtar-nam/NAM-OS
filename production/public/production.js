@@ -58,7 +58,8 @@ export function createProductionProjects({request,openDialog,getData}){
  function navigation(view='overview'){
   if(!project)return '';
   const active=view==='work'?'work':'overview';
-  return `<div class="project-context-heading"><span class="project-context-name">${esc(project.title)}</span></div><nav aria-label="Project navigation" data-project-navigation><button type="button" class="nav-link project-nav-back" data-action="project-back">Back to projects</button>${[['overview','overview'],['work','tasks']].map(([key,symbol])=>`<a class="nav-link ${active===key?'active':''}" href="${esc(projectHash(key))}" ${active===key?'aria-current="page"':''}>${icon(symbol)}${projectViewLabel(key)}</a>`).join('')}</nav>`;
+  const choices=[project,...records.filter(record=>record.id!==project.id)];
+  return `<div class="project-context-heading"><button type="button" class="icon-btn project-nav-back" aria-label="Back to projects" title="Back to projects" data-action="project-back">${icon('arrow')}</button><details class="project-switcher"><summary aria-label="Switch project: ${esc(project.title)}"><span class="project-context-name">${esc(project.title)}</span>${icon('chevron')}</summary><div class="project-switcher-menu" aria-label="Available projects">${choices.map(record=>`<button type="button" data-action="project-open" data-id="${esc(record.id)}" aria-pressed="${record.id===project.id}">${esc(record.title)}</button>`).join('')}</div></details></div><nav aria-label="Project navigation" data-project-navigation>${[['overview','overview'],['work','tasks']].map(([key,symbol])=>`<a class="nav-link ${active===key?'active':''}" href="${esc(projectHash(key))}" ${active===key?'aria-current="page"':''}>${icon(symbol)}${projectViewLabel(key)}</a>`).join('')}</nav>`;
  }
  function projectWorkSummary(projectTaskCount){
   const count=Number.isSafeInteger(projectTaskCount)&&projectTaskCount>=0?projectTaskCount:null;
