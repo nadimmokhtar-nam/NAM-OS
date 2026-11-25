@@ -152,6 +152,39 @@ test('production watch respects explicit participation and Attention includes a 
  assert(!(await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).projects.some(row=>row.id===pid));
 });
 
+test('Today includes a shared project for an assigned non-lead participant without exposing its membership list',async()=>{
+ const pid=await project({title:'Artist participant / Founder lead',lead_id:ids.founder,member_ids:[ids.artist],due_date:'2020-01-01'});
+ const task=await rpc(ids.founder,'nam_create_task',[ids.w,{title:'Participant lighting pass',section:'projects',owner_id:ids.artist,project_id:pid,production_stage:'Lighting',status:'In progress'},null]);
+ assert((await rpc(ids.artist,'nam_project_list',[ids.w,false])).some(row=>row.id===pid));
+ const brief=await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine']);
+ assert(brief.projects.some(row=>row.id===pid&&row.deliverables===1));
+ assert.equal(await rpc(ids.artist,'nam_project_participant',[ids.w,pid]),true);
+ assert.equal(await rpc(ids.sales,'nam_project_participant',[ids.w,pid]),false);
+ assert.deepEqual((await asUser(db,ids.artist,()=>db.query('select * from nam_project_members where project_id=$1',[pid]))).rows,[]);
+ await rpc(ids.founder,'nam_save_project',[ids.w,pid,1,{member_ids:[]},null]);
+ assert.equal(await rpc(ids.artist,'nam_project_participant',[ids.w,pid]),false);
+ assert(!(await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).projects.some(row=>row.id===pid));
+ assert((await rpc(ids.artist,'nam_task_page',[ids.w,{}])).items.some(row=>row.id===task.id),'Removing brief access preserves the existing assigned task');
+});
+
+test('Canceled project work retains history while leaving the deliverable completion denominator',async()=>{
+ const pid=await project({title:'One delivered image / one canceled image',due_date:'2020-01-01'});
+ await rpc(ids.founder,'nam_create_task',[ids.w,{title:'Delivered image',section:'projects',owner_id:ids.artist,project_id:pid,status:'Done'},null]);
+ const canceled=await rpc(ids.founder,'nam_create_task',[ids.w,{title:'Canceled image',section:'projects',owner_id:ids.artist,project_id:pid,status:'Canceled'},null]);
+ const summary=(await rpc(ids.artist,'nam_project_list',[ids.w,false])).find(row=>row.id===pid);
+ assert.equal(summary.completed,1);assert.equal(summary.deliverables,1);assert.equal(summary.overdue,0);
+ assert(!(await rpc(ids.artist,'nam_daily_brief',[ids.w,'mine'])).projects.some(row=>row.id===pid),'Finished production leaves the daily production watch');
+ assert((await rpc(ids.artist,'nam_task_page',[ids.w,{project_id:pid}])).items.some(row=>row.id===canceled.id&&row.status==='Canceled'),'The canceled record is still available in work history');
+});
+
+test('My day limits Founder projects to explicit participation; Studio retains the full authorized view',async()=>{
+ const pid=await project({title:'Artist-led / Founder observes',lead_id:ids.artist,due_date:'2019-01-01'});
+ assert.equal(await rpc(ids.founder,'nam_project_participant',[ids.w,pid]),false);
+ assert(!(await rpc(ids.founder,'nam_daily_brief',[ids.w,'mine'])).projects.some(row=>row.id===pid));
+ assert((await rpc(ids.founder,'nam_daily_brief',[ids.w,'studio'])).projects.some(row=>row.id===pid));
+ await assert.rejects(asUser(db,ids.artist,()=>db.query('select nam_project_participant($1,$2)',[ids.w,pid]),{role:'anon'}),error=>error.code==='42501');
+});
+
 test('business export retains project context, learning structure and grants without exporting another workspace or Auth',async()=>{
  const pid=await project({title:'Export the approved brief'});
  const other=(await db.query("insert into nam_projects(workspace_id,title,lead_id,created_by,create_payload) values($1,'A different workspace',$2,$2,'{}') returning id",[ids.otherW,ids.outsider])).rows[0].id;

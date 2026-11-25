@@ -1,0 +1,92 @@
+name: NAM OS isolated workflow QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'production/**'
+      - '.github/workflows/reinvention-service-qa.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nam-os-isolated-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  workflow-qa:
+    name: Eight-user native workflow verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: production
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NAM_QA_MODE: production
+      NAM_QA_ROOT: ${{ runner.temp }}/nam-os/isolated
+      NAM_QA_CLI_HOME: ${{ runner.temp }}/nam-os/supabase-home
+      NAM_QA_CLI: ${{ runner.temp }}/nam-os/tools/node_modules/.bin/supabase
+    steps:
+      - name: Check out reviewed source without retained credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Node 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: production/package-lock.json
+
+      - name: Install locked source and official browser
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$NAM_QA_ROOT"
+          npm ci --no-audit --no-fund
+          npm exec -- playwright install --with-deps chromium
+          node --input-type=module -e 'import {chromium} from "@playwright/test";import fs from "node:fs";fs.appendFileSync(process.env.GITHUB_ENV,"NAM_CHROMIUM_PATH="+chromium.executablePath()+"\n");'
+
+      - name: Start disposable provider and prepare eight identities
+        timeout-minutes: 12
+        run: |
+          set -euo pipefail
+          umask 077
+          node tools/isolated-supabase.mjs start
+          node tools/isolated-dev.mjs prepare
+
+      - name: Build for isolated online workflow testing
+        timeout-minutes: 7
+        run: |
+          set -euo pipefail
+          node tools/isolated-dev.mjs build
+
+      - name: Exercise actual workflows, accessibility and concurrency
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          umask 077
+          npm exec -- playwright test --config=playwright.config.mjs > "$NAM_QA_ROOT/browser-private.log" 2>&1
+
+      - name: Publish only bounded non-sensitive result counts
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          node tools/qa-safe-summary.mjs
+
+      - name: Retain safe verification summary
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: isolated-workflow-counts-${{ github.run_id }}
+          path: ${{ runner.temp }}/nam-os/isolated/safe-summary.json
+          retention-days: 7
+          if-no-files-found: warn
+          include-hidden-files: false

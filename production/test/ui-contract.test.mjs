@@ -1,3 +1,4 @@
+import {registerSubtaskFocusCases} from './support/subtask-focus-cases.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -11,11 +12,11 @@ const endpoint=(url,path)=>new URL(url,'https://nam.example').pathname==='/api/'
 const actor={id:'founder-1',name:'Nadim',initials:'NM',role:'founder'},omar={id:'sales-1',name:'Omar',initials:'OM',role:'sales'};
 function bootstrap(){return {actor,members:[{...actor,sections:['sales','academy','projects','library','team','operations']},{...omar,sections:['sales','academy','operations']}],sections:['sales','academy','projects','library','team','operations'],tasks:[],courses:[],notifications:[],today:'2026-11-24',mode:'authenticated',capabilities:{createTaskSections:['sales','academy','projects','library','team','operations'],productionAuth:true,database:'postgresql',projects:'tasks_only',library:'tasks_only'},roleLabels:{founder:'Founder',sales:'Sales Representative'},csrf:'test-csrf'};}
 function task(section='projects'){return {id:'task-1',number:1,title:'Review project lighting',description:'Original brief',section,status:'Todo',priority:'High',owner_id:actor.id,owner_name:actor.name,owner_initials:actor.initials,version:1,due_date:'2026-11-25',comments:[],subtasks:[],events:[]};}
-async function harness({intercept,sales,defaultTimeZone}={}){
+async function harness({intercept,sales,defaultTimeZone,initialHash='#overview'}={}){
   const model=bootstrap(),nodes=new Map(['#app','#main','#dialog','#toast','#studio-navigation','#task-results'].map(id=>[id,node()])),listeners={},requests=[],redirects=[],windowEvents={};let confirmValue=true;
   const document={activeElement:node(),title:'',querySelector(selector){return nodes.get(selector)||null;},getElementById(id){return nodes.get('#'+id)||null;},querySelectorAll(){return [];},addEventListener(type,listener){(listeners[type]??=[]).push(listener);}};
   for(const [id,element] of nodes){element.id=id.slice(1);element.focus=()=>document.activeElement=element;}
-  const location={hash:'#overview',origin:'https://nam.example',assign(url){redirects.push(url);},reload(){redirects.push('reload');}};
+  const location={hash:initialHash,origin:'https://nam.example',assign(url){redirects.push(url);},reload(){redirects.push('reload');}};
   const response=(body,status=200)=>({ok:status>=200&&status<300,status,json:async()=>structuredClone(body)});
   const fixtureSales=sales||{activities:[],reports:[],targets:[],activity_total:0,activity_counts:[],activities_truncated:false};
   const runtimeIntl=defaultTimeZone?Object.create(Intl):Intl;if(defaultTimeZone)runtimeIntl.DateTimeFormat=function(locales,options={}){return new Intl.DateTimeFormat(locales,{timeZone:defaultTimeZone,...options});};
@@ -293,4 +294,55 @@ for(const editWhilePending of [false,true])test('parent Save keeps Close and Esc
 test('a failed parent write re-enables Close while retaining the genuinely unsaved draft',async()=>{
  const h=await harness({intercept:(url,init,model,response)=>url==='/api/tasks/task-1'&&init.method==='PATCH'?response({error:'Version conflict'},409):null});await h.ui.openTask('task-1');const close=node(),save=node(),error=node(),edit={dataset:{form:'edit-task'},values:{title:'Unsaved work',description:'Keep this',section:'projects',status:'Done',priority:'High',due_date:'2026-11-25',owner_id:actor.id},querySelector:s=>s==='.form-error'?error:s==='[type=submit]'?save:null,matches(){return false;}};
  h.nodes.get('#dialog').querySelector=s=>s==='form[data-form="edit-task"]'?edit:s==='form[data-form="edit-task"] [type="submit"]'?save:s==='[data-action="close-dialog"]'?close:null;await h.dispatch('submit',{target:edit,preventDefault(){}});assert.equal(close.disabled,false);assert.equal(save.disabled,false);assert(error.textContent.includes('Version conflict'));assert.equal(edit.values.description,'Keep this');h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert(h.nodes.get('#dialog').open);
+});
+
+registerSubtaskFocusCases({test,assert,harness,node,task,actor});
+
+test('a direct Work landing loads assigned learning when returning to Today',async()=>{
+ const course={id:'assigned-course',title:'Assigned studio method',area:'3d',summary:'Learn the method',completed:0,total:2,mandatory:true,completion:null};
+ const h=await harness({initialHash:'#tasks',intercept:(url,init,model,response)=>url==='/api/courses'?response([course]):null});
+ assert.equal(h.ui.state.coursesLoaded,false);assert.equal(h.requests.filter(r=>r.url==='/api/courses').length,0);
+ h.location.hash='#overview';await h.ui.navigate();
+ assert.equal(h.ui.state.coursesLoaded,true);assert(h.nodes.get('#app').innerHTML.includes(course.title));assert.equal(h.requests.filter(r=>r.url==='/api/courses').length,1);
+});
+
+test('Academy opens its visible learning workflow without first loading an unrelated task page',async()=>{
+ const h=await harness(),before=h.requests.length;h.location.hash='#academy';await h.ui.navigate();
+ assert(!h.requests.slice(before).some(r=>r.url.startsWith('/api/tasks?')));assert(h.requests.slice(before).some(r=>r.url==='/api/courses'));
+ await h.ui.action({dataset:{action:'tab',value:'tasks'}});assert(h.requests.slice(before).some(r=>r.url.startsWith('/api/tasks?')));
+});
+
+test('Sales opens actionable work and loads provider reporting only when requested',async()=>{
+ const h=await harness(),before=h.requests.length;h.location.hash='#sales';await h.ui.navigate();
+ assert(h.nodes.get('#app').innerHTML.includes('Next follow-ups'));assert(!h.requests.slice(before).some(r=>r.url.startsWith('/api/sales/connected')));
+ const page=h.requests.slice(before).find(r=>r.url.startsWith('/api/tasks?'));assert.equal(new URL(page.url,'https://nam.example').searchParams.get('focus'),'open');
+ await h.ui.action({dataset:{action:'tab',value:'connected'}});assert(h.requests.slice(before).some(r=>r.url.startsWith('/api/sales/connected')));
+});
+
+test('a parent save reuses acknowledged detail and retains a task page arriving before bootstrap',async()=>{
+ let release,seen;const gate=new Promise(resolve=>release=resolve),started=new Promise(resolve=>seen=resolve),saved={...task(),title:'Saved composition',version:2};let hold=false;
+ const h=await harness({initialHash:'#tasks',intercept:async(url,init,model,response)=>{
+  if(url==='/api/tasks/task-1'&&init.method==='PATCH'){hold=true;return response(saved);}
+  if(endpoint(url,'bootstrap')&&hold){seen();await gate;return response(model);}
+  if(url.startsWith('/api/tasks?'))return response({items:[saved],total:1,page:1,hasMore:false});return null;
+ }});await h.ui.openTask('task-1');const before=h.requests.length,f=correctionForm('edit-task',{title:saved.title,description:saved.description,section:'projects',owner_id:actor.id,status:'Todo',priority:'High',due_date:'2026-11-25'});
+ const writing=h.dispatch('submit',{target:f.form,preventDefault(){}});await started;release();await writing;
+ assert.equal(h.requests.slice(before).filter(r=>r.url==='/api/tasks/task-1'&&r.init.method==='GET').length,0);
+ assert.equal(h.ui.state.task.title,saved.title);assert.equal(h.ui.state.data.tasks[0].title,saved.title);assert(h.nodes.get('#app').innerHTML.includes(saved.title));
+});
+
+test('saving an assigned task does not resend its unchanged unshared project context',async()=>{
+ const h=await harness({intercept:(url,init,model,response)=>url==='/api/tasks/task-1'?response({...task(),project_id:'unshared-project',production_stage:'Lighting'}):null});
+ await h.ui.openTask('task-1');const f=correctionForm('edit-task',{title:'Updated title',description:'Keep project context',section:'projects',owner_id:actor.id,status:'Todo',priority:'High',due_date:'2026-11-25',project_id:'unshared-project',production_stage:'Lighting'});
+ await h.dispatch('submit',{target:f.form,preventDefault(){}});const patch=JSON.parse(h.requests.find(r=>r.init.method==='PATCH').init.body).changes;
+ assert(!Object.hasOwn(patch,'project_id'));assert(!Object.hasOwn(patch,'production_stage'));assert.equal(patch.title,'Updated title');
+});
+
+test('switching a global task to Projects fetches and mounts real project controls',async()=>{
+ const h=await harness({intercept:(url,init,model,response)=>url.startsWith('/api/projects?')?response({items:[{id:'project-one',title:'Shared project'}]}):null});
+ h.ui.state.data.capabilities.projects='records';const holder=node(),owner=node(),submit=node(),error=node();owner.value=actor.id;
+ const form={dataset:{form:'create-task'},isConnected:true,elements:{section:{value:'projects'},owner_id:owner},querySelector(selector){return selector==='[data-task-context]'?holder:selector==='[type=submit]'?submit:selector==='.form-error'?error:null;}};
+ await h.dispatch('change',{target:{dataset:{},id:'f-section',name:'section',value:'projects',closest(){return form;}}});
+ assert(holder.innerHTML.includes('name="project_id"'));assert(holder.innerHTML.includes('Shared project'));assert(holder.innerHTML.includes('name="production_stage"'));assert.equal(owner.disabled,false);assert.equal(submit.disabled,false);
+ form.elements.section.value='sales';await h.dispatch('change',{target:{dataset:{},id:'f-section',name:'section',value:'sales',closest(){return form;}}});assert.equal(holder.innerHTML,'');assert(owner.innerHTML.includes('Omar'));
 });
