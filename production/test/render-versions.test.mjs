@@ -12,7 +12,7 @@ before(async()=>{db=await database();({dispatchRenders:dispatch}=await loadServe
 after(async()=>{await db?.close();});
 const rpc=async(user,name,args,options={})=>{const result=await client(db,user,options).rpc(name,args);if(result.error)throw result.error;return result.data;};
 function storage(user){return {from(name){assert.equal(name,bucket);return {
- async createSignedUploadUrl(path){const allowed=await rpc(user,'nam_render_storage_access',{object_path:path,operation:'insert'});if(!allowed)return {error:{code:'42501'},data:null};const key=randomUUID();uploads.set(key,{user,path});return {data:{signedUrl:origin+'/_fixture/upload/'+key},error:null};},
+ async createSignedUploadUrl(path){if(objects.has(path))return {error:{statusCode:'409',code:'Duplicate'},data:null};const allowed=await rpc(user,'nam_render_storage_access',{object_path:path,operation:'insert'});if(!allowed)return {error:{code:'42501'},data:null};const key=randomUUID();uploads.set(key,{user,path});return {data:{signedUrl:origin+'/_fixture/upload/'+key},error:null};},
  async upload(path,content,{contentType}){try{await put(user,path,Buffer.from(content),contentType);return {data:{path},error:null};}catch(error){return {data:null,error};}},
  async download(path){try{const rows=await serial(db,()=>asUser(db,user,()=>db.query('select name from storage.objects where bucket_id=$1 and name=$2',[bucket,path])));const item=rows.rows.length?objects.get(path):null;return item?{data:new Blob([item.bytes],{type:item.mime}),error:null}:{data:null,error:{code:'42501'}};}catch(error){return {data:null,error};}},
  async remove(paths){try{for(const path of paths){const rows=await serial(db,()=>asUser(db,user,()=>db.query('delete from storage.objects where bucket_id=$1 and name=$2 returning name',[bucket,path])));if(rows.rows.length)objects.delete(path);}return {data:[],error:null};}catch(error){return {data:null,error};}},
@@ -65,6 +65,8 @@ test('upload and feedback retries preserve identity and reject changed payloads'
 test('a conflict retains uploaded bytes and only an explicit newer image version can finish them',async()=>{
  const {did}=await fixture(),a=await reserve(did);await upload(a);await rpc(ids.founder,'nam_save_deliverable',{w:ids.w,did,expected_version:1,changes:{camera_notes:'A newer agreed camera brief'},retry_key:null});
  await assert.rejects(finish(a),e=>e.status===409);assert.equal((await detail(did)).version,2);assert.equal((await (await call(ids.artist,'deliverables/'+did+'/renders')).json()).pending[0].id,a.id);
+ const resume=await (await call(ids.artist,'renders/'+a.id+'/upload','POST',{})).json();
+ assert.equal(resume.uploaded,true);assert.equal(resume.uploadUrl,undefined);assert.equal(resume.id,a.id);
  assert.equal((await finish(a,2)).number,1);assert.equal((await detail(did)).camera_notes,'A newer agreed camera brief');
 });
 

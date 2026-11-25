@@ -35,11 +35,16 @@ async function plan(ctx:APIContext,render:Render,origin:string){
  if(render.status==='ready')return {id:render.id,status:'ready',render:dto(render)};
  if(render.status!=='pending')throw new ApiError(409,'Discard the incomplete upload before starting another.','RENDER_CLEANUP_PENDING');
  if(await rpc(ctx,'nam_render_write',{w:ctx.workspaceId,did:render.deliverable_id})!==true)throw new ApiError(403,'Only the assigned image artist or Founder can upload a render.');
+ const reserved={id:render.id,status:'pending',sha256:render.expected_sha256,size:Number(render.byte_size),mime:render.mime,fileName:render.file_name};
+ // An immutable object can already exist after a lost response or version conflict.
+ // Verify those bytes before asking Storage for another upload capability.
+ try{await downloaded(ctx,render.storage_path,render.byte_size,render.expected_sha256);return {...reserved,uploaded:true};}
+ catch(error){if(!(error instanceof ApiError)||error.code!=='RENDER_UPLOAD_INCOMPLETE')throw error;}
  const {data,error}=await ctx.supabase.storage.from(BUCKET).createSignedUploadUrl(render.storage_path,{upsert:false});
  if(error||!data?.signedUrl)throw new ApiError(503,'The private upload could not be opened. Keep your original file and retry.');
  const target=new URL(data.signedUrl);
  if(target.origin!==new URL(origin).origin||!(target.protocol==='https:'||(target.protocol==='http:'&&['localhost','127.0.0.1'].includes(target.hostname))))throw new ApiError(503,'The private upload destination is invalid.');
- return {id:render.id,status:'pending',uploadUrl:target.href,sha256:render.expected_sha256,size:Number(render.byte_size),mime:render.mime,fileName:render.file_name};
+ return {...reserved,uploaded:false,uploadUrl:target.href};
 }
 async function downloaded(ctx:APIContext,path:string,size:number,digest:string){
  const {data,error}=await ctx.supabase.storage.from(BUCKET).download(path);

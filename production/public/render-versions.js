@@ -11,7 +11,23 @@ export function createRenderVersions({request,openDialog,getRecord,getData,getPr
  const capture=()=>({epoch,record:getRecord()?.id,actor:getData()?.actor?.id,parent:getContext()});
  const current=c=>c.epoch===epoch&&c.record===getRecord()?.id&&c.actor===getData()?.actor?.id&&isCurrent(c.parent);
  const isBusy=()=>!!pending&&current(pending);
- function reset(){epoch++;intent++;xhr?.abort();xhr=null;pending=null;review=null;Object.assign(state,{recordId:'',items:[],pending:[],total:0,nextBefore:null,can_upload:false,error:''});}
+ const frozen=new Map();
+ function syncBusy(){
+  const busy=isBusy(),dialog=document.querySelector('#dialog');
+  if(busy){
+   for(const control of dialog?.querySelectorAll?.('button,input,select,textarea')||[]){
+    if(control.dataset?.renderAction==='stop')continue;
+    if(!frozen.has(control))frozen.set(control,control.disabled);
+    control.disabled=true;
+   }
+  }else{
+   for(const [control,disabled]of frozen)if(control.isConnected!==false)control.disabled=disabled;
+   frozen.clear();
+  }
+  dialog?.querySelector?.('[data-render-canvas]')?.setAttribute?.('aria-disabled',String(busy));
+  onBusy();
+ }
+ function reset(){epoch++;intent++;xhr?.abort();xhr=null;pending=null;review=null;syncBusy();Object.assign(state,{recordId:'',items:[],pending:[],total:0,nextBefore:null,can_upload:false,error:''});}
  async function load(record,append=false){
   if(getData()?.capabilities?.renders!=='versions')return;
   const c=capture(),version=++intent;state.recordId=record.id;state.error='';if(!append){state.items=[];state.pending=[];}
@@ -42,7 +58,7 @@ export function createRenderVersions({request,openDialog,getRecord,getData,getPr
   const status=form.querySelector('[data-render-status]'),progress=form.querySelector('[data-render-progress]'),error=form.querySelector('.form-error'),recovery=form.querySelector('[data-render-recovery]'),submit=form.querySelector('[type=submit]'),stop=form.querySelector('[data-render-action="stop"]'),fileInput=form.elements.render_file;
   const active=()=>current(c)&&form.isConnected!==false;
   const check=()=>{if(!active())throw Error('This upload view is no longer active.');};
-  pending=token;onBusy();form.__stopRequested=false;form.dataset.pending='1';submit.disabled=true;fileInput.disabled=true;error.textContent='';recovery.hidden=true;
+  pending=token;syncBusy();form.__stopRequested=false;form.dataset.pending='1';submit.disabled=true;fileInput.disabled=true;error.textContent='';recovery.hidden=true;
   try{
    let plan=form.__renderPlan;
    if(plan?.status!=='ready'){
@@ -55,13 +71,13 @@ export function createRenderVersions({request,openDialog,getRecord,getData,getPr
     check();form.__renderPlan=plan;
     if(plan.status!=='ready'){
      if(plan.sha256!==sha256||plan.size!==file.size||plan.mime!==mime)throw Error('Select the original reserved file. Its size and fingerprint must match before retrying.');
-     status.textContent='Uploading privately…';let uploadProblem;try{await transfer(plan,file,value=>{if(active()){progress.value=value;status.textContent='Uploading privately… '+value+'%';}},stop);}catch(problem){check();if(form.__stopRequested)throw problem;uploadProblem=problem;}check();
+     let uploadProblem;if(!plan.uploaded){status.textContent='Uploading privately…';try{await transfer(plan,file,value=>{if(active()){progress.value=value;status.textContent='Uploading privately… '+value+'%';}},stop);}catch(problem){check();if(form.__stopRequested)throw problem;uploadProblem=problem;}check();}
      status.textContent='Verifying the stored image and creating previews…';let result;try{result=await request('/renders/'+encodeURIComponent(plan.id)+'/finish','POST',{expectedVersion:Number(form.dataset.version)});}catch(problem){if(uploadProblem)problem.message=uploadProblem.message+' '+problem.message;throw problem;}check();form.__renderPlan={...plan,status:'ready',render:result};
     }
    }
    progress.value=100;status.textContent='Render verified. Refreshing image history…';await onChanged(record.id,'Render version saved');
   }catch(problem){if(active()){if([400,413].includes(problem.status)&&!form.__renderPlan){delete form.__renderRequest;delete form.dataset.requestKey;if(form.elements.note)form.elements.note.readOnly=false;}error.textContent=problem.message;status.textContent=form.__renderPlan?.status==='ready'?'Render saved. Retry to refresh the image history.':'This upload is not verified. Your selected file is kept.';recovery.hidden=false;submit.textContent=form.__renderPlan?.status==='ready'?'Refresh image history':'Retry upload & verify';}}
-  finally{if(pending===token)pending=null;onBusy();if(form.isConnected!==false){delete form.dataset.pending;submit.disabled=false;fileInput.disabled=false;stop.disabled=true;}}
+  finally{if(pending===token)pending=null;syncBusy();if(form.isConnected!==false){delete form.dataset.pending;submit.disabled=false;fileInput.disabled=false;stop.disabled=true;}}
  }
  async function comments(rid,page=1){return request('/renders/'+encodeURIComponent(rid)+'/comments?page='+page);}
  async function openReview(rid,guard=true){
@@ -78,11 +94,11 @@ export function createRenderVersions({request,openDialog,getRecord,getData,getPr
  }
  async function postComment(form){
   if(isBusy())return;const c=capture(),token={...c},rid=form.dataset.id,field=form.elements.body,error=form.querySelector('.form-error'),submit=form.querySelector('[type=submit]');
-  pending=token;onBusy();field.readOnly=true;submit.disabled=true;error.textContent='';form.dataset.pending='1';
+  pending=token;syncBusy();field.readOnly=true;submit.disabled=true;error.textContent='';form.dataset.pending='1';
   try{form.dataset.requestKey||=crypto.randomUUID();form.__request||={body:field.value,point_x:form.dataset.x===undefined?null:Number(form.dataset.x),point_y:form.dataset.y===undefined?null:Number(form.dataset.y)};
-   const result=await request('/renders/'+encodeURIComponent(rid)+'/comments','POST',form.__request,{'Idempotency-Key':form.dataset.requestKey});if(!current(c)||review?.rid!==rid)return;review.feedback=result;pending=null;onBusy();showReview();toast('Feedback saved to version '+state.items.find(item=>item.id===rid).number);
+   const result=await request('/renders/'+encodeURIComponent(rid)+'/comments','POST',form.__request,{'Idempotency-Key':form.dataset.requestKey});if(!current(c)||review?.rid!==rid)return;review.feedback=result;pending=null;syncBusy();showReview();toast('Feedback saved to version '+state.items.find(item=>item.id===rid).number);
   }catch(problem){if(current(c)&&form.isConnected!==false){error.textContent=problem.message;submit.textContent='Retry feedback';if(problem.status===400){delete form.__request;delete form.dataset.requestKey;field.readOnly=false;}}}
-  finally{if(pending===token)pending=null;onBusy();if(form.isConnected!==false){delete form.dataset.pending;submit.disabled=false;}}
+  finally{if(pending===token)pending=null;syncBusy();if(form.isConnected!==false){delete form.dataset.pending;submit.disabled=false;}}
  }
  document.addEventListener('submit',event=>{const form=event.target;if(!form.dataset?.renderForm)return;event.preventDefault();(form.dataset.renderForm==='upload'?upload(form):postComment(form)).catch(problem=>toast(problem.message));});
  document.addEventListener('change',event=>{if(!event.target.matches?.('[data-render-compare]')||!review||isBusy())return;const field=event.target;if(!canLeave()){field.value=review.compare;return;}review.compare=field.value;showReview();});
@@ -101,11 +117,11 @@ export function createRenderVersions({request,openDialog,getRecord,getData,getPr
    if(action==='reload-upload'){const form=target.closest('form'),c=capture(),record=await request('/deliverables/'+encodeURIComponent(form.dataset.record));if(!current(c)||form.isConnected===false)return;if(record.archived||!record.can_edit)throw Error('This image is no longer available for uploads. Your selected file is kept.');form.dataset.version=String(record.version);form.querySelector('[data-render-reloaded]').innerHTML='<dl class="deliverable-meta"><div><dt>Latest production stage</dt><dd>'+esc(record.stage)+'</dd></div><div><dt>Assigned artist</dt><dd>'+esc(getData()?.members?.find(person=>person.id===record.artist_id)?.name||'Assigned project artist')+'</dd></div></dl><p class="brief-copy">'+esc(record.camera_notes||'No camera brief has been added.')+'</p>';form.querySelector('[data-render-status]').textContent='Image details reloaded: '+record.code+' · '+record.title+'. Your file is kept; retry when ready.';return;}
    if(!['discard','verify'].includes(action)||!canLeave())return;
    if(action==='discard'&&!confirm('Discard this unverified upload? Verified versions and feedback will be retained.'))return;
-   const c=capture(),token={...c},record=getRecord();pending=token;onBusy();target.disabled=true;
-   try{await request('/renders/'+encodeURIComponent(target.dataset.id)+(action==='discard'?'/cancel':'/finish'),'POST',action==='discard'?{}:{expectedVersion:record.version});if(current(c))await onChanged(record.id,action==='discard'?'Pending upload discarded':'Render version saved');}finally{if(pending===token)pending=null;onBusy();target.disabled=false;}
+   const c=capture(),token={...c},record=getRecord();pending=token;syncBusy();target.disabled=true;
+   try{await request('/renders/'+encodeURIComponent(target.dataset.id)+(action==='discard'?'/cancel':'/finish'),'POST',action==='discard'?{}:{expectedVersion:record.version});if(current(c))await onChanged(record.id,action==='discard'?'Pending upload discarded':'Render version saved');}finally{if(pending===token)pending=null;syncBusy();target.disabled=false;}
   };run().catch(problem=>toast(problem.message));
  });
  document.addEventListener('keydown',event=>{if(event.target.matches?.('[data-render-canvas]')&&['Enter',' '].includes(event.key)){event.preventDefault();placeMarker(event.target,0.5,0.5);}});
  document.addEventListener('error',event=>{const img=event.target;if(!img.matches?.('.render-image,.render-preview img'))return;const parent=img.closest('figure,.render-preview');if(parent&&!parent.querySelector('[data-render-image-error]'))parent.insertAdjacentHTML('beforeend','<p data-render-image-error role="alert">The private preview could not load. Reopen this version to retry or check your project access.</p>');},true);
- return {load,summary,reset,isBusy,getState:()=>state};
+ return {load,summary,reset,isBusy,syncBusy,getState:()=>state};
 }

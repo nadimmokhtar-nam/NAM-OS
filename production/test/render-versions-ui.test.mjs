@@ -11,9 +11,9 @@ const commentPage={items:[],total:0,page:1,hasMore:false};
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 async function settle(){for(let n=0;n<25;n++)await new Promise(setImmediate);}
 async function harness(intercept){
- let route=1,allowed=true,failRefresh=false,surface={isConnected:true},form=null,autoTransfer=true,transferStatus=200;const calls=[],listeners={},dialogs=[],messages=[],changed=[],transfers=[];
+ let route=1,allowed=true,failRefresh=false,surface={isConnected:true},form=null,autoTransfer=true,transferStatus=200;const controls=[],calls=[],listeners={},dialogs=[],messages=[],changed=[],transfers=[];
  const data={actor:{id:'artist'},capabilities:{renders:'versions'}},record={id:'camera-one',code:'INT-01',title:'Living room hero',kind:'still',version:1,archived:false};
- const dialog={open:true,querySelector(selector){return selector==='.deliverable-detail,.render-review'?surface:form;}};
+ const dialog={open:true,querySelectorAll(){return controls;},querySelector(selector){return selector==='.deliverable-detail,.render-review'?surface:form;}};
  const document={querySelector(selector){return selector==='#dialog'?dialog:selector==='.render-review'?surface:null;},getElementById(){return null;},addEventListener(type,listener){(listeners[type]??=[]).push(listener);}};
  const sandbox=vm.createContext({document,Intl,Date,URLSearchParams,crypto:globalThis.crypto,confirm:()=>true,XMLHttpRequest:class{constructor(){this.upload={};this.status=transferStatus;transfers.push(this);}open(){}setRequestHeader(){}send(){if(autoTransfer)queueMicrotask(()=>this.onload());}abort(){this.onabort?.();}}});
  const {createRenderVersions}=await loadBrowserModule(sandbox,'render-versions.js');
@@ -23,7 +23,7 @@ async function harness(intercept){
   if(args[0].endsWith('/finish'))return {...render(),status:'ready'};
   return structuredClone(commentPage);
  },openDialog(title,html,options){surface.isConnected=false;surface={isConnected:true};dialogs.push({title,html,options});dialog.open=true;},getRecord:()=>record,getData:()=>data,getProject:()=>({id:'project',archived:false}),getContext:()=>({route}),isCurrent:c=>c.route===route,onBusy(){},canLeave:()=>allowed,onChanged:async(id,message)=>{changed.push({id,message});if(failRefresh)throw Error('The image view could not refresh.');},toast:message=>messages.push(message)});
- return {ui,record,data,calls,dialogs,messages,changed,dialog,transfers,setRoute(value){route=value;},allow(value){allowed=value;},autoTransfer(value){autoTransfer=value;},transferStatus(value){transferStatus=value;},failRefresh(value){failRefresh=value;},
+ return {ui,record,data,calls,dialogs,messages,changed,dialog,transfers,controls(...items){controls.push(...items);},setRoute(value){route=value;},allow(value){allowed=value;},autoTransfer(value){autoTransfer=value;},transferStatus(value){transferStatus=value;},failRefresh(value){failRefresh=value;},
   async click(action,id){for(const listener of listeners.click||[])listener({preventDefault(){},target:{matches:()=>false,closest:()=>({dataset:{renderAction:action,id},disabled:false,closest:()=>form})}});await settle();},
   file(name='living-room.png',content=bytes){return {name,type:'image/png',size:content.length,arrayBuffer:async()=>Uint8Array.from(content).buffer};},
   form(file){const error={textContent:''},status={textContent:''},progress={value:0},recovery={hidden:true},submit={disabled:false},stop={disabled:true};form={dataset:{renderForm:'upload',record:record.id,version:'1',retryId:''},isConnected:true,elements:{render_file:{files:[file],disabled:false},note:{value:'Initial pass',readOnly:false}},querySelector:selector=>({'.form-error':error,'[data-render-status]':status,'[data-render-progress]':progress,'[data-render-recovery]':recovery,'[type=submit]':submit,'[data-render-action="stop"]':stop})[selector]};return {form,error,status,progress,recovery,submit,stop};},
@@ -70,4 +70,23 @@ test('a saved render whose view could not refresh is refreshed without another u
 
 test('a duplicate or lost upload acknowledgement still checks the actual stored file before publishing',async()=>{
  const h=await harness();await h.ui.load(h.record);h.transferStatus(400);const f=h.form(h.file());await h.submit(f.form);assert.equal(h.changed.length,1);assert.equal(h.calls.filter(([path])=>path.endsWith('/finish')).length,1);assert.equal(f.form.__renderPlan.status,'ready');
+});
+
+test('verifying an existing pending render freezes camera fields and restores their original states',async()=>{
+ const held=deferred(),h=await harness(path=>path.endsWith('/finish')?held.promise:undefined);
+ await h.ui.load(h.record);
+ const field={disabled:false,value:'Existing camera direction',dataset:{}},unavailable={disabled:true,dataset:{}};
+ h.controls(field,unavailable);await h.click('verify','render-one');
+ assert.equal(field.disabled,true);assert.equal(h.ui.isBusy(),true);
+ held.resolve({...render(),status:'ready'});await settle();
+ assert.equal(field.disabled,false);assert.equal(unavailable.disabled,true);
+ assert.equal(field.value,'Existing camera direction');assert.equal(h.ui.isBusy(),false);
+});
+
+test('a retry whose original is already stored verifies it without transferring it again',async()=>{
+ const h=await harness(path=>path.endsWith('/upload')?{id:'render-one',status:'pending',uploaded:true,sha256:digest,size:bytes.length,mime:'image/png'}:undefined);
+ await h.ui.load(h.record);const f=h.form(h.file());f.form.dataset.retryId='render-one';
+ await h.submit(f.form);assert.equal(h.transfers.length,0);assert.equal(h.changed.length,1);
+ assert.equal(h.calls.filter(([path])=>path.endsWith('/finish')).length,1);
+ assert.equal(f.form.__renderPlan.status,'ready');
 });

@@ -86,3 +86,5 @@ client approval permissions, review requests/decisions, issued revision rounds,
 animation media, delivery packaging and complete visual acceptance remain open.
 Task completion, render verification and internal comments are not client
 approval decisions.
+
+Pending verification locks the current camera and review controls until the operation finishes. A retry first checks the original already in private storage; matching stored bytes proceed directly to verification without obtaining a replacement upload URL or transferring the image again.
