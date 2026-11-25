@@ -17,6 +17,8 @@ dialog{border-radius:var(--radius-panel)}
 .nav-link{font-size:var(--type-body);font-weight:450}
 .nav-link.active{font-weight:550}
 .nav-label{letter-spacing:1.5px}
+/* The full identity remains in the sidebar; toolbar controls never shrink. */
+.top-actions>.muted{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline-color:var(--focus-ring)}
 button:disabled{cursor:not-allowed}
 button[aria-busy=true]{cursor:progress}
