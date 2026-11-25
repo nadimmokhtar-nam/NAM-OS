@@ -45,7 +45,11 @@ identify view-only requests; they do not invent a combined approval decision.
 
 ## Client sign-in and review
 
-The client portal is `/review`. Sign-in links use Supabase Auth and a dedicated
+The client portal is `/review`. The first email confirms the provisioned account;
+returning confirmed clients receive a sign-in link. An unconfirmed identity uses
+the provider's confirmation resend flow because public signup remains disabled.
+The application never auto-confirms the address or creates an account from a
+public sign-in request. Links use Supabase Auth and a dedicated
 same-origin session endpoint. Provider tokens are removed from the address before
 application requests begin, validated by Supabase and stored in HttpOnly cookies.
 Tokens are never returned to studio users, stored in localStorage or included in

@@ -14,7 +14,17 @@ export function clientProvider(admin=false){
 }
 export function clientEmail(value:unknown){const address=inputText(value,'Email',{max:254}).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address))throw new ApiError(400,'Enter a valid email address.');return address;}
 export async function sendClientSignIn(email:string,origin:string){
- const {error}=await clientProvider().auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:origin+'/review'}});
+ const service=clientProvider(true),{data:uid,error:lookupError}=await service.rpc('nam_client_account_for_email',{address:email});
+ if(lookupError||!uid)return false;
+ const {data:account,error:accountError}=await service.auth.admin.getUserById(uid),user=account?.user;
+ if(accountError||!user||user.email?.toLowerCase()!==email||user.banned_until&&new Date(user.banned_until)>new Date())return false;
+ const provider=clientProvider(),options={emailRedirectTo:origin+'/review'};
+ // GoTrue routes an unconfirmed magic-link user through Signup, which is
+ // deliberately disabled. Resend confirms the already provisioned identity
+ // without creating an account or weakening the provider's signup settings.
+ const {error}=user.email_confirmed_at
+  ?await provider.auth.signInWithOtp({email,options:{...options,shouldCreateUser:false}})
+  :await provider.auth.resend({type:'signup',email,options});
  // No authentication URL, OTP or bearer credential is returned to studio users.
  return !error;
 }
