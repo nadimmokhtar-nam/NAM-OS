@@ -46,7 +46,7 @@ test('client identities receive issued snapshots without studio membership, rend
  assert.equal(review.items[0].title,'Client-facing camera title');assert(!JSON.stringify(review).includes('PRIVATE'));
  const identity=await rpc(clientId,'nam_client_identity',{w:ids.w});assert.equal(identity.id,clientId);
  for(const table of ['nam_tasks','nam_memberships','nam_render_versions','nam_render_comments','nam_projects','nam_client_contacts','nam_client_review_items']){
-  const rows=await asUser(db,clientId,()=>db.query('select * from '+table));assert.equal(rows.rows.length,0,table+' must stay private');
+  try{const rows=await asUser(db,clientId,()=>db.query('select * from '+table));assert.equal(rows.rows.length,0,table+' must stay private');}catch(error){assert.equal(error.code,'42501',table+' must deny non-client columns');}
  }
  assert.equal((await detail(qid,viewerId)).can_decide,false);
  await assert.rejects(respond(qid,review.items[0].id,0,{decision:'accepted',message:''},randomUUID(),viewerId),denied);
@@ -57,10 +57,13 @@ test('issuing is idempotent, retains explicit versions and does not advance prod
  assert.equal(await issue(f,body,key),qid);assert.equal((await detail(qid)).number,1);
  await assert.rejects(issue(f,{...body,title:'Different review'},key),e=>e.code==='40001');
  const row=(await db.query('select stage,version from nam_deliverables where id=$1',[f.did])).rows[0];assert.equal(row.stage,'Briefing');assert.equal(row.version,1);
- await db.query("update nam_render_versions set number=2 where id=$1",[f.rid]);
- // Existing issued items keep the same immutable render identity. Real APIs
- // never allow rewriting a verified render; a new version uses another row.
- const item=(await db.query('select render_id from nam_client_review_items where request_id=$1',[qid])).rows[0];assert.equal(item.render_id,f.rid);
+ const newer=randomUUID();
+ await db.query(`insert into nam_render_versions(id,workspace_id,project_id,deliverable_id,number,file_name,mime,byte_size,expected_sha256,sha256,width,height,preview_size,preview_sha256,thumbnail_size,thumbnail_sha256,note,stage,status,storage_path,created_by,request_key,create_payload,verified_at)
+ select $1,workspace_id,project_id,deliverable_id,2,file_name,mime,byte_size,expected_sha256,sha256,width,height,preview_size,preview_sha256,thumbnail_size,thumbnail_sha256,'A later private revision',stage,status,storage_path||'/next',created_by,$2,create_payload,now() from nam_render_versions where id=$3`,[newer,randomUUID(),f.rid]);
+ await db.query('update nam_deliverables set version=2 where id=$1',[f.did]);
+ assert.equal((await detail(qid)).items[0].number,1);
+ const next=await issue(f,payload({...f.selection,render_id:newer,expected_version:2}));
+ assert.equal((await detail(next)).items[0].number,2);assert.equal((await detail(next)).items[0].response,null);
 });
 
 test('responses keep immutable history, replay exactly and reject conflicting browser edits',async()=>{

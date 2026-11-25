@@ -281,4 +281,77 @@ revoke all on function public.nam_client_identity(uuid),public.nam_client_review
 grant execute on function public.nam_client_account_for_email(text) to service_role;
 grant execute on function public.nam_client_identity(uuid),public.nam_client_review_access(uuid,uuid),public.nam_save_client_access(uuid,uuid,uuid,integer,jsonb,text),public.nam_issue_client_review(uuid,uuid,jsonb,text),public.nam_client_review_list(uuid),public.nam_client_review_detail(uuid,uuid),public.nam_client_review_media(uuid,uuid,uuid,text),public.nam_decide_client_review(uuid,uuid,uuid,integer,jsonb,text),public.nam_close_client_review(uuid,uuid,integer,text),public.nam_staff_client_feedback(uuid,uuid) to authenticated;
 
+create function public.nam_client_can_email(w uuid,uid uuid) returns boolean
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if coalesce(auth.role(),'')<>'service_role' then raise exception 'Server access required' using errcode='42501';end if;
+ return exists(select 1 from public.nam_client_project_access a join public.nam_projects p on p.id=a.project_id where a.workspace_id=w and a.user_id=uid and a.active and not p.archived);
+end $$;
+
+create function public.nam_project_client_page(w uuid,pid uuid,page integer default 1) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare items jsonb; total integer;
+begin
+ if not public.nam_founder(w) or not public.nam_project_access(w,pid) then raise exception 'Project owner required' using errcode='42501';end if;
+ if page is null or page not between 1 and 100000 then raise exception 'Invalid client page' using errcode='22023';end if;
+ select count(*) into total from public.nam_client_project_access where workspace_id=w and project_id=pid;
+ select coalesce(jsonb_agg(to_jsonb(rows) order by name,user_id),'[]'::jsonb) into items from (
+  select a.user_id,c.name,c.email,a.active,a.can_approve,a.version from public.nam_client_project_access a join public.nam_client_contacts c on c.workspace_id=w and c.user_id=a.user_id
+  where a.workspace_id=w and a.project_id=pid order by c.name,a.user_id limit 50 offset (page-1)*50
+ ) rows;
+ return jsonb_build_object('items',items,'total',total,'page',page,'hasMore',page*50<total);
+end $$;
+create function public.nam_review_images_page(w uuid,pid uuid,search text default '',page integer default 1) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare items jsonb; total integer;
+begin
+ if not public.nam_founder(w) or not public.nam_project_access(w,pid) then raise exception 'Project owner required' using errcode='42501';end if;
+ if page is null or page not between 1 and 100000 or search is null or length(search)>200 then raise exception 'Invalid image page' using errcode='22023';end if;
+ select count(*) into total from public.nam_deliverables d where d.workspace_id=w and d.project_id=pid and not d.archived and strpos(lower(d.code||' '||d.title),lower(search))>0 and exists(select 1 from public.nam_render_versions r where r.deliverable_id=d.id and r.status='ready');
+ select coalesce(jsonb_agg(to_jsonb(rows) order by code,id),'[]'::jsonb) into items from (
+  select d.id,d.code,d.title,d.version,r.id render_id,r.number from public.nam_deliverables d
+  join lateral(select id,number from public.nam_render_versions where deliverable_id=d.id and status='ready' order by number desc limit 1) r on true
+  where d.workspace_id=w and d.project_id=pid and not d.archived and strpos(lower(d.code||' '||d.title),lower(search))>0 order by d.code,d.id limit 50 offset (page-1)*50
+ ) rows;
+ return jsonb_build_object('items',items,'total',total,'page',page,'hasMore',page*50<total);
+end $$;
+create function public.nam_staff_reviews_page(w uuid,pid uuid,page integer default 1) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare items jsonb; total integer;
+begin
+ if not public.nam_founder(w) or not public.nam_project_access(w,pid) then raise exception 'Project owner required' using errcode='42501';end if;
+ if page is null or page not between 1 and 100000 then raise exception 'Invalid review page' using errcode='22023';end if;
+ select count(*) into total from public.nam_client_review_requests where workspace_id=w and project_id=pid;
+ select coalesce(jsonb_agg(to_jsonb(rows) order by number desc),'[]'::jsonb) into items from (
+  select q.id,q.number,q.title,q.status,q.version,q.issued_at,q.allow_download,
+   (select count(*) from public.nam_client_review_items i where i.request_id=q.id) image_count,
+   (select count(*) from public.nam_client_review_recipients t where t.request_id=q.id) recipient_count,
+   (select count(*) from public.nam_client_review_recipients t where t.request_id=q.id and t.can_decide) approver_count,
+   (select count(*) from (select distinct on(item_id,user_id) decision from public.nam_client_review_decisions where request_id=q.id order by item_id,user_id,version desc) e where decision='accepted') accepted_count,
+   (select count(*) from (select distinct on(item_id,user_id) decision from public.nam_client_review_decisions where request_id=q.id order by item_id,user_id,version desc) e where decision='rejected') rejected_count
+  from public.nam_client_review_requests q where q.workspace_id=w and q.project_id=pid order by q.number desc limit 50 offset (page-1)*50
+ ) rows;
+ return jsonb_build_object('items',items,'total',total,'page',page,'hasMore',page*50<total);
+end $$;
+create function public.nam_staff_review_detail(w uuid,qid uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare q public.nam_client_review_requests;
+begin
+ if not public.nam_founder(w) then raise exception 'Project owner required' using errcode='42501';end if;
+ select * into q from public.nam_client_review_requests where workspace_id=w and id=qid;
+ if not found then raise exception 'Review not found' using errcode='P0002';end if;
+ return jsonb_build_object('id',q.id,'project_id',q.project_id,'number',q.number,'title',q.title,'message',q.message,'status',q.status,'version',q.version,'issued_at',q.issued_at,'allow_download',q.allow_download,
+  'recipients',coalesce((select jsonb_agg(jsonb_build_object('user_id',t.user_id,'name',c.name,'email',c.email,'can_decide',t.can_decide,'active',a.active,'can_approve',a.can_approve) order by c.name,t.user_id)
+    from public.nam_client_review_recipients t join public.nam_client_contacts c on c.workspace_id=w and c.user_id=t.user_id join public.nam_client_project_access a on a.project_id=q.project_id and a.user_id=t.user_id where t.request_id=qid),'[]'::jsonb),
+  'items',coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'deliverable_id',i.deliverable_id,'render_id',i.render_id,'code',i.code,'title',i.title,'number',r.number,
+   'is_latest',r.number=(select max(number) from public.nam_render_versions newer where newer.deliverable_id=i.deliverable_id and newer.status='ready'),
+   'responses',coalesce((select jsonb_agg(jsonb_build_object('client_name',c.name,'decision',e.decision,'message',e.message,'version',e.version,'created_at',e.created_at) order by c.name,e.user_id)
+     from (select distinct on(user_id) * from public.nam_client_review_decisions where item_id=i.id order by user_id,version desc) e join public.nam_client_contacts c on c.workspace_id=w and c.user_id=e.user_id),'[]'::jsonb)) order by i.position)
+   from public.nam_client_review_items i join public.nam_render_versions r on r.id=i.render_id where i.request_id=qid),'[]'::jsonb));
+end $$;
+
+revoke all on function public.nam_client_can_email(uuid,uuid),public.nam_project_client_page(uuid,uuid,integer),public.nam_review_images_page(uuid,uuid,text,integer),public.nam_staff_reviews_page(uuid,uuid,integer),public.nam_staff_review_detail(uuid,uuid) from public,anon,authenticated,service_role;
+grant execute on function public.nam_client_can_email(uuid,uuid) to service_role;
+grant execute on function public.nam_project_client_page(uuid,uuid,integer),public.nam_review_images_page(uuid,uuid,text,integer),public.nam_staff_reviews_page(uuid,uuid,integer),public.nam_staff_review_detail(uuid,uuid) to authenticated;
+
 commit;

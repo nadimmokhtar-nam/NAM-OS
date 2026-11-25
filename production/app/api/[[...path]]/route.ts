@@ -9,6 +9,7 @@ import {dispatchAccess} from '@/lib/api/access';
 import {dispatchProjects} from '@/lib/api/projects';
 import {dispatchDeliverables} from '@/lib/api/deliverables';
 import {dispatchRenders} from '@/lib/api/renders';
+import {clientReviewEntry,dispatchStudioReviews} from '@/lib/api/client-reviews';
 import {dispatchDaily} from '@/lib/api/daily';
 import {dispatchAcademyVideo} from '@/lib/api/academy-video';
 
@@ -19,6 +20,7 @@ type RouteContext={params:Promise<{path?:string[]}>};
 async function route(request:Request,parameters:RouteContext):Promise<Response>{
  try{
   const path=(await parameters.params).path||[];
+  const client=await clientReviewEntry(request,path);if(client)return client;
   const open=await publicAuth(request,'/'+path.join('/'));if(open)return open;
   const context=await getContext(request,{allowMfaPending:path[0]==='auth'||path.join('/')==='bootstrap'});
   if(!['GET','HEAD'].includes(request.method))assertMutation(context,request);
@@ -26,7 +28,7 @@ async function route(request:Request,parameters:RouteContext):Promise<Response>{
   const auth=await authAPI(context,request,'/'+path.join('/'));if(auth)return auth;
   // File URLs overlap task paths. Resolve the authorized private file routes
   // first; every dispatcher returns null for paths it does not own.
-  for(const dispatch of [dispatchAccess,dispatchDaily,dispatchRenders,dispatchDeliverables,dispatchProjects,dispatchOperations,dispatchTasks,dispatchAcademyVideo,dispatchAcademy,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
+  for(const dispatch of [dispatchAccess,dispatchDaily,dispatchStudioReviews,dispatchRenders,dispatchDeliverables,dispatchProjects,dispatchOperations,dispatchTasks,dispatchAcademyVideo,dispatchAcademy,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
   if(path[0]==='resources'&&path.length===1&&request.method==='GET')throw new ApiError(409,'This section currently supports tasks. Resource records are scheduled for the next milestone.','MODULE_NOT_AVAILABLE');
   throw new ApiError(404,'This page or record was not found.','NOT_FOUND');
  }catch(error){
