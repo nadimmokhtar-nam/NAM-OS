@@ -40,16 +40,16 @@ async function fixture(browser){
 
 async function ownership(run){
  const result=await run.dialog.evaluate(dialog=>{
-  const form=dialog.querySelector('#task-edit-form'),names=['status','priority','due_date','owner_id','section','project_id','production_stage'];
+  const form=dialog.querySelector('#task-edit-form'),names=['status','priority','due_date','owner_id','section','project_id','production_stage','deliverable_id'];
   const properties=names.map(name=>{const control=form.elements.namedItem(name);return {name,present:!!control,owned:control?.form===form,outside:!!control&&!form.contains(control)};});
   const save=dialog.querySelector('button[type="submit"][form="task-edit-form"]');
   const children=[...dialog.querySelectorAll('form[data-form="comment"],form[data-form="subtask"],form[data-file-form]')];
   return {properties,saveOwned:save?.form===form,saveOutside:!!save&&!form.contains(save),childCount:children.length,childrenIndependent:children.every(child=>[...child.elements].every(control=>control.form===child&&control.form!==form)),parentKeys:[...new FormData(form).keys()].sort()};
  });
- expect(result.properties).toEqual(['status','priority','due_date','owner_id','section','project_id','production_stage'].map(name=>({name,present:true,owned:true,outside:true})));
+ expect(result.properties).toEqual(['status','priority','due_date','owner_id','section','project_id','production_stage','deliverable_id'].map(name=>({name,present:true,owned:true,outside:true})));
  expect(result.saveOwned).toBe(true);expect(result.saveOutside).toBe(true);
  expect(result.childCount).toBe(3);expect(result.childrenIndependent).toBe(true);
- expect(result.parentKeys).toEqual(['title','description','status','priority','due_date','owner_id','section','project_id','production_stage'].sort());
+ expect(result.parentKeys).toEqual(['title','description','status','priority','due_date','owner_id','section','project_id','production_stage','deliverable_id'].sort());
 }
 
 async function draft(run,{regenerate=false}={}){
@@ -72,7 +72,7 @@ async function draft(run,{regenerate=false}={}){
 async function expectDraft(run,values){
  await expect(run.save).toBeEnabled();
  const actual=await run.dialog.locator('#task-edit-form').evaluate(form=>Object.fromEntries(new FormData(form)));
- expect(actual).toEqual(values);await ownership(run);
+ expect(actual).toEqual({...values,deliverable_id:''});await ownership(run);
 }
 async function saved(run){const response=await run.context.request.get('/api/tasks/'+run.task.id);expect(response.status()).toBe(200);return response.json();}
 function expectOriginal(actual,run){for(const key of ['title','description','status','priority','due_date','owner_id','section','project_id','production_stage'])expect(actual[key],key+' must remain unchanged until the parent save').toBe(run.task[key]);}

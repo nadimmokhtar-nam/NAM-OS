@@ -98,7 +98,9 @@ comparison; test counts alone do not establish fidelity.
 - Starting branch: `nam-os/programa-redesign`.
 - Starting commit: `1c6ac26612606376ed6e19c2c10993d49edcf4ae`.
 - Starting tree: `f40ee15820d673511b8b8db21f6b9a40c91a52c9`.
-- Separate continuation branch: `nam-os/programa-fidelity-2026-11-25`.
+- Current continuation branch: `nam-os/programa-fidelity-review-2026-11-25`.
+- Current draft review: https://github.com/nadimmokhtar-nam/NAM-OS/pull/15.
+- The earlier continuation branch and closed PR 14 are superseded by that draft.
 - All 252 tracked files were restored locally. Each file's bytes were verified
   against its Git blob SHA before writing.
 
@@ -121,6 +123,7 @@ these public repository notes.
 | Project directory | Compact title/actions, All/Archived pills, Grid/List menu, landscape thumbnails and unboxed captions. Empty Archived view. |
 | Project overview | Project sidebar replaces studio navigation; brief, status/date chips, people, cover image, summary strip and recent files. |
 | Task List | Status groups in centered 720px sections; task links 46px high. |
+| Product details | Live populated item drawer measured at 480px, 8px viewport inset, Inter title and 32px/13px/500 tabs for Summary, Financial, Procurement, Attachments and Activity. Underlying schedule remains visible alongside it. No item values or status were changed. |
 | Task Board | Warm column wells, 280px task links, subtle card edges, phase labels, subtask counts and bottom Add Task controls. |
 | Timeline | Project/phase rows, date scale, Today marker and Month/Quarter/Year controls. |
 | Task detail | Full workspace page, retained project navigation/breadcrumb, title/description, subtasks/comments, and a fixed 400px properties/files rail. |

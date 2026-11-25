@@ -50,7 +50,8 @@ outside this business export.
 
 The inventory extends Programa's measured schedule treatment: compact 48px rows,
 2px gaps, 10px row corners, warm surfaces, existing controls and a standard side
-drawer. Narrow layouts wrap metadata rather than hiding production information.
+drawer. The item drawer uses the newly measured 480px width, with 8px viewport
+insets on narrow layouts. Narrow layouts wrap metadata rather than hiding production information.
 NAM uses the authorized Newsreader display face with Inter for the UI.
 
 This inventory does not implement render uploads, version comparisons, image

@@ -162,6 +162,7 @@ form[data-daily-review]{margin-top:var(--space-6)}
 .deliverable-detail .event{overflow-wrap:anywhere}
 .deliverable-detail .event p{font-size:var(--type-meta);line-height:18px;white-space:pre-wrap;margin-top:var(--space-1)}
 .deliverable-detail .detail-section>.spread{gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap}
+dialog.drawer:has(.deliverable-detail){width:min(var(--deliverable-panel-width),calc(100vw - 16px))}
 @media(max-width:1100px){
  .deliverable-columns{display:none}
  .deliverable-row{grid-template-columns:64px minmax(0,1fr) 16px;gap:4px 12px;padding-block:12px}
