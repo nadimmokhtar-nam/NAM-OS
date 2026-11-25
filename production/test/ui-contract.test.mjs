@@ -1,5 +1,6 @@
 import {registerSubtaskFocusCases} from './support/subtask-focus-cases.mjs';
 import {registerInteractionIntentCases} from './support/interaction-intent-cases.mjs';
+import {registerNavigationResponseCases} from './support/navigation-response-cases.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import vm from 'node:vm';
 // Execute the production application and its actual imported UI factories.
 // The document/HTTP boundary is simulated. This checks behavior, not layout,
 // native focus, RLS, live providers or accessibility conformance.
-function node(){return {id:'',innerHTML:'',textContent:'',open:false,disabled:false,dataset:{},attributes:{},classList:{toggle(){},add(){},remove(){}},setAttribute(k,v){this.attributes[k]=v;},removeAttribute(k){delete this.attributes[k];},querySelector(){return null;},querySelectorAll(){return [];},contains(){return false;},closest(){return null;},matches(){return false;},focus(){},addEventListener(type,listener){(this.listeners??={})[type]=listener;},showModal(){this.open=true;},close(){this.open=false;this.listeners?.close?.();}};}
+function node(){return {id:'',innerHTML:'',textContent:'',open:false,disabled:false,dataset:{},attributes:{},classList:{toggle(){},add(){},remove(){}},setAttribute(k,v){this.attributes[k]=v;},removeAttribute(k){delete this.attributes[k];},querySelector(){return null;},querySelectorAll(){return [];},contains(){return false;},closest(){return null;},matches(){return false;},focus(){},addEventListener(type,listener){const previous=(this.listeners??={})[type];this.listeners[type]=previous?event=>{previous(event);listener(event);}:listener;},showModal(){this.open=true;},close(){this.open=false;this.listeners?.close?.();}};}
 const endpoint=(url,path)=>new URL(url,'https://nam.example').pathname==='/api/'+path;
 const actor={id:'founder-1',name:'Nadim',initials:'NM',role:'founder'},omar={id:'sales-1',name:'Omar',initials:'OM',role:'sales'};
 function bootstrap(){return {actor,members:[{...actor,sections:['sales','academy','projects','library','team','operations']},{...omar,sections:['sales','academy','operations']}],sections:['sales','academy','projects','library','team','operations'],tasks:[],courses:[],notifications:[],today:'2026-11-24',mode:'authenticated',capabilities:{createTaskSections:['sales','academy','projects','library','team','operations'],productionAuth:true,database:'postgresql',projects:'tasks_only',library:'tasks_only'},roleLabels:{founder:'Founder',sales:'Sales Representative'},csrf:'test-csrf'};}
@@ -299,6 +300,7 @@ test('a failed parent write re-enables Close while retaining the genuinely unsav
 
 registerSubtaskFocusCases({test,assert,harness,node,task,actor});
 registerInteractionIntentCases({test,assert,harness,node,task});
+registerNavigationResponseCases({test,assert,harness});
 
 test('a direct Work landing loads assigned learning when returning to Today',async()=>{
  const course={id:'assigned-course',title:'Assigned studio method',area:'3d',summary:'Learn the method',completed:0,total:2,mandatory:true,completion:null};

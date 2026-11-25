@@ -19,13 +19,56 @@ export function registerInteractionIntentCases({test,assert,harness,node,task}){
  for(const [kind,dataset,selector] of [
   ['Academy publication',{academyAction:'publish',course:'course-1'},'[data-academy-action]'],
   ['private video preview',{videoAction:'preview',id:'video-1'},'[data-video-action]'],
+  ['member access',{accessAction:'open',accessMember:'member-1'},'[data-access-action]'],
+  ['member security',{securityAction:'recovery',securityId:'member-1'},'[data-security-action]'],
  ])test(kind+' dialog restores its identified control after a rerender',async()=>{
   const h=await harness(),opener=trigger(h,dataset),replacement=trigger(h,{...dataset}),dialog=h.nodes.get('#dialog');
   opener.focus();h.ui.openDialog('Review','<p>Review details</p>');
-  const unrelated=trigger(h,dataset.academyAction?{...dataset,course:'another-course'}:{...dataset,id:'another-video'});
+  const unrelated=trigger(h,dataset.academyAction?{...dataset,course:'another-course'}:dataset.videoAction?{...dataset,id:'another-video'}:dataset.accessAction?{...dataset,accessMember:'another-member'}:{...dataset,securityId:'another-member'});
   h.document.querySelectorAll=value=>value===selector?[unrelated,replacement]:[];
   dialog.open=false;h.document.activeElement=h.document.body;dialog.listeners.close();
   assert.equal(h.document.activeElement,replacement);
+ });
+ for(const failure of [false,true])test('member access loading keeps its opener focusable and suppresses duplicate reads on '+(failure?'failure':'success'),async()=>{
+  let release,started;const hold=new Promise(resolve=>release=resolve),seen=new Promise(resolve=>started=resolve);
+  const h=await harness({intercept:async(url,init,model,response)=>{
+   if(url==='/api/auth/access/member-1'){started();await hold;return failure?response({error:'Access settings are temporarily unavailable.'},503):response({id:'member-1',name:'Synthetic member',role:'artist',editable:true,revision:3,grants:[]});}
+   return null;
+  }}),opener=trigger(h,{accessAction:'open',accessMember:'member-1'}),dialog=h.nodes.get('#dialog');
+  opener.closest=selector=>selector==='[data-access-action]'?opener:null;
+  h.document.querySelectorAll=selector=>selector==='[data-access-action]'?[opener]:[];
+  opener.focus();const request=h.dispatch('click',{target:opener,preventDefault(){}});await seen;
+  assert.equal(opener.disabled,false);assert.equal(opener.attributes['aria-busy'],'true');assert.equal(opener.attributes['aria-disabled'],'true');assert.equal(h.document.activeElement,opener);
+  await h.dispatch('click',{target:opener,preventDefault(){}});
+  assert.equal(h.requests.filter(request=>request.url==='/api/auth/access/member-1').length,1);
+  release();await request;assert.equal(opener.disabled,false);assert.equal(opener.attributes['aria-busy'],undefined);assert.equal(opener.attributes['aria-disabled'],undefined);
+  assert.equal(dialog.open,!failure);
+  if(failure){assert(h.nodes.get('#toast').textContent.includes('temporarily unavailable'));assert.equal(h.document.activeElement,opener);}
+  else{dialog.open=false;h.document.activeElement=h.document.body;dialog.listeners.close();assert.equal(h.document.activeElement,opener);}
+ });
+ for(const action of ['invite','password'])test('the security '+action+' opening action preserves its return target without submitting protected fields',async()=>{
+  const h=await harness(),opener=trigger(h,{securityAction:action}),dialog=h.nodes.get('#dialog');
+  opener.closest=selector=>selector==='[data-security-action]'?opener:null;
+  h.document.querySelectorAll=selector=>selector==='[data-security-action]'?[opener]:[];
+  opener.focus();const before=h.requests.length;await h.dispatch('click',{target:opener,preventDefault(){}});
+  assert.equal(dialog.open,true);assert.equal(opener.disabled,false);assert(!h.requests.slice(before).some(request=>request.init.method==='POST'));
+  dialog.open=false;h.document.activeElement=h.document.body;dialog.listeners.close();assert.equal(h.document.activeElement,opener);
+ });
+ test('a pending security refresh keeps its opener focusable and issues only one concurrent read',async()=>{
+  let release,started,reads=0;const hold=new Promise(resolve=>release=resolve),seen=new Promise(resolve=>started=resolve);
+  const h=await harness({intercept:async(url,init,model,response)=>{
+   if(url==='/api/auth/security'){
+    if(++reads===1){started();await hold;}
+    return response({account:{email:'qa@nam-qa.invalid',status:'active',mfaEnabled:false},canManageMembers:false,mfaAvailable:true,mfaVerified:false});
+   }
+   return null;
+  }}),opener=trigger(h,{securityAction:'reload'});
+  opener.closest=selector=>selector==='[data-security-action]'?opener:null;opener.focus();
+  await h.dispatch('click',{target:opener,preventDefault(){}});await seen;
+  assert.equal(opener.disabled,false);assert.equal(opener.attributes['aria-busy'],'true');assert.equal(opener.attributes['aria-disabled'],'true');assert.equal(h.document.activeElement,opener);
+  await h.dispatch('click',{target:opener,preventDefault(){}});assert.equal(reads,1);
+  release();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(opener.attributes['aria-busy'],undefined);assert.equal(opener.attributes['aria-disabled'],undefined);
  });
  test('a slower earlier task response cannot replace the later chosen task',async()=>{
   let releaseFirst,releaseSecond,firstStarted,secondStarted;

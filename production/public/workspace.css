@@ -5,6 +5,13 @@ button,a,input,select,textarea{transition:background-color var(--motion-fast) va
 .button.small{border-radius:var(--radius-small)}
 .tab{border-radius:var(--radius-control)}
 .panel{border-radius:var(--radius-panel)}
+.dialog-head h2{flex:1;min-width:0;overflow-wrap:anywhere}
+.route-loading-panel{min-height:min(55dvh,32rem);display:grid;place-items:center}
+/* Account controls share the same action layout and panel rhythm as work. */
+.main:has(.settings-table)>section.panel{margin-top:var(--space-6)}
+.main:has(.settings-table) .filters{display:flex;flex-wrap:wrap;gap:var(--space-2);max-width:100%;min-width:0}
+.main:has(.settings-table) .filters>.button{max-width:100%;white-space:normal;line-height:1.45;min-height:var(--control-height);padding-block:var(--space-2)}
+.main:has(.settings-table) .data-row>.filters{justify-content:flex-start}
 .task-card{border-radius:12px}
 dialog{border-radius:var(--radius-panel)}
 .nav-link{font-size:var(--type-body);font-weight:450}
@@ -242,6 +249,9 @@ kbd{font-family:inherit;display:inline-flex;align-items:center;justify-content:c
 }
 @media(max-width:700px){
  .panel{padding:var(--space-5)}
+ .page-head{align-items:flex-start}
+ .main:has(.settings-table) .data-row>.filters{flex-basis:100%}
+ .main:has(.settings-table) .data-row>.button{margin-left:0}
  .daily-heading{margin:0 0 var(--space-5);gap:var(--space-3)}
  .daily-heading h1{font-size:28px}
  .daily-subtitle{font-size:var(--type-body)}
