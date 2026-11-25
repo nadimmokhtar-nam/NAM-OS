@@ -1,113 +1,100 @@
 # NAM OS reinvention verification — 25 November 2026
 
-Status: candidate under refinement. The protected hosted trial is unchanged.
-A successful build is not release acceptance.
+Status: source candidate verified at4df46727bba416653d5558a628b1871050f54bf5.
+Production release acceptance remains open. Documentation-only updates do not
+change the runtime source identified below.
 
-## Product model and implemented changes
+## Implemented daily operating model
 
-Today surfaces decisions, blockers and commitments before secondary summaries.
-Work keeps one shared task record; Projects supplies its brief, accountable lead
-and production stage. Standalone operational work remains valid. An unshared
-project link does not expose its brief or silently detach an existing task.
+Today prioritizes decisions, blockers and commitments before secondary summaries.
+Work keeps one shared task record; Projects supplies its brief, accountable lead,
+authorized participants, production stage and deadline. Standalone work remains
+valid, and an unshared project association is retained without revealing its brief.
 
-Sales opens on next follow-ups, recorded outcomes, targets and weekly commitments.
-Inactive sales staff remain visible with zero activity. Attio remains the CRM;
-disconnected provider metrics are not reported as live. Academy opens on assigned
-learning. Its authoring workspace edits one selected lesson, with separate course
-details, practical work and publication/assignment. Private video recovery reuses
-the reservation, preserves a selected file and distinguishes a verified save from
-a failed subsequent refresh. Existing published versions and completion records
-remain intact.
+Sales starts with follow-ups, recorded outcomes, targets and weekly commitments.
+Zero-activity sales staff remain visible. Attio remains the CRM; provider metrics
+are source-labelled and never described as live while disconnected.
 
-The responsive reader uses an expandable outline on smaller windows. Shared
-spacing, typography, surfaces, focus and reduced-motion rules apply throughout.
-Pending subtasks stay keyboard-focusable, acknowledge busy state and deduplicate
-repeated actions. Task detail honors the most recent selection; delayed responses
-cannot reopen a closed dialog or release another session's write guard.
+Academy starts with assigned learning. Selected-lesson authoring separates
+course details, practical work and Publish & people. Private video recovery
+preserves the selected file and reservation, while immutable publications retain
+previous content and completion history. Smaller readers use a legible expandable
+outline. Shared spacing, type, surfaces, focus and reduced-motion rules apply.
 
-## Executed evidence and findings
+Task detail respects the latest selection. Pending subtasks remain focusable,
+deduplicate repeated actions and preserve unsaved notes. Delayed responses cannot
+reopen closed dialogs or release another session's write guard. Founder member
+administration retains suspended-account discovery and restoration.
 
-| Boundary | Reviewed source / run | Executed result |
+## Executed correction record
+
+| Review | Source / native run | Actual result and correction |
 | --- | --- | --- |
-| Local unit/database/controller suite | candidate771b4b9 |353 passed,0failed/skipped |
-| Linux TypeScript/tests/build |771b4b9 /45573163776 |Passed |
-| Actual isolated provider + Chromium, eight identities |1690772 /45573430340 |21/24 passed,3failed,0skipped |
-| Linux TypeScript/tests/build |03399dd /45581759790 |377 passed; TypeScript/build passed |
-| Expanded actual provider + Chromium |03399dd /45581759998 |26/31 passed,5failed,0skipped/global errors |
-| Diagnostic-only repeat |4a06b63 /45582898231 |Same26/31; not a separate quality cycle |
-| Corrected local unit/database/controller suite |Working correction candidate |391 passed,0failed/skipped; TypeScript/build passed |
-| Additive migration operator proofs |001–022 source |15 distinct proofs passed;1490 catalog records equivalent |
+| Functional review |1690772 /45573430340 |21/24; corrected landing assertion and zero-activity sales visibility; pending-save dismissal remained under review |
+| Expanded visual/workflow review |03399dd /45581759998 |26/31; fixed module fixtures, tablet action wrapping and native pending-checkbox focus |
+| Interaction/accessibility/performance verification |102fa0d /45586187655 |34/34 passed; fixes verified with eight real managed identities |
+| Expanded final source regression |4df4672 /45588897211 |36/36 passed; added simultaneous learning and suspended-account restoration |
+| Diagnostic-only repeat |4a06b63 /45582898231 |Repeated26/31; not counted as another quality cycle |
 
-The initial native findings included an obsolete landing-heading assertion,
-visibility of sales staff with no activity, and Escape during a pending child
-save. Expanded testing found a module fixture with no actual modules (three
-viewport failures) and a tablet Sales heading that could exceed its container.
-The module tests now create and clean up their own real published course. The
-Sales heading wraps and aligns controls to its content edge without concealing
-overflow. Subtasks retain focus instead of becoming disabled outside the dialog.
-Assertions for dismissal, persistence, draft recovery and permissions remain.
+The final source passed396 automated unit/database/controller checks with zero
+failures/skips, TypeScript and the optimized production build in Linux run
+45588897028. Native run45588897211 has zero failures, skips or global errors.
+Exact native-tested merge:2fba63fc1c2b57964333e2dd0a019bd040d27e69.
+Safe artifact15010166595 digest:
+sha256:655ac194789f51584de6ba9313c71707c19fee40ff62d8150c6738e7fcb1fd33.
 
-The next native run must verify these corrections, active-session grant/role
-revocation, task-opening intent and opener focus. These added checks are pending
-until an actual run records their results. Earlier successful performance,
-private-video, optimistic-conflict and accessibility cases do not certify later
-source automatically.
+These are four documented source-review executions with meaningful corrections
+and expanded coverage. They do not certify four completed hosted release cycles,
+human usability validation or overall production readiness.
 
-## Measurable acceptance
+## Measured bounded load
 
-The bounded performance case uses eight managed identities over10000 synthetic
-tasks:80 summary reads, eight independent writes,40 daily-brief queries, two
-conflicting edits and eight concurrent signed-in browser workspaces. Targets are
-p95 under2000ms for reads/brief/usable task navigation, under1000ms for a write
-including context refresh, and summary responses under100000 bytes. One edit
-must succeed and its competitor receive409; cross-user reads must be denied.
-Only source-bound numeric aggregates may appear in retained CI evidence.
+Eight distinct managed identities operate over10000 synthetic tasks using the
+actual PostgreSQL, GoTrue, PostgREST, Storage and Next.js application. The case
+includes80 task-summary reads, eight independent writes,40 brief requests,
+concurrent signed-in navigation and a contested update that must yield one200
+and one409. Other owners' restricted records must remain unreadable.
 
-Responsive checks cover360,390,768,1024 and1440px plus a320px learning outline.
-Task status, deadline and owner must remain visible and contained. Automated
-WCAG2.2AA checks, reduced motion, native keyboard/focus behavior and failure
-recovery run against the actual application. No claim of human usability
-validation, sustained capacity or Internet latency follows from loopback tests.
+| Measurement | Samples | Actual p95 | Acceptance target |
+| --- | ---: | ---: | ---: |
+| Summary read |80 |106.26ms |<2000ms |
+| Write including context refresh |8 |456.64ms |<1000ms |
+| Daily brief |40 |170.59ms |<2000ms |
+| Usable task navigation, eight concurrent workspaces |8 |1341.73ms |<2000ms |
+| Maximum task-summary payload |80 |67412bytes |<100000bytes |
 
-## Direct rendered inspection
+Loopback bursts do not establish Internet latency, sustained capacity or a
+production SLA. Timings use the first visible enabled task, not only a document
+load event. Retained evidence contains source-bound numeric aggregates.
 
-Native Chrome reviewed the production client with a clearly synthetic local
-fixture, including desktop Today,390×844 learning and768px Sales. It exposed
-the squeezed module heading and awkward wrapped Sales-action alignment; both
-were corrected in source. The fixture does not prove Auth or persistent writes.
-Actual managed-session verification is performed separately in disposable QA.
+## Workflow and rendered coverage
 
-## Release gates
+Native tests cover managed sign-in, active-session grant/role revocation,
+Founder/Sales/Artist boundaries, shared project context, stale edits, retained
+drafts, repeated actions, checkbox recovery and keyboard navigation. Eight
+learners complete repeated concurrent progress requests, reload their readers
+and reopen one person's lesson without changing the other seven records.
 
-- Finish all affected native regressions; keep any failure a release blocker.
-- Execute and document all four meaningful release/refinement cycles. Individual
-  reruns and the earlier cloud report are not equivalent to hosted acceptance.
-- Preserve a recoverable database and object backup before additive016–022.
-  Never rerun the empty installer, reset or Founder bootstrap.
-- Verify protected HTTPS runtime, exact callbacks, original-session enforcement,
-  private uploads/range playback and installed desktop PWA behavior.
-- Configure real provider credentials securely and reconcile records/ownership.
-  No external tenant or entitlement has been verified by these fixtures.
-- Complete longer-duration/load, recovery and final Founder/Sales workflows.
-  No critical/high defect may remain at delivery.
+Academy tests author, publish and assign actual courses, upload bytes to real
+private Storage, verify historical publication isolation, play/seek ranged media
+with captions and deny playback after revocation. Learning completion remains
+self-reported; practical assessment is separate.
 
-GitHub is the durable source checkpoint. The private operator package is
-preserved separately. No unobserved background development, production
-deployment or complete release is implied.
+Responsive checks cover360/390/768/1024/1440px and320px learning. They inspect
+actual layout geometry and visible task status/deadline/owner. Automated WCAG2.2AA
+checks and reduced motion pass on tested screens. Direct native Chrome review
+also exposed and corrected squeezed module headings and wrapped-action alignment
+using a clearly synthetic local fixture. That fixture itself proves no persistence.
 
-## Verified correction and next regression
+## Open delivery gates
 
-Candidate102fa0d / native run45586187655 passed all34 checks with zero
-failures, skips or global errors. Linux CI45586187490 passed391 tests,
-TypeScript and the production build. The exact merge tested was5cfc41ecd345b036f4d058f0d4ea7955b55ca465.
+- Apply the reviewed additive backend update only after private backup/recovery
+  preparation; verify preservation and protected HTTPS runtime behavior.
+- Finish hosted functional/security regression, real provider reconciliation,
+  longer-duration capacity and actual desktop PWA installation.
+- Complete final Founder/Sales daily journeys and human feedback.
+- Keep internal account configuration, private diagnostics, credentials, profiles,
+  raw failures and business data out of this public evidence record.
 
-Source-bound loopback p95 results: summary reads147.04ms (80 samples), writes
-including context refresh560.55ms (8), daily brief190.58ms (40), usable task
-navigation1483.49ms (8); maximum summary67216 bytes. These passed the stated
-bounded targets. They do not establish hosted latency or sustained capacity.
-
-The follow-on candidate has396 passing local checks. Additional native
-regressions cover suspended-account discovery/restoration and eight managed
-learners completing, repeating and reopening lessons concurrently. Their actual
-native execution remains pending. Internal operational diagnostics and account
-configuration are retained privately rather than in this public evidence record.
+No production deployment, live integration or unobserved background development
+is implied by this source checkpoint.
