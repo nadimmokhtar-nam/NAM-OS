@@ -4,7 +4,7 @@
 
 /* Foundation: one global entry for shared controls, shell and access pages. */
 *{box-sizing:border-box}
-html{font-family:var(--font-ui);font-size:14px;color:var(--ink);background:var(--surface-canvas);font-synthesis:none;scrollbar-gutter:stable}
+html{font-family:var(--font-ui);font-size:14px;color:var(--ink);background:var(--surface-canvas);font-synthesis:none}
 body{margin:0;min-width:320px;font-size:var(--type-body);line-height:var(--line-body)}
 button,input,select,textarea{font:inherit;color:inherit}
 input::placeholder,textarea::placeholder{color:var(--text-secondary);opacity:1}
@@ -262,7 +262,7 @@ dialog.drawer{position:fixed;inset:8px 8px 8px auto;margin:0;width:min(560px,cal
 .auth-form .field label,.auth-form-fields>label{font-size:16px;font-weight:400;line-height:20px;color:var(--ink)}
 .auth-form-fields>label{display:block;margin:16px 0 8px}
 .auth-form .field input,.auth-form .field select,.auth-form-fields>input{display:block;width:100%;min-height:32px;padding:5px 10px;border:1px solid var(--input-border);border-radius:6px;background:var(--surface-muted);font-size:14px;line-height:20px}
-.auth-form .button.primary,.auth-submit{min-height:40px;border-radius:8px;width:100%;margin-top:8px;padding:10px 12px;font-size:var(--type-body);font-weight:500}
+.auth-form .button.primary,.auth-submit{min-height:40px;border-radius:8px;width:100%;margin-top:8px;padding:10px 12px;font-size:16px;font-weight:500;line-height:20px}
 .auth-help,.auth-note{font-size:var(--type-label);line-height:var(--line-label);color:var(--text-secondary);margin-top:16px;overflow-wrap:anywhere}
 .auth-form a:not(.button){text-decoration:underline;text-underline-offset:3px}
 .auth-module-error{border:1px solid rgba(155,68,56,.25);border-radius:var(--radius-panel);background:var(--status-danger-bg);color:var(--status-danger-ink);padding:16px;line-height:var(--line-body)}
@@ -305,6 +305,21 @@ body>main:not(.main):not(.auth-shell) p[role=alert]{color:var(--status-danger-in
 .pwa-install-slot{position:static;inset:auto;z-index:auto;display:flex;justify-content:flex-end;max-width:none;margin:0 var(--shell-inset) var(--shell-inset) calc(var(--nav-width) + var(--shell-inset));padding:8px var(--page-gutter)}
 .pwa-help p{font-size:var(--type-body);line-height:var(--line-body)}
 
+
+/* A mounted workspace owns the viewport; auth and recovery keep document scroll.
+   Notifications and installation occupy visible flow rows rather than floating
+   over work. Main is the only workspace scroller, including on short windows. */
+html:has(#app>.sidebar){overflow:hidden}
+body:has(#app>.sidebar){--workspace-leading:calc(var(--nav-width) + var(--shell-inset));--workspace-footer-offset:0px;height:100dvh;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto auto}
+body:has(#app>.sidebar)>#app{grid-row:1;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100%;min-width:0;min-height:0}
+body:has(#app>.sidebar)>#app>.main{height:auto;min-height:0;overflow:auto;scrollbar-gutter:stable;overscroll-behavior:contain;padding-bottom:max(80px,calc(24px + env(safe-area-inset-bottom)));scroll-padding-top:16px;scroll-padding-bottom:80px}
+body:has(#app>.sidebar)>.pwa-tools{grid-row:3;position:static;inset:auto;z-index:auto;min-width:0;max-width:none;width:auto;margin:0 var(--shell-inset) var(--shell-inset) var(--workspace-leading);padding:0 var(--page-gutter);align-items:stretch;pointer-events:auto}
+body:has(#app>.sidebar)>.pwa-tools:empty{display:none}
+body:has(#app>.sidebar)>.pwa-install-slot{grid-row:4;min-width:0;margin-left:var(--workspace-leading)}
+body:has(#app>.sidebar):has(>.pwa-install-slot){--workspace-footer-offset:calc(var(--control-height) + 24px)}
+body:has(#app>.sidebar)>#toast{bottom:calc(16px + var(--workspace-footer-offset))}
+body:has(#app>.sidebar):has(>.pwa-tools:not(:empty))>#toast{grid-row:2;position:static;inset:auto;transform:none;min-width:0;max-width:none;margin:0 var(--shell-inset) var(--shell-inset) var(--workspace-leading);padding:10px var(--page-gutter)}
+
 @media(max-width:1100px){.connection-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:960px){
   .two-col{grid-template-columns:minmax(0,1fr)}
@@ -316,6 +331,8 @@ body>main:not(.main):not(.auth-shell) p[role=alert]{color:var(--status-danger-in
   .lesson-nav button{min-width:0}
 }
 @media(max-width:700px){
+  body:has(#app>.sidebar){--workspace-leading:var(--shell-inset)}
+  body:has(#app>.sidebar):has(>.pwa-install-slot){--workspace-footer-offset:calc(var(--control-height) + 25px + env(safe-area-inset-bottom))}
   .sidebar{transform:translateX(-100%);transition:transform var(--motion-panel) var(--ease-out)}
   .sidebar.open{transform:none}
   .sidebar.open .sidebar-close{display:inline-flex}

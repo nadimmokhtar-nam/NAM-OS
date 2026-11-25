@@ -119,7 +119,8 @@ export function registerInteractionIntentCases({test,assert,harness,node,task}){
    return null;
   }});
   const save=node(),edit={values:{title:'Review project lighting',description:'Original brief',status:'Todo',priority:'High',section:'projects',owner_id:'founder-1',due_date:'2026-11-25'}};
-  const dialog=h.nodes.get('#dialog');dialog.querySelector=selector=>selector==='form[data-form="edit-task"]'?edit:selector==='form[data-form="edit-task"] [type="submit"]'?save:null;
+  edit.id='task-edit-form';edit.elements=[save];save.form=edit;save.type='submit';save.setAttribute('type','submit');save.getAttribute=name=>save.attributes[name]??null;
+  const dialog=h.nodes.get('#dialog');dialog.querySelector=selector=>selector==='form[data-form="edit-task"]'?edit:null;
   await h.ui.openTask('task-1');
   const first=node();first.dataset.subtask='child-1';first.checked=true;
   const oldSeen=new Promise(resolve=>signals[0]=resolve),oldWrite=h.dispatch('change',{target:first});await oldSeen;

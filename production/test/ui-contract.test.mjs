@@ -256,7 +256,10 @@ for(const kind of ['checkbox','comment','subtask'])test('partial '+kind+' replie
  let release,started;const hold=new Promise(r=>release=r),seen=new Promise(r=>started=r);
  const h=await harness({intercept:async(url,init,model,response)=>{if(init.method==='POST'&&(url.endsWith('/comments')||url.endsWith('/subtasks'))){started();await hold;return response({...task(),subtasks:[{id:'child-1',title:'Saved child',completed:1}]});}return null;}});
  await h.ui.openTask('task-1');const edit={values:{title:'Review project lighting',description:'Original brief',section:'projects',status:'Todo',priority:'High',due_date:'2026-11-25',owner_id:actor.id}},save=node(),comment={value:kind==='comment'?'Submitted comment':''},subtask={value:kind==='subtask'?'Submitted child':''};
- h.nodes.get('#dialog').querySelector=selector=>selector==='form[data-form="edit-task"]'?edit:selector==='form[data-form="edit-task"] [type="submit"]'?save:selector==='form[data-form="comment"] textarea'?comment:selector==='#new-subtask'?subtask:null;
+ // Native form.elements includes the footer's externally associated Save.
+ // It is deliberately absent from descendant querySelector results.
+ edit.id='task-edit-form';edit.elements=[save];save.form=edit;save.type='submit';save.setAttribute('type','submit');save.getAttribute=name=>save.attributes[name]??null;
+ h.nodes.get('#dialog').querySelector=selector=>selector==='form[data-form="edit-task"]'?edit:selector==='form[data-form="comment"] textarea'?comment:selector==='#new-subtask'?subtask:null;
  const f=correctionForm(kind==='checkbox'?'subtask':kind,kind==='comment'?{body:'Submitted comment'}:{title:'Submitted child'}),checkbox=Object.assign(node(),{dataset:{subtask:'child-1'},checked:true});
  const request=kind==='checkbox'?h.dispatch('change',{target:checkbox}):h.dispatch('submit',{target:f.form,preventDefault(){}});
  await seen;assert.equal(save.disabled,true);edit.values.status='Done';edit.values.description='Latest live parent notes';comment.value='Next unsaved comment';subtask.value='Next unsaved child';release();await request;

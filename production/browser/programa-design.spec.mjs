@@ -135,7 +135,23 @@ for(const viewport of viewports)test('Programa geometry supports founder, sales 
   await expect(artist.page.getByRole('dialog').locator('.context-title')).toHaveText(brief.title);
   await artist.page.keyboard.press('Escape');await expect(artist.page.getByRole('dialog')).not.toBeVisible();await expect(own).toBeFocused();
   await navigate(artist.page,'academy','Academy');await shell(artist.page,viewport.width);
-  const course=artist.page.locator('[data-action="course"][data-id="'+fixture.records.course+'"]').first();await actionable(course,viewport.width);await course.click();
+  expect(await artist.page.locator('#main').evaluate(node=>node.inert),'The Academy must be interactive after closing mobile navigation').toBe(false);
+  await expect(artist.page.getByRole('dialog')).not.toBeVisible();
+  const course=artist.page.locator('[data-action="course"][data-id="'+fixture.records.course+'"]').first();await actionable(course,viewport.width);
+  await expect(course).toHaveAttribute('data-id',fixture.records.course);
+  const [selectedResponse]=await Promise.all([
+   artist.page.waitForResponse(response=>new URL(response.url()).pathname==='/api/courses/'+fixture.records.course&&response.request().method()==='GET'),
+   course.click(),
+  ]);
+  expect(selectedResponse.status(),'The actual assigned-course request must complete successfully').toBe(200);
+  const selected=await selectedResponse.json();
+  expect(selected.id,'The returned course must be the one activated').toBe(fixture.records.course);
+  expect(Array.isArray(selected.lessons),'An assigned course must include its publication lessons').toBe(true);
+  expect(selected.lessons.length,'The shared learning fixture must have a readable lesson').toBeGreaterThan(0);
+  const intendedLesson=selected.lessons.find(lesson=>!lesson.completed_at)||selected.lessons[0];
+  await ready(artist.page,selected.title);
+  await expect(artist.page.locator('.lesson-body h2'),'The selected publication must render a lesson heading').toHaveCount(1);
+  await expect(artist.page.locator('.lesson-body h2')).toHaveText(intendedLesson.title);
   await expect(artist.page.locator('.lesson-body h2')).toBeVisible();
   const outline=artist.page.locator('.lesson-outline');
   if(!await outline.evaluate(node=>node.open)){const summary=outline.locator(':scope > summary');await actionable(summary,viewport.width);await summary.focus();await summary.press('Enter');}

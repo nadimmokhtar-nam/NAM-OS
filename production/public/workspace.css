@@ -195,17 +195,26 @@ dialog.drawer:has(.task-detail-layout),dialog:has(form[data-form="create-task"])
 dialog[open].drawer:has(.task-detail-layout),dialog[open]:has(form[data-form="create-task"]){display:flex;flex-direction:column}
 dialog:has(.task-detail-layout)>.dialog-head,dialog:has(form[data-form="create-task"])>.dialog-head{flex:none}
 dialog:has(.task-detail-layout)>.dialog-body,dialog:has(form[data-form="create-task"])>.dialog-body{flex:1;min-height:0;overflow:auto}
-dialog:has(.task-detail-layout)>.dialog-body{padding:0}
+dialog:has(.task-detail-layout)>.dialog-body{padding:0;scroll-padding-block-end:96px}
 dialog:has(form[data-form="create-task"]) form[data-form="create-task"]{max-width:720px;margin:var(--space-6) auto}
-.task-detail-layout{display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);gap:0;min-width:0;min-height:100%}
-.task-detail-editor{display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);gap:0;grid-column:1/-1}
-.task-detail-main-fields,.task-detail-support{min-width:0;padding:var(--space-6)}
+.task-detail-layout{display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);grid-template-rows:max-content minmax(0,1fr) auto;gap:0;min-width:0;min-height:100%;align-items:start}
+.task-detail-editor{display:block;grid-column:1;grid-row:1;min-width:0;padding:var(--space-6) var(--space-6) 0;align-self:start}
+.task-detail-main-fields{min-width:0;padding:0}
+.task-detail-support{grid-column:1;grid-row:2;min-width:0;padding:var(--space-3) var(--space-6) var(--space-6);align-self:start}
 .task-detail-main-fields .title-input{font-family:var(--font-ui);font-size:18px;line-height:28.8px;font-weight:500;letter-spacing:0}
 form[data-form="create-task"] input[name="title"]{font-family:var(--font-ui);font-size:18px;line-height:28.8px;font-weight:500;letter-spacing:0}
-.task-detail-rail,.task-detail-files{min-width:0;padding:var(--space-6);background:var(--surface-canvas);border-left:1px solid var(--border-subtle)}
-.task-detail-rail .form-grid{grid-template-columns:minmax(0,1fr);gap:0}
+.task-detail-rail{grid-column:2;grid-row:1/3;min-width:0;padding:var(--space-6);background:var(--surface-canvas);border-left:1px solid var(--border-subtle);align-self:stretch}
+.task-detail-files{min-width:0;padding:0;background:transparent;border:0;margin-top:var(--space-6)}
+.task-detail-reference{min-width:0;margin-top:var(--space-6)}
+.task-detail-reference .task-context{padding:0;margin:0;border:0;border-radius:0;background:transparent}
+.task-detail-rail .form-grid{grid-template-columns:minmax(0,1fr);gap:var(--space-3)}
+.task-detail-rail .field{display:grid;grid-template-columns:88px minmax(0,1fr);align-items:center;gap:var(--space-1) var(--space-3);margin-bottom:var(--space-3)}
+.task-detail-rail .form-grid>.field{margin-bottom:0}
+.task-detail-rail .field>label{font-size:var(--type-label);line-height:var(--line-label);overflow-wrap:anywhere}
+.task-detail-rail .field>input,.task-detail-rail .field>select{min-width:0;max-width:100%}
+.task-detail-rail .field>p{font-size:var(--type-label);line-height:var(--line-label);overflow-wrap:anywhere}
 .task-detail-rail small,.task-detail-files small,.task-detail-rail .event,.task-detail-files .event{color:var(--text-secondary)}
-.task-detail-editor>.form-actions{grid-column:1/-1;margin:0;padding:var(--space-3) var(--space-6);border-block:1px solid var(--border-subtle);flex-wrap:wrap}
+.task-detail-actions{grid-column:1/-1;grid-row:3;position:sticky;bottom:0;z-index:2;align-self:end;margin:0;padding:var(--space-3) var(--space-6);border-top:1px solid var(--border-subtle);background:var(--surface-raised);flex-wrap:wrap}
 .task-detail-support>.detail-section:first-child,.task-detail-files>.detail-section:first-child{margin-top:0;padding-top:0;border-top:0}
 form[data-form="edit-task"]:not(.task-detail-editor)>.form-grid{background:var(--surface-canvas);padding:var(--space-4);border-radius:var(--radius-panel);margin-bottom:var(--space-4)}
 
@@ -317,14 +326,18 @@ progress::-moz-progress-bar{background:var(--primary)}
  .daily-heading{flex-wrap:wrap;gap:var(--space-4)}
  .daily-heading-actions{justify-content:flex-start}
  .project-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .task-detail-rail .field{grid-template-columns:minmax(0,1fr)}
 }
 @media(max-width:960px){
  .academy-authoring-layout,.lesson-layout{grid-template-columns:minmax(0,1fr);gap:var(--space-5)}
  .academy-course-outline>.panel>.panel-head{align-items:center}
  .lesson-nav{display:block;overflow-x:visible}
- .task-detail-layout,.task-detail-editor{grid-template-columns:minmax(0,1fr)}
- .task-detail-rail,.task-detail-files{border-left:0;border-top:1px solid var(--border-subtle)}
- .task-detail-editor>.form-actions{grid-column:1}
+ .task-detail-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto}
+ .task-detail-editor{grid-column:1;grid-row:1;padding-bottom:var(--space-3)}
+ .task-detail-rail{grid-column:1;grid-row:2;border-left:0;border-top:1px solid var(--border-subtle)}
+ .task-detail-support{grid-column:1;grid-row:3;padding-top:var(--space-5)}
+ .task-detail-actions{grid-column:1;grid-row:4}
+ .task-detail-rail .field{grid-template-columns:88px minmax(0,1fr)}
  .project-overview-grid{grid-template-columns:minmax(0,1fr);gap:var(--space-5)}
  .project-overview-meta{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-5)}
 }
@@ -370,8 +383,11 @@ progress::-moz-progress-bar{background:var(--primary)}
  .project-metric-strip{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4)}
  .project-overview-meta{flex-direction:column;align-items:flex-start}
  .project-team-list{gap:var(--space-3)}
- .task-context,.task-detail-main-fields,.task-detail-support,.task-detail-rail,.task-detail-files{padding:var(--space-4)}
- .task-detail-editor>.form-actions{padding:var(--space-3) var(--space-4);justify-content:flex-start}
+ .task-context,.task-detail-editor,.task-detail-support,.task-detail-rail{padding:var(--space-4)}
+ .task-detail-main-fields,.task-detail-files{padding:0}
+ .task-detail-actions{padding:var(--space-3) var(--space-4);justify-content:flex-start;gap:var(--space-2)}
+ .task-detail-rail .field{grid-template-columns:minmax(0,1fr)}
+ dialog:has(.task-detail-layout)>.dialog-body{scroll-padding-block-end:160px}
  .context-title,.reference-link{min-height:44px}
  dialog:has(form[data-form="create-task"]) form[data-form="create-task"]{margin:var(--space-3) auto}
  .learning-path{grid-template-columns:minmax(0,1fr);gap:var(--space-5);padding:var(--space-5)}
