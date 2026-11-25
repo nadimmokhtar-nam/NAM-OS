@@ -1,6 +1,6 @@
 # NAM OS reinvention verification — 25 November 2026
 
-Status: source candidate verified at4df46727bba416653d5558a628b1871050f54bf5.
+Status: source candidate verified at1634e5c4d6fc5791f790ef1ff1eca1d23debfed5.
 Production release acceptance remains open. Documentation-only updates do not
 change the runtime source identified below.
 
@@ -35,13 +35,14 @@ administration retains suspended-account discovery and restoration.
 | Interaction/accessibility/performance verification |102fa0d /45586187655 |34/34 passed; fixes verified with eight real managed identities |
 | Expanded final source regression |4df4672 /45588897211 |36/36 passed; added simultaneous learning and suspended-account restoration |
 | Diagnostic-only repeat |4a06b63 /45582898231 |Repeated26/31; not counted as another quality cycle |
+| Further craftsmanship review |701fa87 /45597184062 then1634e5c /45598630309 |44/45 initially; corrected a long-name tablet header overflow; expanded secondary-screen, dialog-focus and delayed-navigation verification now passes45/45 |
 
-The final source passed396 automated unit/database/controller checks with zero
+The final source passed409 automated unit/database/controller checks with zero
 failures/skips, TypeScript and the optimized production build in Linux run
-45588897028. Native run45588897211 has zero failures, skips or global errors.
-Exact native-tested merge:2fba63fc1c2b57964333e2dd0a019bd040d27e69.
-Safe artifact15010166595 digest:
-sha256:655ac194789f51584de6ba9313c71707c19fee40ff62d8150c6738e7fcb1fd33.
+45598630358. Native run45598630309 has45 passes and zero failures, skips or global errors.
+Exact native-tested merge:cffaee2fa26492740a2a6df9daab3f284a2597f5.
+Safe artifact15014187990 digest:
+sha256:63fc2f0b059937f5d7f2267a01bcff80b01245d82b4a83a92b20508f5f242675.
 
 These are four documented source-review executions with meaningful corrections
 and expanded coverage. They do not certify four completed hosted release cycles,
@@ -57,10 +58,10 @@ and one409. Other owners' restricted records must remain unreadable.
 
 | Measurement | Samples | Actual p95 | Acceptance target |
 | --- | ---: | ---: | ---: |
-| Summary read |80 |106.26ms |<2000ms |
-| Write including context refresh |8 |456.64ms |<1000ms |
-| Daily brief |40 |170.59ms |<2000ms |
-| Usable task navigation, eight concurrent workspaces |8 |1341.73ms |<2000ms |
+| Summary read |80 |121.86ms |<2000ms |
+| Write including context refresh |8 |461.06ms |<1000ms |
+| Daily brief |40 |181.21ms |<2000ms |
+| Usable task navigation, eight concurrent workspaces |8 |1440.18ms |<2000ms |
 | Maximum task-summary payload |80 |67412bytes |<100000bytes |
 
 Loopback bursts do not establish Internet latency, sustained capacity or a
@@ -85,6 +86,37 @@ actual layout geometry and visible task status/deadline/owner. Automated WCAG2.2
 checks and reduced motion pass on tested screens. Direct native Chrome review
 also exposed and corrected squeezed module headings and wrapped-action alignment
 using a clearly synthetic local fixture. That fixture itself proves no persistence.
+
+The additional craftsmanship pass verifies Settings, Team, Library and Operations
+at320/390/768/1440px with long synthetic labels. It checks panel action containment,
+non-overlapping controls, section separation, heading/action alignment, accessible
+dialogs and keyboard focus restoration. Automated WCAG checks include these screens.
+
+Direct rendered comparisons found and corrected Settings overflow at320px
+(360px document reduced to320px), touching Settings panels (0px gap to24px),
+and mobile heading/action misalignment (21.2px offset to0px). Long dialog titles
+wrap within the Close control's content gutter; duplicate toolbar identity text
+truncates at tablet width while preserving full names in the directory/sidebar.
+No document or panel clipping is used to conceal overflow.
+
+Navigation acknowledges the destination with its active link, title, heading and
+accessible loading status while actual data is pending. Deferred HTTP browser
+tests require acknowledgement below150ms, reject stale responses after a newer
+destination, recover a safe503 through Retry, and allow a later Sales tab to
+supersede an unresolved reporting tab. These pass against the actual application.
+This is measured input feedback, not a claim of sub150ms Internet data loading.
+
+This completed review used Apple's clarity, restrained feedback and predictable
+control behavior; no Apple branding or proprietary assets are copied. Shared
+spacing uses4/8/12/16/20/24/32px; control/panel radii10/16px; standard controls44px.
+Central motion values are90/120/200ms with cubic-bezier(.2,.7,.2,1), where used;
+reduced motion remains supported. No page fades or decorative loading motion
+were introduced. Visual review does not establish subjective perfection.
+
+The next redesign direction is Programa's actual application, using NAM branding
+and independently implemented components. Preserve this tested runtime as the
+functional baseline; reference collection precedes replacement of the visual
+system. No Programa fidelity or implementation is claimed by this checkpoint.
 
 ## Open delivery gates
 
