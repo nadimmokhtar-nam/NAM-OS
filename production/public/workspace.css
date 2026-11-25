@@ -129,6 +129,18 @@ form[data-daily-review]{margin-top:var(--space-6)}
 .metric-unavailable{font-size:var(--type-body);line-height:var(--line-body);letter-spacing:0}
 
 /* Projects use truthful neutral covers until NAM provides project imagery. */
+.project-context-heading{padding:var(--space-3) var(--space-2);min-width:0;flex-shrink:0}
+.project-context-name{display:block;font-size:var(--type-label);line-height:var(--line-label);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar>[data-project-navigation]{flex:none;padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle);margin-bottom:var(--space-3)}
+.project-nav-back{width:100%;text-align:left;color:var(--text-secondary);margin-bottom:var(--space-2)}
+.crumb{display:flex;align-items:center;gap:var(--space-2)}
+.crumb>a{color:var(--text-secondary);text-decoration:none}
+.crumb>a:hover{color:var(--ink)}
+.project-overview-work{display:flex;justify-content:space-between;align-items:center;gap:var(--space-6);padding-block:var(--space-5);border-bottom:1px solid var(--border-subtle)}
+.project-overview-work p{margin-top:var(--space-2);color:var(--text-secondary)}
+.project-overview-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+.project-task-total{display:block;margin-top:var(--space-2);font-family:var(--font-display);font-size:var(--type-display);line-height:var(--line-display);font-weight:400}
+@media(max-width:700px){.project-overview-work{align-items:flex-start;flex-direction:column;gap:var(--space-4)}.project-overview-actions{width:100%}}
 .project-navigation{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-4);margin-bottom:var(--space-4)}
 .project-navigation>.tabs{margin-bottom:0}
 .project-directory{max-width:1320px;margin-inline:auto}

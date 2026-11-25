@@ -19,7 +19,11 @@ const safeFailure=error=>{
  let file=sourceFile(error?.location?.file),line=lineNumber(file,error?.location?.line),column=Number(error?.location?.column);
  if(!file||!line){const match=String(error?.stack||'').match(/(?:^|[\s(])(browser\/[a-z0-9-]+\.spec\.mjs):(\d+):(\d+)/m);file=match?sourceFile(match[1]):null;line=lineNumber(file,match?.[2]);column=Number(match?.[3]);}
  const location=file&&line?file+':'+line+(Number.isInteger(column)&&column>0&&column<100000?':'+column:''):null;
- return {location,assertion:String(error?.message||'').match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toHaveText|toContainText|toEqual|toBe|toHaveCount)\b/)?.[1]||null};
+ const message=String(error?.message||'').replace(/\u001b\[[0-9;]*m/g,''),assertion=message.match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toHaveText|toContainText|toEqual|toBe|toHaveCount)\b/)?.[1]||null;
+ // For an exact HTTP creation assertion, retain only bounded numeric codes.
+ // Never include response bodies, assertion diffs or arbitrary error messages.
+ const expected=message.match(/^Expected:\s*(201)\s*$/m),received=message.match(/^Received:\s*([1-5][0-9]{2})\s*$/m);
+ return {location,assertion,...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:201,received:Number(received[1])}}:{})};
 };
 // Performance evidence is a numeric allowlist bound to this exact CI source.
 // No user labels, endpoints, raw timings, errors or arbitrary evidence fields

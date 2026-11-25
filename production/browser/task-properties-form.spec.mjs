@@ -87,7 +87,9 @@ test('native associated properties persist as one parent save while child forms 
   const comment='[QA] Independent comment '+run.marker;
   await run.dialog.getByLabel('Add a comment',{exact:true}).fill(comment);
   const commentSaved=run.page.waitForResponse(response=>new URL(response.url()).pathname==='/api/tasks/'+run.task.id+'/comments'&&response.request().method()==='POST');
-  await run.dialog.getByRole('button',{name:'Add comment',exact:true}).click();expect((await commentSaved).status()).toBe(200);
+  await run.dialog.getByRole('button',{name:'Add comment',exact:true}).click();const commentResponse=await commentSaved;
+  expect(commentResponse.request().postDataJSON(),'A child comment must submit only its own body').toEqual({body:comment});
+  expect(commentResponse.status()).toBe(201);
   await expect(run.dialog.locator('.comment')).toContainText(comment);await expectDraft(run,values);
   const childTitle='[QA] Independent subtask '+run.marker;await run.dialog.getByLabel('New subtask',{exact:true}).fill(childTitle);
   const childSaved=run.page.waitForResponse(response=>new URL(response.url()).pathname==='/api/tasks/'+run.task.id+'/subtasks'&&response.request().method()==='POST');

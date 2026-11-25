@@ -50,19 +50,34 @@ export function createProductionProjects({request,openDialog,getData}){
   const access=founder()?participants+' participant'+(participants===1?'':'s'):'Shared with you';
   return `<dl class="project-metric-strip" aria-label="Project details"><div class="project-metric"><dt>Project lead</dt><dd>${esc(lead?.name||'Studio member')}</dd></div><div class="project-metric"><dt>Delivery deadline</dt><dd>${esc(deliveryDate(project.due_date,true))}</dd></div><div class="project-metric"><dt>Status</dt><dd>${project.archived?'Archived':'Active'}</dd></div><div class="project-metric"><dt>Brief access</dt><dd>${esc(access)}</dd></div></dl>`;
  }
- function render({taskWorkspace,newTaskButton,taskTab=false}){
+ function projectHash(view='overview'){
+  if(!project)return '#projects';
+  return '#projects/'+encodeURIComponent(project.id)+(view==='work'?'/work':'');
+ }
+ function projectViewLabel(view='overview'){return view==='work'?'Project Management':'Overview';}
+ function navigation(view='overview'){
+  if(!project)return '';
+  const active=view==='work'?'work':'overview';
+  return `<div class="project-context-heading"><span class="project-context-name">${esc(project.title)}</span></div><nav aria-label="Project navigation" data-project-navigation><button type="button" class="nav-link project-nav-back" data-action="project-back">Back to projects</button>${[['overview','overview'],['work','tasks']].map(([key,symbol])=>`<a class="nav-link ${active===key?'active':''}" href="${esc(projectHash(key))}" ${active===key?'aria-current="page"':''}>${icon(symbol)}${projectViewLabel(key)}</a>`).join('')}</nav>`;
+ }
+ function projectWorkSummary(projectTaskCount){
+  const count=Number.isSafeInteger(projectTaskCount)&&projectTaskCount>=0?projectTaskCount:null;
+  return `<section class="project-overview-work" aria-labelledby="project-task-summary-title"><div><h2 id="project-task-summary-title">Project tasks</h2>${count===null?'':`<strong class="project-task-total">${count.toLocaleString('en-GB')}</strong>`}<p>${founder()?'All permitted tasks linked to this project.':'Your assigned tasks linked to this project.'}</p></div><div class="project-overview-actions"><a class="button" href="${esc(projectHash('work'))}">Open Project Management</a>${founder()?`<button class="button text small" data-action="project-archive">${project.archived?'Restore project':'Archive project'}</button>`:''}</div></section>`;
+ }
+ function render({taskWorkspace,newTaskButton,taskTab=false,projectView='overview',projectTaskCount=null}){
   if(project){
+   if(projectView==='work')return `<div class="page-head project-detail-header"><div><h1>Project Management</h1><p>${esc(project.title)}</p></div>${!project.archived?newTaskButton('projects'):''}</div><section class="project-work-section" aria-label="Project tasks">${taskWorkspace('projects')}</section>`;
    const hasContext=!!(project.outcome||project.reference_url);
    const metadata=hasContext?`<aside class="project-overview-meta" aria-label="Project context">${project.outcome?`<section><h2>Definition of done</h2><p class="brief-copy">${esc(project.outcome)}</p></section>`:''}${project.reference_url?`<section><h2>References</h2><p>Open the project’s shared reference folder or brief.</p><a class="button small" href="${esc(project.reference_url)}" target="_blank" rel="noopener noreferrer">Open project references ${icon('arrow')}</a></section>`:''}</aside>`:'';
-   return `<div class="page-head project-detail-header"><div><button class="back-link" data-action="project-back">All projects</button><h1>${esc(project.title)}</h1></div>${!project.archived?newTaskButton('projects'):''}</div>
+   return `<div class="page-head project-detail-header"><div><h1>${esc(project.title)}</h1></div>${!project.archived?newTaskButton('projects'):''}</div>
     <div class="project-overview-grid${hasContext?'':' project-overview-single'}"><div><section class="project-brief" aria-labelledby="project-brief-title"><h2 id="project-brief-title">Project brief</h2><p class="brief-copy">${esc(project.brief||'No brief has been written yet.')}</p></section>${projectTeam()}</div>${metadata}</div>
     ${projectMetrics()}
-    <section class="project-work-section" aria-labelledby="project-work-title"><div class="section-caption"><div><h2 id="project-work-title">Project work</h2><p>${founder()?'Shared tasks linked to this project.':'Your assigned tasks in this project.'}</p></div>${founder()?`<button class="button text small" data-action="project-archive">${project.archived?'Restore project':'Archive project'}</button>`:''}</div>${taskWorkspace('projects')}</section>`;
+    ${projectWorkSummary(projectTaskCount)}`;
   }
   const archiveTab=(value,title,active)=>`<button class="tab ${active?'active':''}" data-action="project-archived" data-value="${value}" aria-pressed="${active}">${title}</button>`;
   const directory=records.length?`<div class="project-grid">${records.map(record=>`<button class="project-card" data-action="project-open" data-id="${esc(record.id)}"><span class="project-card-media" aria-hidden="true"></span><span class="project-card-caption"><span class="project-card-title">${esc(record.title)}</span><span class="project-card-meta"><span class="project-card-status">${projectStatus(record)}</span><span class="project-card-date">${record.due_date?'Delivery '+esc(deliveryDate(record.due_date)):'No delivery date'}</span></span></span></button>`).join('')}</div>`:`<section class="project-empty"><h2>${archived?'No archived projects':'No projects yet'}</h2><p>${founder()?'Create a project to collect its brief, team and work in one place.':'Projects appear when a brief is shared with you. Your existing assignments remain in All production work.'}</p></section>`;
   return `<section class="project-directory"><div class="page-head project-index-header"><h1>Projects</h1>${founder()?'<button class="button primary" data-action="project-create">Create project</button>':''}</div><div class="project-navigation"><div class="tabs" aria-label="Production views">${archiveTab('all','All',!taskTab&&!archived)}${archiveTab('archived','Archived',!taskTab&&archived)}<button class="tab ${taskTab?'active':''}" data-action="project-tab" data-value="tasks" aria-pressed="${taskTab}">All production work</button></div>${taskTab?newTaskButton('projects'):''}</div>${taskTab?taskWorkspace('projects'):directory}${!taskTab&&records.length>=200?'<p class="panel-foot">Showing the first 200 permitted projects.</p>':''}</section>`;
  }
 
- return {load,open,reset,form,save,fields,ownerChoices,context,render,getProject:()=>project,getRecords:()=>records,select:result=>{selection++;project=result;},back:()=>{selection++;project=null;},toggleArchive:value=>{archived=value==='all'?false:value==='archived'?true:!archived;}};
+ return {load,open,reset,form,save,fields,ownerChoices,context,render,navigation,projectHash,projectViewLabel,getProject:()=>project,getRecords:()=>records,select:result=>{selection++;project=result;},back:()=>{selection++;project=null;},toggleArchive:value=>{archived=value==='all'?false:value==='archived'?true:!archived;}};
 }

@@ -130,6 +130,7 @@ for(const viewport of viewports)test('Programa geometry supports founder, sales 
   const project=await artist.context.request.get('/api/projects/'+fixture.records.project);expect(project.status()).toBe(200);const brief=await project.json();
   await ready(artist.page,brief.title);await shell(artist.page,viewport.width);
   await expect(artist.page.locator('.project-brief .brief-copy')).toHaveText(brief.brief);
+  await artist.page.getByRole('link',{name:'Open Project Management',exact:true}).click();await ready(artist.page,'Project Management');await shell(artist.page,viewport.width);
   await expect(artist.page.locator('[data-action="open-task"][data-id="'+fixture.records.tasks[1]+'"]')).toHaveCount(0);
   const own=artist.page.locator('[data-action="open-task"][data-id="'+originalTask.id+'"]');await actionable(own,viewport.width);await own.focus();await own.press('Enter');await dialogFit(artist.page,viewport.width);
   await expect(artist.page.getByRole('dialog').locator('.context-title')).toHaveText(brief.title);
@@ -150,13 +151,13 @@ for(const viewport of viewports)test('Programa geometry supports founder, sales 
   expect(selected.lessons.length,'The shared learning fixture must have a readable lesson').toBeGreaterThan(0);
   const intendedLesson=selected.lessons.find(lesson=>!lesson.completed_at)||selected.lessons[0];
   await ready(artist.page,selected.title);
-  await expect(artist.page.locator('.lesson-body h2'),'The selected publication must render a lesson heading').toHaveCount(1);
-  await expect(artist.page.locator('.lesson-body h2')).toHaveText(intendedLesson.title);
-  await expect(artist.page.locator('.lesson-body h2')).toBeVisible();
+  await expect(artist.page.locator('.lesson-body > h2'),'The selected publication must render a lesson heading').toHaveCount(1);
+  await expect(artist.page.locator('.lesson-body > h2')).toHaveText(intendedLesson.title);
+  await expect(artist.page.locator('.lesson-body > h2')).toBeVisible();
   const outline=artist.page.locator('.lesson-outline');
   if(!await outline.evaluate(node=>node.open)){const summary=outline.locator(':scope > summary');await actionable(summary,viewport.width);await summary.focus();await summary.press('Enter');}
   const lesson=artist.page.locator('.lesson-nav [data-action="lesson"]').first();await actionable(lesson,viewport.width);await lesson.focus();await lesson.press('Enter');
-  await expect(lesson).toHaveAttribute('aria-current','step');await expect(artist.page.locator('.lesson-body h2')).toBeFocused();
+  await expect(lesson).toHaveAttribute('aria-current','step');await expect(artist.page.locator('.lesson-body > h2')).toBeFocused();
   expect(await artist.page.locator('.lesson-body').evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
  }finally{
   // Only the exact, isolated records touched by this test are restored.

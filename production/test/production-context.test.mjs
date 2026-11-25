@@ -72,7 +72,7 @@ test('Archive tabs select an explicit scope and do not toggle when selected agai
  html=module.render({taskWorkspace:()=>'',newTaskButton:()=>''});assert(html.includes('data-value="all" aria-pressed="true"'));
 });
 
-test('A project overview keeps its real brief, team and shared work together without deriving fake metrics',()=>{
+test('A project overview keeps its real brief and team with a direct shared-work link and no fake metrics',()=>{
  const {module,project}=harness();module.select({...project,due_date:'2026-12-10',outcome:'Reviewed final files',reference_url:'https://example.invalid/references'});
  const html=module.render({taskWorkspace:section=>'<p>Actual '+section+' work</p>',newTaskButton:()=>'<button>New assigned work</button>'});
  assert(html.includes('class="project-overview-grid"'));assert(html.includes('class="project-brief"'));
@@ -81,7 +81,8 @@ test('A project overview keeps its real brief, team and shared work together wit
  assert(html.includes('class="project-team-list"'));assert(html.includes('Assigned artist'));assert(!html.includes('Other artist'));
  assert(html.includes('<dt>Delivery deadline</dt><dd>10 December 2026</dd>'));
  assert(html.includes('<dt>Brief access</dt><dd>2 participants</dd>'));
- assert(html.includes('Actual projects work'));assert(html.indexOf('project-team-list')<html.indexOf('project-metric-strip'));assert(html.indexOf('project-metric-strip')<html.indexOf('project-work-section'));
+ assert(!html.includes('Actual projects work'));assert(html.includes('href="#projects/shared/work">Open Project Management'));assert(html.indexOf('project-team-list')<html.indexOf('project-metric-strip'));assert(html.indexOf('project-metric-strip')<html.indexOf('project-overview-work'));
+ const work=module.render({projectView:'work',taskWorkspace:section=>'<p>Actual '+section+' work</p>',newTaskButton:()=>''});assert(work.includes('Actual projects work'));assert(!work.includes('project-brief-title'));
  assert(!html.includes('Approved'));assert(!html.includes('Revenue'));assert(!html.includes('Hours tracked'));
 });
 
@@ -90,7 +91,8 @@ test('An artist overview does not expose the Founder participant list or editing
  const html=module.render({taskWorkspace:()=>'<p>Only assigned work</p>',newTaskButton:()=>''});
  assert(html.includes('This brief is shared with you.'));assert(html.includes('<dt>Brief access</dt><dd>Shared with you</dd>'));
  assert(!html.includes('class="project-team-list"'));assert(!html.includes('data-action="project-edit"'));assert(!html.includes('data-action="project-archive"'));
- assert(html.includes('Your assigned tasks in this project.'));assert(html.includes('Only assigned work'));
+ assert(html.includes('Your assigned tasks linked to this project.'));assert(!html.includes('Only assigned work'));
+ const work=module.render({projectView:'work',taskWorkspace:()=>'<p>Only assigned work</p>',newTaskButton:()=>''});assert(work.includes('Only assigned work'));assert(!work.includes('project-team-list'));
 });
 
 test('Missing optional context leaves a single calm brief column and archive retains its restore action',()=>{

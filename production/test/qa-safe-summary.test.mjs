@@ -75,6 +75,18 @@ test('failed assertions reveal a checked-in failure site and known matcher witho
  assert.equal(sites[1].location,'browser/task-focus.spec.mjs:81:91');assert.equal(sites[1].assertion,'toBeFocused');
 });
 
+test('HTTP creation failures expose only valid numeric status codes at a checked-in assertion',async()=>{
+ const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[
+  {message:'expect(received).toBe(expected)\nExpected: 201\nReceived: 400\n'+marker,location:{file:testFile,line:77,column:35}},
+  {message:'expect(received).toBe(expected)\nExpected: 201\nReceived: '+marker,location:{file:testFile,line:77,column:35}},
+  {message:'expect(received).toBe(expected)\nExpected: 201\nReceived: 999',location:{file:testFile,line:77,column:35}},
+  {message:'expect(received).toBe(expected)\nExpected: 201\nReceived: 400',location:{file:'/private/'+marker,line:1,column:1}},
+ ]}]});
+ const result=await summarize(fixture),sites=result.output.tests[0].results[0].failureSites;
+ assert.deepEqual(sites[0].httpStatus,{expected:201,received:400});
+ assert(sites.slice(1).every(site=>!Object.hasOwn(site,'httpStatus')));
+});
+
 test('failure-site extraction rejects traversal, unknown files and private external paths',async()=>{
  const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[
   {message:marker,stack:'Error: '+marker+'\n at browser/../../private.env:9:3'},

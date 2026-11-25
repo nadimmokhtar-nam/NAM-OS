@@ -42,6 +42,58 @@ async function harness({intercept,sales,defaultTimeZone,initialHash='#overview'}
   return {ui,model,nodes,requests,redirects,location,response,document,windowEvents,setConfirm(value){confirmValue=value;},async dispatch(type,event){for(const listener of listeners[type]||[])await listener(event);}};
 }
 
+test('project routes mount their shared work only in Project Management and keep one active navigation link',async()=>{
+ const project={id:'shared-project',title:'Shared courtyard',brief:'A shared production brief.',member_ids:[actor.id],lead_id:actor.id,version:1};
+ const h=await harness({intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:[project]});
+  if(url==='/api/projects/shared-project')return response(project);
+  if(url.startsWith('/api/tasks?'))return response({items:[{...task(),project_id:project.id}],total:120,page:1,hasMore:true});
+  return null;
+ }});
+ h.location.hash='#projects/shared-project';await h.ui.navigate();
+ let html=h.nodes.get('#app').innerHTML;
+ assert(html.includes('A shared production brief.'));assert(html.includes('project-task-total">120</strong>'));
+ assert(!html.includes('id="task-results"'));assert.equal((html.match(/aria-current="page"/g)||[]).length,1);
+ assert(html.includes('href="#projects/shared-project" aria-current="page"'));
+ h.location.hash='#projects/shared-project/work';await h.ui.navigate();html=h.nodes.get('#app').innerHTML;
+ assert(html.includes('<h1>Project Management</h1>'));assert(html.includes('id="task-results"'));
+ assert(html.includes('data-id="task-1"'));assert(!html.includes('project-brief-title'));
+ assert(html.includes('href="#projects/shared-project/work" aria-current="page"'));
+ assert.equal((html.match(/aria-current="page"/g)||[]).length,1);
+ await h.ui.action({dataset:{action:'project-back'}});html=h.nodes.get('#app').innerHTML;
+ assert(!html.includes('data-project-navigation'));assert.equal(h.location.hash,'#projects');
+});
+
+test('project deep links decode the requested record and preserve unavailable-record errors without leaking a prior brief',async()=>{
+ const h=await harness({intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:[]});
+  if(url==='/api/projects/shared%20project')return response({id:'shared project',title:'Authorized brief',member_ids:[actor.id],lead_id:actor.id,version:1});
+  if(url==='/api/projects/not-shared')return response({error:'Project not found.'},404);
+  return null;
+ }});
+ h.location.hash='#projects/shared%20project/work';await h.ui.navigate();
+ assert(h.nodes.get('#app').innerHTML.includes('Authorized brief'));assert.equal(h.ui.state.projectView,'work');
+ h.location.hash='#projects/not-shared/work';await h.ui.navigate();
+ const html=h.nodes.get('#main').innerHTML;assert(html.includes('Project not found.'));assert(!html.includes('Authorized brief'));
+});
+
+test('returning to the project directory invalidates an older project opening intent',async()=>{
+ let release,started;const hold=new Promise(resolve=>release=resolve),seen=new Promise(resolve=>started=resolve);
+ const h=await harness({intercept:async(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:[]});
+  if(url==='/api/projects/earlier-project'){started();await hold;return response({id:'earlier-project',title:'Earlier project intent',member_ids:[],lead_id:actor.id,version:1});}
+  return null;
+ }});
+ const earlier=h.ui.action({dataset:{action:'project-open',id:'earlier-project'}});await seen;
+ await h.ui.action({dataset:{action:'project-back'}});release();await earlier;
+ assert.equal(h.location.hash,'#projects');assert.equal(h.ui.state.view,'projects');
+ assert(!h.nodes.get('#app').innerHTML.includes('Earlier project intent'));
+ assert(!h.requests.some(request=>request.url.startsWith('/api/tasks?')&&new URL(request.url,'https://nam.example').searchParams.get('project_id')==='earlier-project'));
+});
+
 for(const section of ['projects','library'])test(`production ${section} opens a working task workspace without unsupported record APIs`,async()=>{
   const h=await harness();h.location.hash='#'+section;await h.ui.navigate();
   const html=h.nodes.get('#app').innerHTML;
