@@ -33,6 +33,7 @@ export async function dispatchStudioReviews(context:APIContext,path:string[],req
   if(typeof input.can_approve!=='boolean'||typeof input.active!=='boolean')throw new ApiError(400,'Choose explicit client access permissions.');
   const retry=key(request),expected=input.expectedVersion==null?null:revision(input.expectedVersion);
   await requireLiveContext(context,{founder:true});
+  const project=await reviewRPC(context,'nam_project_detail',{pid});if(project.archived)throw new ApiError(409,'Restore the project before sharing it with a client.');
   // Provisioning does not send email or create a studio membership. The
   // founder-authorized RPC grants access before any sign-in email is requested.
   const service=clientProvider(true);let uid:string;
@@ -48,6 +49,7 @@ export async function dispatchStudioReviews(context:APIContext,path:string[],req
  if(path[0]==='projects'&&path.length===5&&path[2]==='clients'&&path[4]==='invite'){
   if(method!=='POST')throw new ApiError(405,'Method not allowed.');requireFounder(context);fields(await readJSON(request),[]);
   const pid=id(path[1]),uid=id(path[3]);await requireLiveContext(context,{founder:true});
+  const project=await reviewRPC(context,'nam_project_detail',{pid});if(project.archived)throw new ApiError(409,'Restore the project before requesting a client sign-in email.');
   const {data:grant,error}=await context.supabase.from('nam_client_project_access').select('user_id,active').eq('workspace_id',context.workspaceId).eq('project_id',pid).eq('user_id',uid).maybeSingle();if(error)reviewFailure(error);if(!grant?.active)throw new ApiError(404,'This client invitation is not active.');
   const {data:contact,error:personError}=await context.supabase.from('nam_client_contacts').select('email').eq('workspace_id',context.workspaceId).eq('user_id',uid).maybeSingle();if(personError)reviewFailure(personError);if(!contact)throw new ApiError(404,'Client contact not found.');
   await requireLiveContext(context,{founder:true});const sent=await sendClientSignIn(contact.email,applicationOrigin(request));

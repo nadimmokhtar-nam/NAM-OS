@@ -18,7 +18,7 @@ export async function sendClientSignIn(email:string,origin:string){
  // No authentication URL, OTP or bearer credential is returned to studio users.
  return !error;
 }
-function status(context:Awaited<ReturnType<typeof getClientContext>>){return {authenticated:true,name:context.name,csrf:context.csrf,mfaRequired:context.mfaRequired&&!context.mfaVerified,factorId:context.factors.find(f=>f.status==='verified'&&f.factor_type==='totp')?.id};}
+function status(context:Awaited<ReturnType<typeof getClientContext>>){return {authenticated:true,id:context.userId,name:context.name,csrf:context.csrf,mfaRequired:context.mfaRequired&&!context.mfaVerified,factorId:context.factors.find(f=>f.status==='verified'&&f.factor_type==='totp')?.id};}
 export async function publicClientAuth(request:Request,path:string[]):Promise<Response|null>{
  if(path[0]!=='client'||path[1]!=='auth'||path.length>3)return null;
  const action=path[2]||'',method=request.method;

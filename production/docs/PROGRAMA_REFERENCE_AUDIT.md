@@ -16,14 +16,19 @@ Current validation counts and exact implementation/run links are maintained in
 below describe their stated checkpoints. They do not establish final visual
 acceptance. No hosted migration or deployment has occurred.
 
-The workspace connection was restored and the redesign branch was cloned at
-`640edc3aebdd095e48511687865a30fc73fc7c1b` with a clean working tree. Desktop
-and mobile captures from the verified browser run were inspected. A shared file
-size formatter now keeps render and Academy metadata readable below one MiB.
-The current browser returns 403 Forbidden for Programa Projects, including after
-one reload; live visual comparison cannot proceed through this session. Saved
-reference measurements remain available, but complete visual acceptance and
-client approval workflows remain open.
+The workspace connection was restored and its saved source reconciled with
+GitHub using Git blob hashes. The authenticated Programa application was reopened
+successfully through the local in-app browser, including its project Share dialog
+and populated guest preview. The separate cloud browser's earlier 403 does not
+apply to this restored session. Measured guest navigation is 220px; its item
+drawer is 480px. No reference project or sharing permissions were changed.
+
+The next implementation adds issued client-review snapshots and independent
+guest access, email sign-in, version-specific Accept/Reject responses, revocation
+and studio/artist feedback. Implementation boundaries and release requirements
+are documented in `CLIENT_REVIEW_WORKFLOW.md`. Verification is in progress on
+the draft branch; no hosted migration, real-client invitation or deployment has
+been performed. Complete visual acceptance and the remaining modules stay open.
 
 The user authorized a different display font on 25 November 2026. NAM now selects
 Newsreader for editorial headings, paired with the existing Inter UI face.

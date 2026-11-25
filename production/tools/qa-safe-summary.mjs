@@ -22,7 +22,7 @@ const safeFailure=error=>{
  const message=String(error?.message||'').replace(/\u001b\[[0-9;]*m/g,''),assertion=message.match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toHaveText|toContainText|toEqual|toBe|toHaveCount)\b/)?.[1]||null;
  // For an exact HTTP creation assertion, retain only bounded numeric codes.
  // Never include response bodies, assertion diffs or arbitrary error messages.
- const expected=message.match(/^Expected:\s*(201)\s*$/m),received=message.match(/^Received:\s*([1-5][0-9]{2})\s*$/m);
+ const expected=message.match(file==='browser/client-reviews.spec.mjs'?/^Expected:\s*(200|201|202|400|401|403|404|409|429|503)\s*$/m:/^Expected:\s*(201)\s*$/m),received=message.match(/^Received:\s*([1-5][0-9]{2})\s*$/m);
  // Image-workspace diagnostics may retain only bounded dimensions/status codes
  // or scalar types. Record identities, titles, DOM and error text stay private.
  let imageAssertion;
@@ -32,7 +32,7 @@ const safeFailure=error=>{
   if(['200','374','480'].includes(left)&&/^\d{1,4}$/.test(right||''))imageAssertion={expected:Number(left),received:Number(right)};
   else if(left&&right)imageAssertion={expectedShape:shape(left),receivedShape:shape(right)};
  }
- return {location,assertion,...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:201,received:Number(received[1])}}:{}),...(imageAssertion?{imageAssertion}:{})};
+ return {location,assertion,...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:Number(expected[1]),received:Number(received[1])}}:{}),...(imageAssertion?{imageAssertion}:{})};
 };
 // Performance evidence is a numeric allowlist bound to this exact CI source.
 // No user labels, endpoints, raw timings, errors or arbitrary evidence fields

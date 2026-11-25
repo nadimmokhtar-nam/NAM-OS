@@ -15,7 +15,8 @@ async function harness(intercept){
  const data={actor:{id:'artist'},capabilities:{renders:'versions'}},record={id:'camera-one',code:'INT-01',title:'Living room hero',kind:'still',version:1,archived:false};
  const dialog={open:true,querySelectorAll(){return controls;},querySelector(selector){return selector==='.deliverable-detail,.render-review'?surface:form;}};
  const document={querySelector(selector){return selector==='#dialog'?dialog:selector==='.render-review'?surface:null;},getElementById(){return null;},addEventListener(type,listener){(listeners[type]??=[]).push(listener);}};
- const sandbox=vm.createContext({document,Intl,Date,URLSearchParams,crypto:globalThis.crypto,confirm:()=>true,XMLHttpRequest:class{constructor(){this.upload={};this.status=transferStatus;transfers.push(this);}open(){}setRequestHeader(){}send(){if(autoTransfer)queueMicrotask(()=>this.onload());}abort(){this.onabort?.();}}});
+ const hashes=new Set(),trackedCrypto={randomUUID:()=>globalThis.crypto.randomUUID(),subtle:{digest(...args){const operation=globalThis.crypto.subtle.digest(...args);hashes.add(operation);operation.then(()=>hashes.delete(operation),()=>hashes.delete(operation));return operation;}}};
+ const sandbox=vm.createContext({document,Intl,Date,URLSearchParams,crypto:trackedCrypto,confirm:()=>true,XMLHttpRequest:class{constructor(){this.upload={};this.status=transferStatus;transfers.push(this);}open(){}setRequestHeader(){}send(){if(autoTransfer)queueMicrotask(()=>this.onload());}abort(){this.onabort?.();}}});
  const {createRenderVersions}=await loadBrowserModule(sandbox,'render-versions.js');
  const ui=createRenderVersions({request:async(...args)=>{calls.push(structuredClone(args));const result=await intercept?.(...args);if(result!==undefined)return result;
   if(args[0].startsWith('/deliverables/'))return args[1]==='POST'?{id:'render-one',status:'pending',uploadUrl:'https://storage.invalid/upload',sha256:digest,size:bytes.length,mime:'image/png'}:structuredClone(versionPage);
@@ -27,7 +28,7 @@ async function harness(intercept){
   async click(action,id){for(const listener of listeners.click||[])listener({preventDefault(){},target:{matches:()=>false,closest:()=>({dataset:{renderAction:action,id},disabled:false,closest:()=>form})}});await settle();},
   file(name='living-room.png',content=bytes){return {name,type:'image/png',size:content.length,arrayBuffer:async()=>Uint8Array.from(content).buffer};},
   form(file){const error={textContent:''},status={textContent:''},progress={value:0},recovery={hidden:true},submit={disabled:false},stop={disabled:true};form={dataset:{renderForm:'upload',record:record.id,version:'1',retryId:''},isConnected:true,elements:{render_file:{files:[file],disabled:false},note:{value:'Initial pass',readOnly:false}},querySelector:selector=>({'.form-error':error,'[data-render-status]':status,'[data-render-progress]':progress,'[data-render-recovery]':recovery,'[type=submit]':submit,'[data-render-action="stop"]':stop})[selector]};return {form,error,status,progress,recovery,submit,stop};},
-  async submit(form){for(const listener of listeners.submit||[])listener({preventDefault(){},target:form});await settle();}
+  async submit(form){for(const listener of listeners.submit||[])listener({preventDefault(){},target:form});await settle();await Promise.all([...hashes]);await settle();}
  };
 }
 

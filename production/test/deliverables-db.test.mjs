@@ -105,5 +105,5 @@ test('direct writes, cross-workspace identities and unverified assurance cannot 
 test('business export includes camera metadata, history and task associations without inventing image approval',async()=>{
  const pid=await project(),did=await create(pid),task=await work(pid,did);await rpc(ids.artist,'nam_save_task',[ids.w,task.id,task.version,{status:'Done'}]);
  assert.equal((await detail(ids.artist,did)).stage,'Briefing');
- const exported=await rpc(ids.founder,'nam_export_business',[ids.w]);assert.equal(exported.version,6);assert(exported.data.nam_deliverables.some(item=>item.id===did));assert(exported.data.nam_deliverable_events.some(item=>item.deliverable_id===did));assert.equal(exported.data.nam_tasks.find(item=>item.id===task.id).deliverable_id,did);assert.equal(exported.attachmentBytesIncluded,false);
+ const exported=await rpc(ids.founder,'nam_export_business',[ids.w]);assert.equal(exported.version,7);assert(exported.data.nam_deliverables.some(item=>item.id===did));assert(exported.data.nam_deliverable_events.some(item=>item.deliverable_id===did));assert.equal(exported.data.nam_tasks.find(item=>item.id===task.id).deliverable_id,did);assert.equal(exported.attachmentBytesIncluded,false);
 });

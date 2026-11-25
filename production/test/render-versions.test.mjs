@@ -51,7 +51,7 @@ test('new versions retain earlier files, numbers, notes and feedback rather than
  const page=await (await call(ids.artist,'deliverables/'+did+'/renders')).json();assert.deepEqual(page.items.map(r=>r.number),[2,1]);assert.equal(page.items[1].note,'First material pass');assert.equal(page.items[0].note,'Updated lighting');
  assert.deepEqual(Buffer.from(await (await call(ids.artist,'renders/'+a.id+'/content?variant=original')).arrayBuffer()),bytes);
  const history=(await detail(did)).history;assert.equal(history.filter(e=>e.changes.render_version).length,2);assert.equal((await detail(did)).stage,'Briefing');
- const exported=await rpc(ids.founder,'nam_export_business',{w:ids.w});assert.equal(exported.version,6);assert.equal(exported.renderBytesIncluded,false);assert(exported.data.nam_render_versions.some(row=>row.id===a.id));
+ const exported=await rpc(ids.founder,'nam_export_business',{w:ids.w});assert.equal(exported.version,7);assert.equal(exported.renderBytesIncluded,false);assert(exported.data.nam_render_versions.some(row=>row.id===a.id));
 });
 
 test('upload and feedback retries preserve identity and reject changed payloads',async()=>{

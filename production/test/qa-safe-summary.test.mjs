@@ -32,6 +32,11 @@ async function summarize(report,{missing=false,raw,performance}={}){
 
 function performanceReport(){const value=example();value.suites[0].specs[0].file=resolve(app,'browser/performance.spec.mjs');value.suites[0].specs[0].line=1;return value;}
 const performanceFixture=()=>({commit:'1'.repeat(40),identities:8,loadTasks:10000,maximumSummaryBytes:65536,...Object.fromEntries(['httpReads','httpWriteIncludingContextRefresh','dailyBrief','eightConcurrentBrowserWorkspaces'].map(key=>[key,{samples:8,p50_ms:10,p95_ms:50,max_ms:70,private:marker}])),private:marker,endpoint:marker});
+test('client email diagnostics retain bounded HTTP codes while discarding messages, mail links and credentials',async()=>{
+ const report=example({status:'unexpected',results:[{status:'failed',duration:10,errors:[{message:'expect(received).toBe(expected)\nExpected: 202\nReceived: 503\n'+marker,location:{file:resolve(app,'browser/client-reviews.spec.mjs'),line:24,column:1}}]}]});
+ const result=await summarize(report);assert.equal(result.exit,1);
+ assert.deepEqual(result.output.tests[0].results[0].failureSites[0].httpStatus,{expected:202,received:503});
+});
 test('performance evidence retains only exact-source numeric aggregates after the real case passes',async()=>{
  const result=await summarize(performanceReport(),{performance:performanceFixture()});
  assert.equal(result.exit,0);assert.equal(result.output.evidenceIncomplete,false);

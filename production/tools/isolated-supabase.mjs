@@ -13,7 +13,7 @@ const cli=process.env.NAM_QA_CLI||resolve(cache,'tools/node_modules/.bin/supabas
 const app=fileURLToPath(new URL('../',import.meta.url));
 const configPath=resolve(root,'supabase/config.jsonc');
 const docker=['--host=unix:///var/run/docker.sock'];
-const excluded='realtime,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor';
+const excluded='realtime,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor';
 const command=process.argv[2]||'status';
 const check=(condition,message)=>{if(!condition)throw Error(message);};
 const exists=async path=>{try{await stat(path);return true;}catch(error){if(error.code==='ENOENT')return false;throw error;}};
@@ -41,7 +41,10 @@ async function configuration(create=false){
   await privateRun(cli,['init','--workdir',root],'init');
   const parsed=ts.parseConfigFileTextToJson(configPath,await readFile(configPath,'utf8'));check(!parsed.error,'The isolated CLI configuration could not be read.');
   const config=parsed.config;check(!config.remotes,'Refusing a remote-linked configuration.');
-  config.project_id='nam-os-qa';config.auth.site_url='http://localhost:3100';config.auth.additional_redirect_urls=['http://localhost:3100/auth/confirm'];config.auth.enable_signup=false;config.auth.enable_anonymous_sign_ins=false;
+  config.project_id='nam-os-qa';config.auth.site_url='http://localhost:3100';config.auth.additional_redirect_urls=['http://localhost:3100/auth/confirm','http://localhost:3100/review'];config.auth.enable_signup=false;config.auth.enable_anonymous_sign_ins=false;
+  // The local capture mailbox never relays messages. Allow synthetic sign-in
+  // email checks without changing any hosted Auth setting.
+  (config.auth.email??={}).max_frequency='1s';(config.auth.rate_limit??={}).email_sent=1000;
   config.db.seed={enabled:false,sql_paths:[]};config.storage.file_size_limit='50MiB';
   await writeFile(configPath,JSON.stringify(config,null,2)+'\n',{mode:0o600});
  }

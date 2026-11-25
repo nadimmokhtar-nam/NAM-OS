@@ -15,7 +15,7 @@ async function fixture(){
  const did=await rpc(ids.founder,'nam_save_deliverable',{w:ids.w,did:null,expected_version:null,changes:{project_id:pid,title:'Issued camera',code:'INT-01',artist_id:ids.artist},retry_key:null});
  await rpc(ids.founder,'nam_save_client_access',{w:ids.w,pid,uid,expected_version:null,payload:{name:'API client',email:'client@review-test.invalid',active:true,can_approve:true},retry_key:randomUUID()});
  const rid=randomUUID();await db.query(`insert into nam_render_versions(id,workspace_id,project_id,deliverable_id,number,file_name,mime,byte_size,expected_sha256,sha256,width,height,preview_size,preview_sha256,thumbnail_size,thumbnail_sha256,note,stage,status,storage_path,created_by,request_key,create_payload,verified_at)
- values($1,$2,$3,$4,1,'render.png','image/png',$5,$6,$6,20,10,$5,$6,$5,$6,'Private note','Briefing','ready',$7,$8,$9,'{}',now())`,[rid,ids.w,pid,did,image.length,digest,pid+'/'+rid,ids.artist,randomUUID()]);
+ values($1,$2,$3,$4,1,'render.png','image/png',$5::bigint,$6,$6,20,10,$5::integer,$6,$5::integer,$6,'Private note','Briefing','ready',$7,$8,$9,'{}',now())`,[rid,ids.w,pid,did,image.length,digest,pid+'/'+rid,ids.artist,randomUUID()]);
  const qid=await rpc(ids.founder,'nam_issue_client_review',{w:ids.w,pid,payload:{title:'Approve material',message:'Please review.',items:[{deliverable_id:did,render_id:rid,expected_version:1}],recipients:[{user_id:uid,can_decide:true}],allow_download:true},retry_key:randomUUID()});
  const review=await rpc(uid,'nam_client_review_detail',{w:ids.w,qid});
  return {pid,did,rid,qid,iid:review.items[0].id};
