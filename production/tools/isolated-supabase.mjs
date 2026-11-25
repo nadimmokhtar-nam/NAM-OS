@@ -71,7 +71,10 @@ async function healthImages(){
  ]){
   const pristine=`nam-os-qa-pristine/${image.name}:${image.tag}`,overlay=`nam-os-qa-health/${image.name}:${image.tag}`,upstream=`public.ecr.aws/supabase/${image.name}:${image.tag}`;
   if(dockerResult(['image','inspect',pristine]).status!==0){
-   await privateRun('docker',[...docker,'pull',`public.ecr.aws/supabase/${image.name}@${image.digest}`],'pull-'+image.name);
+   for(let attempt=1;attempt<=3;attempt++){
+    try{await privateRun('docker',[...docker,'pull',`public.ecr.aws/supabase/${image.name}@${image.digest}`],'pull-'+image.name+'-'+attempt);break;}
+    catch(error){if(attempt===3)throw error;console.log('The official QA image download was interrupted; retrying the same pinned digest.');}
+   }
    check(dockerResult(['tag',`public.ecr.aws/supabase/${image.name}@${image.digest}`,pristine]).status===0,'Could not preserve the verified official image.');
   }
   if(dockerResult(['image','inspect',overlay]).status!==0){

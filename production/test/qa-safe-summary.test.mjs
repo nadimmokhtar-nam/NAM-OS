@@ -80,6 +80,33 @@ test('failed assertions reveal a checked-in failure site and known matcher witho
  assert.equal(sites[1].location,'browser/task-focus.spec.mjs:81:91');assert.equal(sites[1].assertion,'toBeFocused');
 });
 
+test('timed-out actions retain checked-in sites, known operations and bounded timeout durations without their call logs',async()=>{
+ const file=resolve(app,'browser/project-planning.spec.mjs');
+ const fixture=example({status:'unexpected',results:[{status:'timedOut',duration:60046,errors:[
+  {message:'locator.fill: Test timeout of 60000ms exceeded.\nCall log: '+marker,stack:'TimeoutError: '+marker+'\n    at '+file+':77:61'},
+  {message:'expect(locator).toBeDisabled failed '+marker,location:{file,line:77,column:35}},
+ ]}]});
+ const result=await summarize(fixture);assert.equal(result.exit,1);assert.equal(result.output.status,'failed_or_incomplete');
+ assert.deepEqual(result.output.tests[0].results[0].failureSites,[{location:'browser/project-planning.spec.mjs:77:61',assertion:null,operation:'locator.fill',timeoutMs:60000},{location:'browser/project-planning.spec.mjs:77:35',assertion:'toBeDisabled'}]);
+});
+
+test('a singular timeout error retains only its known operation and validated source location',async()=>{
+ const fixture=example({status:'unexpected',results:[{status:'timedOut',duration:15000,error:{message:'page.waitForResponse: Timeout 15000ms exceeded.\n'+marker,stack:marker+'\n at browser/task-focus.spec.mjs:77:35'}}]});
+ const result=await summarize(fixture);assert.equal(result.exit,1);
+ assert.deepEqual(result.output.tests[0].results[0].failureSites,[{location:'browser/task-focus.spec.mjs:77:35',assertion:null,operation:'page.waitForResponse',timeoutMs:15000}]);
+});
+
+test('timeout diagnostics reject arbitrary operations, unbounded durations and unapproved source paths',async()=>{
+ const fixture=example({status:'unexpected',results:[{status:'timedOut',duration:60000,errors:[
+  {message:'locator.'+marker+': Test timeout of 9999999ms exceeded.',location:{file:testFile,line:77,column:35}},
+  {message:marker+': locator.fill: Test timeout of '+marker+'ms exceeded.',location:{file:testFile,line:77,column:35}},
+  {message:'locator.fill: Test timeout of 60000ms exceeded.',stack:'Error: '+marker+'\n at /private/'+marker+'/browser/task-focus.spec.mjs:77:35'},
+ ]}]});
+ const result=await summarize(fixture);assert.equal(result.exit,1);
+ assert(result.output.tests[0].results[0].failureSites.every(site=>!Object.hasOwn(site,'operation')&&!Object.hasOwn(site,'timeoutMs')));
+ assert.equal(result.output.tests[0].results[0].failureSites[2].location,null);
+});
+
 test('HTTP creation failures expose only valid numeric status codes at a checked-in assertion',async()=>{
  const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[
   {message:'expect(received).toBe(expected)\nExpected: 201\nReceived: 400\n'+marker,location:{file:testFile,line:77,column:35}},

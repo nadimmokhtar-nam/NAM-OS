@@ -1,3 +1,4 @@
+import {dispatchClientDelivery} from './project-delivery';
 import 'server-only';
 import {createHash} from 'node:crypto';
 import {type APIContext,ApiError,applicationOrigin,fields,inputText,json,readJSON,requireFounder,requireLiveContext} from './context';
@@ -99,6 +100,7 @@ export async function clientReviewEntry(request:Request,path:string[]):Promise<R
  const publicResponse=await publicClientAuth(request,path);if(publicResponse)return publicResponse;
  const context=await getClientContext(request);
  if(!['GET','HEAD'].includes(request.method))assertClientMutation(context,request);
+ const delivery=await dispatchClientDelivery(context,path,request);if(delivery)return delivery;
  const response=await dispatchClientReviews(context,path,request);if(response)return response;
  throw new ApiError(404,'This client review action is not available.');
 }

@@ -44,6 +44,11 @@
 .project-plan-tools{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-4)}
 .project-plan-tools>p{font-size:var(--type-meta);color:var(--text-secondary);margin:0}
 .project-plan-tools .check-row{margin:0;font-size:var(--type-meta);gap:var(--space-2)}
+body:has(#app>.sidebar)>#app>.main:has(.project-timeline){display:flex;flex-direction:column;overflow:hidden;padding-bottom:var(--page-gutter)}
+.main:has(.project-timeline)>.project-detail-header{flex:none}
+.main:has(.project-timeline)>.project-work-section{display:flex;flex-direction:column;min-height:0;flex:1}
+.project-work-section>.project-timeline{min-height:180px;max-height:none;flex:1}
+.project-work-section>.timeline-footer{position:static;flex:none;margin-bottom:calc(-1 * var(--page-gutter))}
 .project-timeline{max-width:calc(100% + 2 * var(--page-gutter));margin-inline:calc(-1 * var(--page-gutter));max-height:max(320px,calc(100dvh - 320px));overflow:auto;overscroll-behavior:contain;border-block:1px solid var(--border-subtle);scrollbar-gutter:stable}
 .timeline-table{table-layout:fixed;border-collapse:separate;border-spacing:0;margin:0;isolation:isolate}
 .timeline-table th,.timeline-table td{border:0;border-bottom:1px solid var(--border-subtle);padding:0;font-weight:400;text-align:left;vertical-align:middle;font-size:var(--type-label);background:var(--surface-workspace)}
@@ -53,7 +58,7 @@
 .timeline-table thead .timeline-label{z-index:6;height:54px}
 .timeline-table tbody .timeline-label{background:var(--surface-canvas)}
 .timeline-table .timeline-project-name{background:var(--surface-workspace)}
-.timeline-project-name>span:first-child{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font-weight:500}
+.timeline-project-name>span:first-child{display:inline-block;max-width:calc(100% - 80px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font-weight:500}
 .timeline-project-name .badge{margin-left:var(--space-2)}
 .timeline-project-name>small{display:block;margin-top:var(--space-1);color:var(--text-secondary);font-size:var(--type-meta)}
 .timeline-scale{position:relative;overflow:hidden}
@@ -95,7 +100,13 @@
 .cover-choice>img{width:64px;height:40px;object-fit:cover;background:var(--surface-muted);border-radius:var(--radius-small)}
 .cover-choice>span{min-width:0;overflow-wrap:anywhere;font-size:var(--type-label);font-weight:400}
 .cover-choice small{display:block;margin-top:var(--space-1);font-size:var(--type-meta);color:var(--text-secondary)}
-@media(max-width:1000px){.project-overview-hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-4)}.project-recent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:960px){.project-overview-hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-4)}.project-recent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.project-overview-hero{grid-template-columns:minmax(0,1fr)}.project-cover{min-height:0;aspect-ratio:2/1}.project-cover-empty{min-height:0}.project-overview-people{padding-top:var(--space-4)}.project-overview-intro>.project-overview-actions{gap:var(--space-2)}.project-overview-metrics .project-metric-value{font-size:22px;line-height:28px}.project-overview-metrics{gap:var(--space-3)}.project-plan-tools{flex-direction:column;align-items:stretch}.project-plan-tools .filters{justify-content:space-between}.timeline-table .timeline-label{padding:var(--space-2)}.timeline-phase-link small{font-size:11px}.timeline-footer{align-items:flex-start;flex-wrap:wrap}.timeline-footer .filters{flex-wrap:wrap}.timeline-footer .field{margin-left:auto}.project-timeline{max-height:55dvh}.project-cover-search{align-items:stretch}.project-cover-search>button{align-self:flex-end}.project-recent-grid{gap:var(--space-3)}}
 
 .project-overview-metrics .project-metric-note{font-family:var(--font-ui);font-weight:400;margin:0}
+dialog.drawer:has(form[data-plan-form="phase"]){position:fixed;inset:var(--shell-inset) var(--shell-inset) var(--shell-inset) auto;margin:0;width:min(var(--phase-panel-width),calc(100vw - 2 * var(--shell-inset)));height:calc(100dvh - 2 * var(--shell-inset));max-width:none;max-height:none;display:flex;flex-direction:column;border-radius:var(--radius-panel)}
+dialog:has(form[data-plan-form="phase"])>.dialog-head{flex:none;min-height:64px;padding:var(--space-4) var(--space-6)}
+dialog:has(form[data-plan-form="phase"])>.dialog-body{flex:1;min-height:0;padding:0;overflow:hidden}
+form[data-plan-form="phase"]{display:flex;flex-direction:column;height:100%;min-height:0}
+.phase-form-fields{flex:1;min-height:0;overflow:auto;padding:var(--space-5) var(--space-6)}
+form[data-plan-form="phase"]>.form-actions{flex:none;margin:0;padding:var(--space-4) var(--space-6);border-top:1px solid var(--border-subtle)}

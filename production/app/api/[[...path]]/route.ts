@@ -1,12 +1,19 @@
+import {dispatchProjectMilestones} from '@/lib/api/project-milestones';
+import {dispatchProjectDelivery} from '@/lib/api/project-delivery';
 import {ApiError,assertMutation,getContext,json} from '@/lib/api/context';
 import {publicAuth,authAPI} from '@/lib/api/auth';
 import {bootstrap} from '@/lib/api/bootstrap';
 import {dispatchTasks} from '@/lib/api/tasks';
+import {dispatchTaskScheduling} from '@/lib/api/task-scheduling';
 import {dispatchAcademy} from '@/lib/api/academy';
+import {dispatchLearningPaths} from '@/lib/api/learning-paths';
 import {dispatchSales} from '@/lib/api/sales';
+import {dispatchSalesWorkspace} from '@/lib/api/sales-workspace';
 import {dispatchOperations} from '@/lib/api/operations';
 import {dispatchAccess} from '@/lib/api/access';
+import {dispatchTeamProfiles} from '@/lib/api/team-profiles';
 import {dispatchProjects} from '@/lib/api/projects';
+import {dispatchProjectResources} from '@/lib/api/project-resources';
 import {dispatchProjectPlanning} from '@/lib/api/project-planning';
 import {dispatchDeliverables} from '@/lib/api/deliverables';
 import {dispatchRenders} from '@/lib/api/renders';
@@ -29,7 +36,7 @@ async function route(request:Request,parameters:RouteContext):Promise<Response>{
   const auth=await authAPI(context,request,'/'+path.join('/'));if(auth)return auth;
   // File URLs overlap task paths. Resolve the authorized private file routes
   // first; every dispatcher returns null for paths it does not own.
-  for(const dispatch of [dispatchAccess,dispatchDaily,dispatchStudioReviews,dispatchRenders,dispatchDeliverables,dispatchProjectPlanning,dispatchProjects,dispatchOperations,dispatchTasks,dispatchAcademyVideo,dispatchAcademy,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
+  for(const dispatch of [dispatchAccess,dispatchTeamProfiles,dispatchDaily,dispatchStudioReviews,dispatchRenders,dispatchDeliverables,dispatchProjectPlanning,dispatchProjectResources,dispatchProjectDelivery,dispatchProjectMilestones,dispatchProjects,dispatchOperations,dispatchTaskScheduling,dispatchTasks,dispatchAcademyVideo,dispatchLearningPaths,dispatchAcademy,dispatchSalesWorkspace,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
   if(path[0]==='resources'&&path.length===1&&request.method==='GET')throw new ApiError(409,'This section currently supports tasks. Resource records are scheduled for the next milestone.','MODULE_NOT_AVAILABLE');
   throw new ApiError(404,'This page or record was not found.','NOT_FOUND');
  }catch(error){

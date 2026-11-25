@@ -16,7 +16,7 @@ function dbError(error:{code?:string;message?:string}|null){if(!error)return;
  const code=error.code||'';
  if(code==='42501')throw new ApiError(403,'You do not have access to this action.');
  if(code==='P0002'||code==='PGRST116')throw new ApiError(404,'Task not found.');
- if(code==='40001'){const message=error.message?.startsWith('This task has open subtasks')?'This task has open subtasks. Complete them or confirm finishing the parent.':'This record changed elsewhere. Reload before saving.';throw new ApiError(409,message);}
+ if(code==='40001'){const message=error.message?.startsWith('This task has open subtasks')?'This task has open subtasks. Complete them or confirm finishing the parent.':error.message?.startsWith('Complete the prerequisites')?'Complete the prerequisites before finishing this task.':error.message?.startsWith('A completed task depends')?'A completed task depends on this task. Reopen that task first.':error.message?.startsWith('Change the latest occurrence')?'Change the latest occurrence to adjust future repeats.':'This record changed elsewhere. Reload before saving.';throw new ApiError(409,message);}
  if(code==='23505')throw new ApiError(409,'This record already exists.');
  if(code.startsWith('22')||code==='23514'||code==='23502'||code==='23503')throw new ApiError(400,'Some fields are invalid. Check the owner, dates and required values.');
  throw new ApiError(503,'The task service is temporarily unavailable. Please retry.');
@@ -47,6 +47,7 @@ export async function taskPage(ctx:APIContext,input:URLSearchParams|Record<strin
  if(source.owner)filters.owner=uuid(source.owner);
  if(source.project_id)filters.project_id=uuid(source.project_id);
  if(source.deliverable_id)filters.deliverable_id=uuid(source.deliverable_id);
+ if(source.sort){check(['due_date','priority','newest','title'].includes(String(source.sort)),'Choose a valid task sort.');filters.sort=source.sort;}
  if(source.focus){check(['open','attention','today','upcoming','blocked','overdue','unscheduled','completed'].includes(String(source.focus)),'Invalid work view.');filters.focus=source.focus;}
  if(source.search)filters.search=text(source.search,'Search',200,false);
  const result=await rpc(ctx,'nam_task_page',{w:ctx.workspaceId,filters});

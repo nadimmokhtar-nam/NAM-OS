@@ -4,6 +4,7 @@ import {registerNavigationResponseCases} from './support/navigation-response-cas
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
 import vm from 'node:vm';
 
 // Execute the production application and its actual imported UI factories.
@@ -34,10 +35,13 @@ async function harness({intercept,sales,defaultTimeZone,initialHash='#overview'}
     if(url==='/api/auth/logout')return response({signedOut:true});
     return response({error:'Unsupported production endpoint'},404);
   }});
+  sandbox.crypto={randomUUID};
+  sandbox.FormData.prototype.get=function(name){return Object.hasOwn(this.values,name)?this.values[name]:null;};
+  sandbox.FormData.prototype.has=function(name){return Object.hasOwn(this.values,name);};
   const loaded=new Set();
   async function load(file){if(loaded.has(file))return;loaded.add(file);let source=await readFile(new URL('../public/'+file,import.meta.url),'utf8');for(const match of source.matchAll(/^import\s+\{([^}]+)\}\s+from\s+['"]\.\/([^'"]+)['"];?\s*$/gm))await load(match[2]);const exports=Array.from(source.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)/gm),match=>match[1]);source=source.replace(/^import[^\n]*\n/gm,'').replace(/^export\s+/gm,'');Object.assign(sandbox,await vm.runInContext(`(async()=>{${source}\nreturn {${exports.join(',')}};})()`,sandbox,{filename:file}));}
   let source=await readFile(new URL('../public/app.js',import.meta.url),'utf8');for(const match of source.matchAll(/^import\s+\{([^}]+)\}\s+from\s+['"]\.\/([^'"]+)['"];?\s*$/gm))await load(match[2]);source=source.replace(/^import[^\n]*\n/gm,'').replace(/^export\s+/gm,'');
-  const ui=await vm.runInContext(`(async()=>{${source}\nreturn {state,mountWorkspace,unmountWorkspace,navigate,render,action,api,refresh,openTask,openDialog,taskDraft,taskDialog,dirtyTask,dirtyDialog,editableValues,academyAdmin};})()`,sandbox,{filename:'production-app-under-test.js'});
+  const ui=await vm.runInContext(`(async()=>{${source}\nreturn {state,mountWorkspace,unmountWorkspace,navigate,render,action,api,refresh,openTask,openDialog,taskDraft,taskDialog,dirtyTask,dirtyDialog,editableValues,academyAdmin,taskScheduling,learningPaths,teamProfiles,salesWorkspace,projectResources,projectDelivery,projectMilestones,loadTasks,canLeaveWorkspace,hasUnsavedWork};})()`,sandbox,{filename:'production-app-under-test.js'});
   await ui.mountWorkspace();
   return {ui,model,nodes,requests,redirects,location,response,document,windowEvents,setConfirm(value){confirmValue=value;},async dispatch(type,event){for(const listener of listeners[type]||[])await listener(event);}};
 }
@@ -287,7 +291,37 @@ test('unsaved course form survives rejected close and Escape while readonly/disa
 test('successful programmatic close stays unblocked and password snapshots never retain password text',async()=>{
   const h=await harness(),dialog=h.nodes.get('#dialog'),form={values:{current_password:'',new_password:''},elements:[{name:'current_password',type:'password'},{name:'new_password',type:'password'}]};dialog.querySelectorAll=selector=>selector==='form'?[form]:[];
   h.ui.openDialog('Change password','<form></form>');form.values.current_password='A private current password';form.values.new_password='A private replacement password';const snapshot=h.ui.editableValues(form);assert(!snapshot.includes('private'));assert.deepEqual(JSON.parse(snapshot).map(([,value])=>value),[true,true]);assert(h.ui.dirtyDialog());
-  h.setConfirm(false);dialog.close();assert.equal(dialog.open,false);
+  h.setConfirm(false);dialog.close();assert.equal(dialog.open,false);assert.equal(h.ui.dirtyDialog(),false);
+});
+
+test('a saved phase can reopen its acknowledged record while closed form fields retain the submitted change',async()=>{
+ const project={id:'phase-project',title:'Phase project',member_ids:[actor.id],lead_id:actor.id,version:1};
+ let phase={id:'phase-one',title:'Camera approval',start_date:null,end_date:null,status:'planned',position:1,production_stage:null,note:'Original notes',archived:false,version:1},plan={...project,phases:[]};
+ const h=await harness({initialHash:'#projects/'+project.id+'/work',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records',projectPlanning:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:[project]});
+  if(url==='/api/projects/'+project.id)return response(project);
+  if(url.startsWith('/api/projects/'+project.id+'/plan'))return response({...plan,phases:[phase]});
+  if(url==='/api/projects/'+project.id+'/phases/'+phase.id&&init.method==='PATCH'){phase={...phase,...JSON.parse(init.body).changes,version:phase.version+1};plan={...plan,phases:[phase]};return response({phase,plan});}
+  return null;
+ }});
+ await h.ui.action({dataset:{action:'view-mode',value:'timeline'}});
+ const dialog=h.nodes.get('#dialog'),error=node(),form={dataset:{planForm:'phase',id:phase.id,version:'1'},isConnected:true,values:{title:phase.title,start_date:'',end_date:'',status:phase.status,position:'1',production_stage:'',note:phase.note},elements:[],matches(){return false;},querySelector(selector){return selector==='.form-error'?error:null;},querySelectorAll(){return [];}};
+ form.elements=Object.keys(form.values).map(name=>({name,type:'text',disabled:false}));
+ dialog.querySelectorAll=selector=>selector==='form'?[form]:[];
+ const open=()=>h.dispatch('click',{target:{dataset:{},closest:selector=>selector==='[data-plan-action]'?{dataset:{planAction:'phase',id:phase.id}}:null},preventDefault(){}});
+ await open();assert.equal(dialog.open,true);form.values.note='Acknowledged phase notes';assert.equal(h.ui.dirtyDialog(),true);
+ await h.dispatch('submit',{target:form,preventDefault(){}});await new Promise(setImmediate);
+ assert.equal(h.requests.filter(request=>request.url==='/api/projects/'+project.id+'/phases/'+phase.id&&request.init.method==='PATCH').length,1);
+ assert.equal(phase.version,2);assert.equal(dialog.open,false);assert.equal(form.values.note,'Acknowledged phase notes');assert.equal(h.ui.dirtyDialog(),false);
+ h.setConfirm(false);await open();assert.equal(dialog.open,true);assert(dialog.innerHTML.includes('data-version="2"'));assert(dialog.innerHTML.includes('Acknowledged phase notes'));
+});
+
+test('a closed task creation form cannot mark the next project panel as unsaved',async()=>{
+ const h=await harness(),dialog=h.nodes.get('#dialog'),form={values:{title:''},elements:{title:{name:'title',type:'text',value:''}}};
+ dialog.querySelector=selector=>selector==='form[data-form="create-task"]'?form:null;
+ h.ui.openDialog('Create task','<form></form>');form.values.title=form.elements.title.value='Retained task title';assert.equal(h.ui.dirtyDialog(),true);
+ dialog.close();assert.equal(h.ui.dirtyDialog(),false);
 });
 
 async function editInlineMetadata(h){
@@ -508,4 +542,113 @@ test('switching a global task to Projects fetches and mounts real project contro
  await h.dispatch('change',{target:{dataset:{},id:'f-section',name:'section',value:'projects',closest(){return form;}}});
  assert(holder.innerHTML.includes('name="project_id"'));assert(holder.innerHTML.includes('Shared project'));assert(holder.innerHTML.includes('name="production_stage"'));assert.equal(owner.disabled,false);assert.equal(submit.disabled,false);
  form.elements.section.value='sales';await h.dispatch('change',{target:{dataset:{},id:'f-section',name:'section',value:'sales',closest(){return form;}}});assert.equal(holder.innerHTML,'');assert(owner.innerHTML.includes('Omar'));
+});
+
+test('enabled project resource routes load their actual inventories and keep real sidebar destinations',async()=>{
+ const project={id:'resources-project',title:'Shared resources project',brief:'Shared brief',member_ids:[actor.id],lead_id:actor.id,version:1};
+ const h=await harness({initialHash:'#projects/resources-project/notes',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap')){model.capabilities.projects='records';model.capabilities.projectResources='records';return response(model);}
+  if(url.startsWith('/api/projects?'))return response({items:[project]});if(url==='/api/projects/resources-project')return response(project);
+  if(url.startsWith('/api/projects/resources-project/resources?'))return response({items:[{id:'note-one',kind:'note',title:'Saved project decision',visibility:'project_team',status:'ready',byte_size:0,created_at:'2026-11-25T12:00:00Z'}],total:1,page:1,hasMore:false});
+ }});
+ for(const view of ['notes','files','references']){
+  if(view!=='notes'){h.location.hash='#projects/resources-project/'+view;await h.ui.navigate();}
+  assert.equal(h.ui.state.projectView,view);assert(h.nodes.get('#app').innerHTML.includes('Saved project decision'));
+  assert(h.requests.some(row=>row.url.startsWith('/api/projects/resources-project/resources?')&&new URL(row.url,'https://nam.example').searchParams.get('kind')===view));
+  for(const destination of ['files','references','notes'])assert(h.nodes.get('#app').innerHTML.includes('href="#projects/resources-project/'+destination+'"'));
+ }
+});
+
+test('enabled calendar loads server windows through shared filters and list sorting stays server based',async()=>{
+ const h=await harness({initialHash:'#tasks',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap')){model.capabilities.taskCalendar='records';model.capabilities.taskScheduling='records';return response(model);}
+  if(url.startsWith('/api/tasks/calendar?'))return response({items:[],days:[],total:0,unscheduled_total:2,page:1,hasMore:false,scope:'assigned',access_revision:1});
+ }});
+ assert(h.nodes.get('#app').innerHTML.includes('id="filter-sort"'));await h.ui.action({dataset:{action:'view-mode',value:'calendar'}});
+ let request=h.requests.filter(row=>row.url.startsWith('/api/tasks/calendar?')).at(-1),query=new URL(request.url,'https://nam.example').searchParams;assert.equal(query.get('from'),'2026-11-01');assert.equal(query.get('to'),'2026-11-30');assert.equal(query.get('scope'),'mine');assert(!h.nodes.get('#app').innerHTML.includes('id="filter-sort"'));assert(!h.nodes.get('#app').innerHTML.includes('matching tasks loaded</small>'));
+ await h.dispatch('change',{target:{id:'filter-status',value:'Blocked',dataset:{},closest(){return null;},matches(){return false;}}});request=h.requests.filter(row=>row.url.startsWith('/api/tasks/calendar?')).at(-1);assert.equal(new URL(request.url,'https://nam.example').searchParams.get('status'),'Blocked');
+ await h.ui.action({dataset:{action:'view-mode',value:'list'}});await h.dispatch('change',{target:{id:'filter-sort',value:'priority',dataset:{},closest(){return null;},matches(){return false;}}});request=h.requests.filter(row=>row.url.startsWith('/api/tasks?')).at(-1);assert.equal(new URL(request.url,'https://nam.example').searchParams.get('sort'),'priority');
+});
+
+test('enabled schedule saves advance task versions while preserving dirty parent task fields',async()=>{
+ const saved={id:'task-1',version:1,status:'Todo',archived:false,due_date:'2026-11-25',recurrence:null,prerequisites:[],unavailable_prerequisites:0,can_repeat:true};
+ const h=await harness({initialHash:'#tasks',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap')){model.capabilities.taskScheduling='records';return response(model);}
+  if(url==='/api/tasks/task-1/scheduling')return response(init.method==='PATCH'?{...saved,version:2,recurrence:{frequency:'weekly',interval:1,until:null}}:saved);
+ }});await h.ui.openTask('task-1');await h.ui.taskScheduling.loadDetail(h.ui.state.task);
+ const dialog=h.nodes.get('#dialog'),originalMarkup=dialog.innerHTML,parent={values:{title:'Keep my unsaved task title',description:'Keep my unsaved description'},elements:[]},error=node();
+ const schedule={dataset:{scheduleForm:'task-1'},values:{frequency:'weekly',interval:'1',until:''},querySelector:selector=>selector==='.form-error'?error:null,querySelectorAll:()=>[],isConnected:true};
+ dialog.querySelector=selector=>selector==='form[data-form="edit-task"]'?parent:null;
+ await h.ui.taskScheduling.save(schedule);assert.equal(h.ui.state.task.version,2);assert.equal(parent.values.title,'Keep my unsaved task title');assert.equal(parent.values.description,'Keep my unsaved description');assert.equal(dialog.innerHTML,originalMarkup);assert(dialog.innerHTML.includes('data-task-schedule="task-1"'));
+ const request=h.requests.find(row=>row.url==='/api/tasks/task-1/scheduling'&&row.init.method==='PATCH');assert.equal(JSON.parse(request.init.body).expectedVersion,1);assert.equal(h.ui.dirtyDialog(),true);
+});
+
+test('enabled Paths verify publication hints and refresh derived progress on return from a course',async()=>{
+ let publication='different-publication';const assignment={id:'assignment-one',title:'Studio method',summary:'Assigned publications',path_revision:1,topics:[],courses:[{course_id:'course-one',publication_id:'publication-one',position:1,version:1,title:'Lighting standards',access_status:'available',completed:0,total:1,completion:null}]};
+ const h=await harness({initialHash:'#academy',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap')){model.capabilities.learningPaths='records';return response(model);}
+  if(url==='/api/academy/topics')return response({topics:[{code:'interior',title:'Interior'}],course_topics:{}});
+  if(url==='/api/academy/paths')return response({items:[assignment],total:1,next_offset:null});
+  if(url==='/api/academy/admin/paths'||url==='/api/academy/admin/path-courses')return response({items:[],total:0,next_offset:null});
+  if(url==='/api/courses/course-one')return response({id:'course-one',title:'Lighting standards',area:'3d',publication_id:publication,version:1,completed:0,total:0,lessons:[]});
+ }});
+ assert(h.nodes.get('#app').innerHTML.includes('Interior'));await h.ui.action({dataset:{action:'tab',value:'paths'}});assert(h.nodes.get('#app').innerHTML.includes('data-publication="publication-one"'));
+ await h.ui.action({dataset:{action:'course',id:'course-one',publication:'publication-one'}});assert.equal(h.ui.state.course,null);assert(h.nodes.get('#toast').textContent.includes('enrollment changed'));
+ publication='publication-one';await h.ui.action({dataset:{action:'course',id:'course-one',publication:'publication-one'}});assert.equal(h.ui.state.course.publication_id,'publication-one');const before=h.requests.filter(row=>row.url==='/api/academy/paths').length;
+ await h.ui.action({dataset:{action:'back-courses'}});assert.equal(h.ui.state.tab,'paths');assert.equal(h.requests.filter(row=>row.url==='/api/academy/paths').length,before+1);assert(h.nodes.get('#app').innerHTML.includes('Studio method'));
+});
+
+test('enabled Sales workspace and professional settings retain Connected and existing security controls',async()=>{
+ const h=await harness({initialHash:'#sales',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap')){model.capabilities.salesWorkspace='records';model.capabilities.teamProfiles='records';return response(model);}
+  if(url.startsWith('/api/sales/workspace?'))return response({view:'contacts',records:[],records_total:0,offset:0,limit:30,connections:[],definitions:{}});
+  if(url.startsWith('/api/sales/connected?'))return response({mode:'connected',connections:[],metrics:[],records:[],pipeline:[],record_total:0,limit:20,offset:0});
+  if(url==='/api/auth/security')return response({account:{email:'owner@synthetic.invalid',status:'active',mfaEnabled:false},canManageMembers:false,mfaAvailable:true});
+  if(url==='/api/team/profile')return response({id:actor.id,name:actor.name,job_title:'Studio lead',department:null,revision:0,notifications:{assignment:true,due:true,overdue:true}});
+  if(url.startsWith('/api/team/directory?'))return response({items:[{id:actor.id,name:actor.name,job_title:'Studio lead',role:'founder',revision:0,department:null}],total:1,page:1,pageSize:50,hasMore:false});
+ }});
+ await h.ui.action({dataset:{action:'tab',value:'workspace'}});assert(h.nodes.get('#app').innerHTML.includes('CRM & pipeline'));assert(h.requests.some(row=>row.url.startsWith('/api/sales/workspace?')));
+ await h.ui.action({dataset:{action:'tab',value:'connected'}});assert(h.requests.some(row=>row.url.startsWith('/api/sales/connected?')));
+ h.location.hash='#team';await h.ui.navigate();assert(h.nodes.get('#app').innerHTML.includes('Studio lead'));assert(h.nodes.get('#app').innerHTML.includes('data-security-action="invite"'));
+ h.location.hash='#settings';await h.ui.navigate();assert(h.nodes.get('#app').innerHTML.includes('aria-label="Settings"'));assert(h.nodes.get('#app').innerHTML.includes('Save profile'));
+ h.ui.state.data.securityRequired=true;h.ui.render();assert(h.nodes.get('#app').innerHTML.includes('Account security')||h.nodes.get('#app').innerHTML.includes('Your account'));assert(!h.nodes.get('#app').innerHTML.includes('Save profile'));
+});
+
+test('enabled revision, delivery and milestone routes load saved records with role-sensitive project navigation',async()=>{
+ const project={id:'issued-project',title:'Issued project',brief:'Shared production brief',member_ids:[actor.id],lead_id:actor.id,version:1};
+ const fixture=role=>(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap')){model.capabilities.projects='records';model.capabilities.projectDelivery='records';model.capabilities.projectMilestones='records';if(role==='artist'){model.actor={...actor,role};model.sections=['projects'];model.members=[{...model.actor,sections:['projects']}];model.capabilities.createTaskSections=['projects'];model.roleLabels.artist='CGI Artist';}return response(model);}
+  if(url.startsWith('/api/projects?'))return response({items:[project]});if(url==='/api/projects/issued-project')return response(project);
+  if(url.startsWith('/api/projects/issued-project/revisions?'))return response({items:[{id:'round-one',title:'Saved revision instructions',number:1,items:1,resolved:0,status:'open',created_at:'2026-11-25T12:00:00Z'}],total:1,page:1,hasMore:false,scope:role==='artist'?'assigned':'studio'});
+  if(url.startsWith('/api/projects/issued-project/deliveries?'))return role==='artist'?response({error:'Final delivery requires Founder access.'},403):response({items:[{id:'delivery-one',title:'Issued final files',number:1,items:2,status:'issued',created_at:'2026-11-25T12:00:00Z'}],total:1,page:1,hasMore:false,scope:'studio'});
+  if(url.startsWith('/api/projects/issued-project/milestones?'))return response({items:[{id:'checkpoint-one',title:'Agreed client checkpoint',target_date:'2026-11-30',status:'pending',version:1,note:''}],total:1,next_offset:null,today:model.today,can_manage:role!=='artist'});
+ };
+ const h=await harness({initialHash:'#projects/issued-project/revisions',intercept:fixture('founder')});
+ for(const [view,title,endpointName]of [['revisions','Saved revision instructions','revisions'],['delivery','Issued final files','deliveries'],['milestones','Agreed client checkpoint','milestones']]){
+  if(view!=='revisions'){h.location.hash='#projects/issued-project/'+view;await h.ui.navigate();}assert.equal(h.ui.state.projectView,view);assert(h.nodes.get('#app').innerHTML.includes(title));assert(h.requests.some(row=>row.url.startsWith('/api/projects/issued-project/'+endpointName+'?')));
+  for(const destination of ['revisions','delivery','milestones'])assert(h.nodes.get('#app').innerHTML.includes('href="#projects/issued-project/'+destination+'"'));
+ }
+ const artist=await harness({initialHash:'#projects/issued-project/revisions',intercept:fixture('artist')});let html=artist.nodes.get('#app').innerHTML;assert(html.includes('href="#projects/issued-project/revisions"'));assert(html.includes('href="#projects/issued-project/milestones"'));assert(!html.includes('href="#projects/issued-project/delivery"'));assert(!html.includes('data-delivery-action="create"'));
+ artist.location.hash='#projects/issued-project/milestones';await artist.ui.navigate();html=artist.nodes.get('#app').innerHTML;assert(html.includes('Agreed client checkpoint'));assert(!html.includes('data-milestone-action="new"'));
+});
+
+test('enabled delivery drafts and pending milestone writes preserve unload, navigation and close guards',async()=>{
+ const project={id:'guarded-project',title:'Guarded project',member_ids:[actor.id],lead_id:actor.id,version:1};let releaseWrite,writeStarted;const started=new Promise(resolve=>writeStarted=resolve);
+ const h=await harness({initialHash:'#projects/guarded-project/revisions',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap')){model.capabilities.projects='records';model.capabilities.projectDelivery='records';model.capabilities.projectMilestones='records';return response(model);}
+  if(url.startsWith('/api/projects?'))return response({items:[project]});if(url==='/api/projects/guarded-project')return response(project);
+  if(url.startsWith('/api/projects/guarded-project/revisions?'))return response({items:[],total:0,page:1,hasMore:false,scope:'studio'});
+  if(url.startsWith('/api/projects/guarded-project/round-images?'))return response({items:[],total:0,page:1,hasMore:false});
+  if(url.startsWith('/api/projects/guarded-project/milestones?'))return response({items:[],total:0,next_offset:null,today:model.today,can_manage:true});
+  if(url==='/api/projects/guarded-project/milestones'&&init.method==='POST'){writeStarted();return new Promise(resolve=>releaseWrite=()=>resolve(response({id:'saved-checkpoint',version:1})));}
+ }}),dialog=h.nodes.get('#dialog');
+ const click=async(type,action)=>{const control={dataset:{[type+'Action']:action},closest(){return null;}};await h.dispatch('click',{target:{closest:selector=>selector==='[data-'+type+'-action]'?control:null},preventDefault(){}});await new Promise(resolve=>setImmediate(resolve));};
+ const unload=()=>{let blocked=false;h.windowEvents.beforeunload({preventDefault(){blocked=true;}});return blocked;};
+ await click('delivery','create');assert(dialog.open);const deliveryForm={dataset:{deliveryForm:'issue'}};await h.dispatch('input',{target:{dataset:{},closest:selector=>selector==='[data-delivery-form]'?deliveryForm:null}});assert(h.ui.projectDelivery.hasUnsavedChanges());assert(unload());
+ h.setConfirm(false);await h.ui.action({dataset:{action:'close-dialog'}});assert(dialog.open);h.location.hash='#projects/guarded-project/milestones';await h.ui.navigate();assert.equal(h.ui.state.projectView,'revisions');assert.equal(h.location.hash,'#projects/guarded-project/revisions');
+ h.setConfirm(true);await h.ui.action({dataset:{action:'close-dialog'}});await h.dispatch('close',{target:dialog});h.location.hash='#projects/guarded-project/milestones';await h.ui.navigate();await click('milestone','new');assert(dialog.open);
+ const error=node(),form={...node(),dataset:{milestoneForm:'editor'},values:{title:'Retained checkpoint',target_date:'2026-11-30',status:'pending',note:'Saved only after acknowledgment'},querySelector:selector=>selector==='.form-error'?error:null,querySelectorAll:()=>[],isConnected:true};
+ await h.dispatch('input',{target:{dataset:{},closest:selector=>selector==='form[data-milestone-form="editor"]'?form:null}});assert(h.ui.projectMilestones.hasUnsavedChanges());assert(unload());
+ await h.dispatch('submit',{target:form,preventDefault(){}});await started;assert(h.ui.projectMilestones.isSaving());h.location.hash='#projects/guarded-project/revisions';await h.ui.navigate();assert.equal(h.ui.state.projectView,'milestones');assert.equal(h.location.hash,'#projects/guarded-project/milestones');await h.ui.action({dataset:{action:'close-dialog'}});assert(dialog.open);assert(unload());
+ releaseWrite();await new Promise(resolve=>setImmediate(resolve));assert.equal(h.ui.projectMilestones.isSaving(),false);assert.equal(dialog.open,false);assert.equal(h.ui.hasUnsavedWork(),false);assert.equal(unload(),false);
 });

@@ -36,6 +36,13 @@ test('client review renders only issued identity, escapes text and uses a persis
  const unsafe=await harness(url=>url.endsWith('/request-one')?Response.json({...issued,message:'<script>unsafe()</script>'}):undefined);await unsafe.portal.mount();assert(!unsafe.root.innerHTML.includes('<script>'));assert(unsafe.root.innerHTML.includes('&lt;script&gt;'));
 });
 
+test('issued final files use delivery labels, an exact manifest link and original downloads without decision controls',async()=>{
+ const delivery={...issued,title:'Final project files',purpose:'delivery',can_decide:false,allow_download:true},h=await harness(url=>url==='/api/client/reviews'?Response.json({items:[{...delivery,items:1}]}):url==='/api/client/reviews/request-one'?Response.json(delivery):undefined,{hash:''});
+ await h.portal.mount();assert(h.root.innerHTML.includes('Final delivery'));assert(h.root.innerHTML.includes('Final project files'));
+ await h.hash('#reviews/request-one');const html=h.root.innerHTML;assert(html.includes('Final file · Version 2'));assert(html.includes('View only'));assert(html.includes('href="/api/client/reviews/request-one/manifest" download'));assert(html.includes('Download file manifest'));assert(html.includes('content?variant=original'));assert(html.includes('exact version and checksum'));assert(!html.includes('client-decision-footer'));assert(!html.includes('data-client-form="response"'));
+ await h.submit(h.form('A forged response on a final file').form);assert(!h.calls.some(call=>call.url.endsWith('/response')));assert.equal(h.portal.isDirty(),false);
+});
+
 test('a lost response acknowledgement retains the original key, decision and comment for exact retry',async()=>{
  let writes=0;const h=await harness(url=>url.endsWith('/response')&&++writes===1?Response.json({error:'Response acknowledgement lost'},{status:503}):undefined);await h.portal.mount();
  await h.submit(h.form().form);assert(h.root.innerHTML.includes('Retry Accept'));assert.equal(h.portal.isDirty(),true);

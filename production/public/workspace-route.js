@@ -5,7 +5,7 @@ export function parseWorkspaceRoute(hash=''){
  const query=new URLSearchParams(split<0?'':raw.slice(split+1));
  const taskId=query.get('task')||'';query.delete('task');
  const parts=path.split('/'),suffix=query.toString();
- return {view:parts[0],recordId:parts[1]||'',projectView:['work','images','reviews'].includes(parts[2])?parts[2]:'overview',taskId,parentHash:'#'+path+(suffix?'?'+suffix:'')};
+ return {view:parts[0],recordId:parts[1]||'',projectView:['work','images','reviews','files','references','notes','revisions','delivery','milestones'].includes(parts[2])?parts[2]:'overview',taskId,parentHash:'#'+path+(suffix?'?'+suffix:'')};
 }
 
 export function taskPageHash(hash,id){

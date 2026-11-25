@@ -91,5 +91,5 @@ test('cover API verifies bytes, returns private headers and refuses a revoked pa
 });
 
 test('business export retains project planning and audit records within the same workspace',async()=>{
- const pid=await project(),id=await save(pid,{title:'Exported plan'}),exported=await rpc(ids.founder,'nam_export_business',{w:ids.w});assert.equal(exported.version,8);assert(exported.data.nam_project_phases.some(row=>row.id===id));assert(exported.data.nam_project_phase_events.some(row=>row.phase_id===id));assert(!Object.keys(exported.data).some(key=>key.startsWith('auth')));
+ const pid=await project(),id=await save(pid,{title:'Exported plan'}),exported=await rpc(ids.founder,'nam_export_business',{w:ids.w});assert.equal(exported.version,9);assert(exported.data.nam_project_phases.some(row=>row.id===id));assert(exported.data.nam_project_phase_events.some(row=>row.phase_id===id));assert(!Object.keys(exported.data).some(key=>key.startsWith('auth')));
 });

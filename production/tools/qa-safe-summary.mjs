@@ -15,11 +15,16 @@ function sourceFile(file,base=process.cwd()){
  const path=relative(process.cwd(),resolve(base,file));
  return /^browser\/[a-z0-9-]+\.spec\.mjs$/.test(path)&&known.has(path)?path:null;
 }
+const stackSite=new RegExp('(?:^|[\\s(])('+Array.from(known.keys()).flatMap(file=>[resolve(file),file]).map(value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+'):(\\d+):(\\d+)','m');
 const safeFailure=error=>{
  let file=sourceFile(error?.location?.file),line=lineNumber(file,error?.location?.line),column=Number(error?.location?.column);
- if(!file||!line){const match=String(error?.stack||'').match(/(?:^|[\s(])(browser\/[a-z0-9-]+\.spec\.mjs):(\d+):(\d+)/m);file=match?sourceFile(match[1]):null;line=lineNumber(file,match?.[2]);column=Number(match?.[3]);}
+ if(!file||!line){const match=String(error?.stack||'').match(stackSite);file=match?sourceFile(match[1]):null;line=lineNumber(file,match?.[2]);column=Number(match?.[3]);}
  const location=file&&line?file+':'+line+(Number.isInteger(column)&&column>0&&column<100000?':'+column:''):null;
- const message=String(error?.message||'').replace(/\u001b\[[0-9;]*m/g,''),assertion=message.match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toHaveText|toContainText|toEqual|toBe|toHaveCount)\b/)?.[1]||null;
+ const message=String(error?.message||'').replace(/\u001b\[[0-9;]*m/g,''),assertion=message.match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toBeDisabled|toHaveText|toContainText|toEqual|toBe|toHaveCount|toHaveAttribute|toBeCloseTo|toBeGreaterThan)\b/)?.[1]||null;
+ // Timeout diagnostics expose only known Playwright operations and a bounded
+ // duration at a checked-in source site. Locators and call logs stay private.
+ const operation=location?message.match(/^(locator\.(?:click|fill|check|uncheck|press|selectOption|setInputFiles|waitFor|focus)|page\.(?:goto|waitForResponse|waitForURL)|keyboard\.press):/)?.[1]:null;
+ const timeoutMs=location?Number(message.match(/\b(?:Test timeout of |Timeout )(\d{1,7})ms exceeded\b/)?.[1]):NaN;
  // For an exact HTTP creation assertion, retain only bounded numeric codes.
  // Never include response bodies, assertion diffs or arbitrary error messages.
  const expected=message.match(file==='browser/client-reviews.spec.mjs'?/^Expected:\s*(200|201|202|400|401|403|404|409|429|503)\s*$/m:/^Expected:\s*(201)\s*$/m),received=message.match(/^Received:\s*([1-5][0-9]{2})\s*$/m);
@@ -32,7 +37,7 @@ const safeFailure=error=>{
   if(['200','374','480'].includes(left)&&/^\d{1,4}$/.test(right||''))imageAssertion={expected:Number(left),received:Number(right)};
   else if(left&&right)imageAssertion={expectedShape:shape(left),receivedShape:shape(right)};
  }
- return {location,assertion,...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:Number(expected[1]),received:Number(received[1])}}:{}),...(imageAssertion?{imageAssertion}:{})};
+ return {location,assertion,...(operation?{operation}:{}),...(Number.isInteger(timeoutMs)&&timeoutMs>0&&timeoutMs<3600000?{timeoutMs}:{}),...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:Number(expected[1]),received:Number(received[1])}}:{}),...(imageAssertion?{imageAssertion}:{})};
 };
 // Performance evidence is a numeric allowlist bound to this exact CI source.
 // No user labels, endpoints, raw timings, errors or arbitrary evidence fields
@@ -60,7 +65,7 @@ if(report){
  const visit=suite=>{
   for(const spec of Array.isArray(suite.specs)?suite.specs:[])for(const test of Array.isArray(spec.tests)?spec.tests:[]){
    const file=sourceFile(spec.file||suite.file,report.config?.rootDir||process.cwd());
-   tests.push({file,line:lineNumber(file,spec.line),status:['expected','unexpected','skipped','flaky'].includes(test.status)?test.status:'unknown',results:(Array.isArray(test.results)?test.results:[]).map(result=>({status:['passed','failed','timedOut','skipped','interrupted'].includes(result.status)?result.status:'unknown',duration:Number.isFinite(result.duration)&&result.duration>=0&&result.duration<3600000?result.duration:null,...(result.status==='failed'?{failureSites:(Array.isArray(result.errors)?result.errors:[]).slice(0,5).map(safeFailure)}:{})}))});
+   tests.push({file,line:lineNumber(file,spec.line),status:['expected','unexpected','skipped','flaky'].includes(test.status)?test.status:'unknown',results:(Array.isArray(test.results)?test.results:[]).map(result=>({status:['passed','failed','timedOut','skipped','interrupted'].includes(result.status)?result.status:'unknown',duration:Number.isFinite(result.duration)&&result.duration>=0&&result.duration<3600000?result.duration:null,...(['failed','timedOut'].includes(result.status)?{failureSites:(Array.isArray(result.errors)&&result.errors.length?result.errors:result.error?[result.error]:[]).slice(0,5).map(safeFailure)}:{})}))});
   }
   for(const child of Array.isArray(suite.suites)?suite.suites:[])visit(child);
  };
