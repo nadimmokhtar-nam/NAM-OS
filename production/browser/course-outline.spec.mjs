@@ -37,7 +37,7 @@ for(const width of [320,390,768])test(`course outline keeps readable modules and
 
   await page.goto('/workspace#academy');
   await page.locator('[data-action="course"][data-id="'+course.id+'"]').first().click();
-  await expect(page.locator('.lesson-body h2')).toBeVisible();
+  await expect(page.locator('.lesson-body > h2')).toBeVisible();
   const outline=page.locator('.lesson-outline');
   if(await outline.count()&&!await outline.evaluate(node=>node.open))await outline.locator(':scope > summary').click();
   const modules=page.locator('.lesson-nav .lesson-module');
@@ -52,8 +52,8 @@ for(const width of [320,390,768])test(`course outline keeps readable modules and
   }
   await page.locator('.lesson-nav [data-action="lesson"]').first().click();
   await expect(page.locator('.lesson-nav [data-action="lesson"]').first()).toHaveAttribute('aria-current','step');
-  await expect(page.locator('.lesson-body h2')).toBeVisible();
-  await expect(page.locator('.lesson-body h2')).toBeFocused();
+  await expect(page.locator('.lesson-body > h2')).toBeVisible();
+  await expect(page.locator('.lesson-body > h2')).toBeFocused();
   await expect(page.locator('.lesson-body > .eyebrow')).toContainText('Lesson 1');
   expect(await page.locator('.lesson-body').evaluate(node=>node.scrollWidth<=node.clientWidth+1),'The lesson itself must not conceal internal horizontal overflow.').toBe(true);
  }finally{

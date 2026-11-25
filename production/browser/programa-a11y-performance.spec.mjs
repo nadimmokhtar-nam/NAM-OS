@@ -134,7 +134,7 @@ test('Artist reduced-motion work remains keyboard accessible with the real PWA f
   await noOverflow(run.page,'#dialog');await run.page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();await expect(opener).toBeFocused();
   const menu=run.page.locator('#mobile-menu-trigger');await menu.click();await run.page.locator('.sidebar .nav-link[href="#academy"]').click();await ready(run.page,'Academy');
   const selected=run.page.waitForResponse(result=>new URL(result.url()).pathname==='/api/courses/'+fixture.records.course&&result.request().method()==='GET');
-  await run.page.locator('[data-action="course"][data-id="'+fixture.records.course+'"]').first().click();expect((await selected).status()).toBe(200);await expect(run.page.locator('.lesson-body h2')).toBeVisible();
+  await run.page.locator('[data-action="course"][data-id="'+fixture.records.course+'"]').first().click();expect((await selected).status()).toBe(200);await expect(run.page.locator('.lesson-body > h2')).toBeVisible();
   const lessonAction=run.page.locator('.lesson-body [data-action="complete-lesson"],.lesson-body [data-action="next-lesson"],.lesson-body [data-action="back-courses"]').first();
   await expect(run.page.locator('.pwa-install-slot')).toHaveCount(1);await hit(run.page.locator('.pwa-install-slot button'),{mobile:true});
   await run.context.setOffline(true);await expect(run.page.locator('.pwa-notice[role="alert"]')).toContainText('offline');
