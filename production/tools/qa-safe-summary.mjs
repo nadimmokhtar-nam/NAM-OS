@@ -37,5 +37,5 @@ if(report){
  const passed=test=>test.status==='expected'&&test.file&&test.line&&test.results.length&&test.results.every(result=>result.status==='passed');
  const incomplete=tests.length===0||tests.some(test=>!passed(test))||report.errors.length>0;
  const result={status:incomplete?'failed_or_incomplete':'passed',commit:/^[a-f0-9]{40}$/i.test(process.env.GITHUB_SHA||'')?process.env.GITHUB_SHA:null,counts:{total:tests.length,passed:tests.filter(passed).length,unexpected:tests.filter(test=>test.status==='unexpected').length,skipped:tests.filter(test=>test.status==='skipped').length,globalErrors:report.errors.length},tests};
- await writeFile(resolve(root,'safe-summary.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});console.log(JSON.stringify({status:result.status,commit:result.commit,counts:result.counts}));if(incomplete)process.exitCode=1;
+ await writeFile(resolve(root,'safe-summary.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});console.log(JSON.stringify({status:result.status,commit:result.commit,counts:result.counts,failedTests:tests.filter(test=>!passed(test))}));if(incomplete)process.exitCode=1;
 }
