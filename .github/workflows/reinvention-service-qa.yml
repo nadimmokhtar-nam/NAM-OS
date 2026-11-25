@@ -27,9 +27,6 @@ jobs:
       CI: 'true'
       NEXT_TELEMETRY_DISABLED: '1'
       NAM_QA_MODE: production
-      NAM_QA_ROOT: ${{ runner.temp }}/nam-os/isolated
-      NAM_QA_CLI_HOME: ${{ runner.temp }}/nam-os/supabase-home
-      NAM_QA_CLI: ${{ runner.temp }}/nam-os/tools/node_modules/.bin/supabase
     steps:
       - name: Check out reviewed source without retained credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -43,6 +40,10 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: production/package-lock.json
+
+      - name: Bind private QA directories on the allocated runner
+        run: |
+          node --input-type=module -e 'import fs from "node:fs";const root=process.env.RUNNER_TEMP+"/nam-os";fs.appendFileSync(process.env.GITHUB_ENV,"NAM_QA_ROOT="+root+"/isolated\nNAM_QA_CLI_HOME="+root+"/supabase-home\nNAM_QA_CLI="+root+"/tools/node_modules/.bin/supabase\n");'
 
       - name: Install locked source and official browser
         timeout-minutes: 8
