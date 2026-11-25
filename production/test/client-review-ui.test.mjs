@@ -51,7 +51,12 @@ test('browser navigation cannot abandon a pending client response',async()=>{
 
 test('a revoked client response removes issued images and previous review metadata from the page',async()=>{
  const h=await harness(url=>url.endsWith('/response')?Response.json({error:'Invitation revoked'},{status:403}):undefined);await h.portal.mount();await h.submit(h.form().form);
- assert.equal(h.portal.getState().review,null);assert(!h.root.innerHTML.includes('Living room hero'));assert(!h.root.innerHTML.includes('client-issued-image'));assert(h.root.innerHTML.includes('Invitation revoked'));
+ assert.equal(h.portal.getState().review,null);assert.equal(h.portal.getState().identity,null);assert.equal(h.portal.getState().reviews.length,0);assert(!h.root.innerHTML.includes('Living room hero'));assert(!h.root.innerHTML.includes('client-issued-image'));assert(h.root.innerHTML.includes('Invitation revoked'));assert(h.root.innerHTML.includes('Email sign-in link'));
+});
+
+test('revocation during same-document review navigation removes cached request titles and returns to sign-in',async()=>{
+ const h=await harness(url=>url.endsWith('/another-request')?Response.json({error:'Invitation revoked'},{status:403}):undefined);await h.portal.mount();
+ await h.hash('#reviews/another-request');assert.equal(h.portal.getState().identity,null);assert.equal(h.portal.getState().reviews.length,0);assert(!h.root.innerHTML.includes('Material review'));assert(!h.root.innerHTML.includes('Shared project'));assert(h.root.innerHTML.includes('Email sign-in link'));
 });
 
 test('an older authentication response cannot replace a later client identity after remount',async()=>{

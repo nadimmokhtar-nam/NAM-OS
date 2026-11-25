@@ -22,6 +22,7 @@ export function createClientReviewPortal({root,fetcher=fetch,confirmLeave=messag
   review=null;selected='';draft=null;unavailable='';
   root.innerHTML=`<main id="main" class="auth-shell client-auth" tabindex="-1"><aside class="auth-rail" aria-label="NAM Studio"><img class="auth-rail-logo" src="/assets/nam-logo.png" alt="NAM" width="96" height="29"><div class="auth-rail-copy"><span>NAM Studio</span><p>Project review.</p></div></aside><div class="auth-content"><section class="auth-form" aria-labelledby="client-auth-title"><div class="auth-mobile-brand"><img src="/assets/nam-logo.png" alt="NAM" width="80" height="24"></div><h1 id="client-auth-title" class="auth-title">${mfa?'Verify it’s you.':'Welcome to your project.'}</h1><p class="auth-intro">${mfa?'Enter the code from your authenticator.':'Use the email address invited by NAM Studio.'}</p><form data-client-form="${mfa?'mfa':'signin'}"><div class="form-error" role="alert">${esc(message)}</div><div class="field"><label for="client-signin-field">${mfa?'Authenticator code':'Email address'}</label><input id="client-signin-field" name="${mfa?'code':'email'}" type="${mfa?'text':'email'}" ${mfa?'inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"':'autocomplete="email" maxlength="254"'} required></div><button class="button primary auth-submit" type="submit">${mfa?'Verify sign-in':'Email sign-in link'}</button></form><p class="auth-note">Your invitation gives access to the images NAM Studio has issued for review.</p><button class="button text auth-help-link" type="button" data-client-action="logout">Sign out of this browser session</button></section></div></main>`;
  }
+ function lostAccess(message){reading++;identity=null;csrf='';reviews=[];review=null;selected='';draft=null;authentication(message);}
  function busy(value){pending=value;for(const control of root.querySelectorAll('button,input,textarea,select')){if(value){control.dataset.reviewWasDisabled=control.disabled?'1':'0';control.disabled=true;}else if(control.dataset.reviewWasDisabled!==undefined){control.disabled=control.dataset.reviewWasDisabled==='1';delete control.dataset.reviewWasDisabled;}}root.setAttribute('aria-busy',String(value));}
  function shell(body,footer=''){
   const images=review?`<button type="button" class="button text small client-back" data-client-action="all">${icon('arrow')} All review requests</button><div class="client-rail-caption">${esc(review.project)}</div><h2 class="client-rail-title">${esc(review.title)}</h2><nav class="client-issued-images" aria-label="Issued images">${review.items.map(row=>`<button type="button" id="client-item-${esc(row.id)}" class="render-version-item ${row.id===selected?'active':''}" data-client-action="image" data-id="${esc(row.id)}" aria-pressed="${row.id===selected}"><img src="${media(review.id,row.id,'thumbnail')}" alt="" loading="lazy"><span><b>${esc(row.code)}</b><small>${esc(row.title)}</small><small>Version ${row.number} · ${row.response?label(row.response.decision):review.can_decide?'Awaiting response':'View only'}</small></span></button>`).join('')}</nav>`:'<nav aria-label="Client navigation"><span class="nav-link active" aria-current="page">'+icon('image')+' Review requests</span></nav>';
@@ -52,7 +53,7 @@ export function createClientReviewPortal({root,fetcher=fetch,confirmLeave=messag
   review=null;selected='';draft=null;
   root.innerHTML='<main id="main" class="loading-state" role="status">Opening your review…</main>';
   try{if(parts[0]==='reviews'&&parts[1])await openReview(parts[1],parts[2]);else{await loadList();if(mounted&&generation===epoch&&user===identity?.id)showList();}}
-  catch(error){if(!mounted||generation!==epoch||user!==identity?.id)return;review=null;selected='';draft=null;if(error.status===401){identity=null;csrf='';authentication(error.message);}else{unavailable=error.message;showList();}}
+  catch(error){if(!mounted||generation!==epoch||user!==identity?.id)return;review=null;selected='';draft=null;reviews=[];if([401,403].includes(error.status))lostAccess(error.message);else{unavailable=error.message;showList();}}
  }
  async function mount(){
   if(mounted)return;attach();mounted=true;const generation=++epoch;
@@ -89,7 +90,8 @@ export function createClientReviewPortal({root,fetcher=fetch,confirmLeave=messag
     if(!current(c))return;selectedItem.response=response;draft=null;showReview();notify('Response saved to version '+selectedItem.number+'.');
    }catch(error){
     if(!current(c))return;
-    if([401,403,404].includes(error.status)){review=null;selected='';draft=null;unavailable=error.message;reviews=[];showList();}
+    if([401,403].includes(error.status))lostAccess(error.message);
+    else if(error.status===404){review=null;selected='';draft=null;unavailable=error.message;reviews=[];showList();}
     else{draft=originalDraft;if(error.status===400){draft.payload=null;draft.key='';}showReview(error.message);}
    }finally{if(mounted&&c.epoch===epoch)busy(false);}
    return;
@@ -115,7 +117,7 @@ export function createClientReviewPortal({root,fetcher=fetch,confirmLeave=messag
    if(!canLeave())return;draft=null;await navigate();return;
   }
   if(action==='reload-list'){
-   if(!canLeave())return;try{await loadList();showList();}catch(error){unavailable=error.message;showList();}
+   if(!canLeave())return;const generation=epoch,user=identity?.id;try{await loadList();if(mounted&&generation===epoch&&user===identity?.id)showList();}catch(error){if(!mounted||generation!==epoch||user!==identity?.id)return;reviews=[];if([401,403].includes(error.status))lostAccess(error.message);else{unavailable=error.message;showList();}}
   }
  }
  const onHash=()=>{if(mounted)navigate().catch(error=>notify(error.message));};

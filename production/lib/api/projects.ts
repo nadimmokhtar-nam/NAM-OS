@@ -11,7 +11,7 @@ function failure(error:{code?:string}){
 }
 async function rpc(ctx:APIContext,name:string,args:Record<string,unknown>){const {data,error}=await ctx.supabase.rpc(name,args);if(error)failure(error);return data;}
 function changes(input:Record<string,unknown>,create=false){
- fields(input,['title','brief','outcome','reference_url','due_date','lead_id','member_ids','archived']);
+ fields(input,['title','brief','outcome','reference_url','start_date','due_date','client_name','project_type','location','cover_render_id','lead_id','member_ids','archived']);
  if(create||'title' in input)input.title=inputText(input.title,'Project name',{max:200});
  for(const [field,max] of [['brief',10000],['outcome',5000]] as const)if(field in input)input[field]=inputText(input[field],field==='brief'?'Creative brief':'Definition of done',{max,required:false});
  if('reference_url' in input){
@@ -19,9 +19,11 @@ function changes(input:Record<string,unknown>,create=false){
   if(value){let url:URL;try{url=new URL(value);}catch{throw new ApiError(400,'Use a complete HTTPS reference link.');}if(url.protocol!=='https:'||url.username||url.password)throw new ApiError(400,'Use an HTTPS reference link without embedded credentials.');}
   input.reference_url=value;
  }
- if('due_date' in input&&input.due_date!==null&&input.due_date!==''){
-  const value=input.due_date;if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value+'T12:00:00Z'))||new Date(value+'T12:00:00Z').toISOString().slice(0,10)!==value)throw new ApiError(400,'Choose a valid project deadline.');
+ for(const key of ['start_date','due_date'])if(key in input&&input[key]!==null&&input[key]!==''){
+  const value=input[key];if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value+'T12:00:00Z'))||new Date(value+'T12:00:00Z').toISOString().slice(0,10)!==value||value<'0001-01-01')throw new ApiError(400,'Choose valid project dates.');
  }
+ for(const [key,max] of [['client_name',200],['project_type',100],['location',200]] as const)if(key in input)input[key]=inputText(input[key],key==='client_name'?'Client / company':key==='project_type'?'Project type':'Location',{max,required:false});
+ if('cover_render_id' in input){if(input.cover_render_id===null||input.cover_render_id==='')input.cover_render_id=null;else identifier(input.cover_render_id);}
  if('lead_id' in input)identifier(input.lead_id);
  if('member_ids' in input){if(!Array.isArray(input.member_ids)||input.member_ids.length>100)throw new ApiError(400,'Choose at most 100 project participants.');input.member_ids=[...new Set(input.member_ids.map(identifier))];}
  if('archived' in input&&typeof input.archived!=='boolean')throw new ApiError(400,'Choose a valid project archive state.');

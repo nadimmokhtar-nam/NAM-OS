@@ -7,6 +7,7 @@ import {dispatchSales} from '@/lib/api/sales';
 import {dispatchOperations} from '@/lib/api/operations';
 import {dispatchAccess} from '@/lib/api/access';
 import {dispatchProjects} from '@/lib/api/projects';
+import {dispatchProjectPlanning} from '@/lib/api/project-planning';
 import {dispatchDeliverables} from '@/lib/api/deliverables';
 import {dispatchRenders} from '@/lib/api/renders';
 import {clientReviewEntry,dispatchStudioReviews} from '@/lib/api/client-reviews';
@@ -28,7 +29,7 @@ async function route(request:Request,parameters:RouteContext):Promise<Response>{
   const auth=await authAPI(context,request,'/'+path.join('/'));if(auth)return auth;
   // File URLs overlap task paths. Resolve the authorized private file routes
   // first; every dispatcher returns null for paths it does not own.
-  for(const dispatch of [dispatchAccess,dispatchDaily,dispatchStudioReviews,dispatchRenders,dispatchDeliverables,dispatchProjects,dispatchOperations,dispatchTasks,dispatchAcademyVideo,dispatchAcademy,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
+  for(const dispatch of [dispatchAccess,dispatchDaily,dispatchStudioReviews,dispatchRenders,dispatchDeliverables,dispatchProjectPlanning,dispatchProjects,dispatchOperations,dispatchTasks,dispatchAcademyVideo,dispatchAcademy,dispatchSales]){const response=await dispatch(context,path,request);if(response)return response;}
   if(path[0]==='resources'&&path.length===1&&request.method==='GET')throw new ApiError(409,'This section currently supports tasks. Resource records are scheduled for the next milestone.','MODULE_NOT_AVAILABLE');
   throw new ApiError(404,'This page or record was not found.','NOT_FOUND');
  }catch(error){
