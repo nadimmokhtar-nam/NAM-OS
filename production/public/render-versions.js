@@ -1,6 +1,7 @@
 import {icon} from './icons.js';
+import {formatFileSize} from './file-size.js';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const size=value=>new Intl.NumberFormat('en-GB',{maximumFractionDigits:1}).format(Number(value)/1048576)+' MiB';
+const size=formatFileSize;
 const date=value=>new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date(value));
 const image=(id,variant='preview')=>'/api/renders/'+encodeURIComponent(id)+'/content?variant='+variant;
 const options=(items,current)=>items.map(item=>`<option value="${esc(item.id)}" ${item.id===current?'selected':''}>Version ${item.number} · ${esc(item.file_name)}</option>`).join('');
