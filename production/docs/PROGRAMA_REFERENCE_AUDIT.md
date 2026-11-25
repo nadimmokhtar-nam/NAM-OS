@@ -5,6 +5,13 @@ remaining implementation. It does not establish redesign or release acceptance.
 
 ## Implementation continuation
 
+The next increment adds a real project camera/deliverable inventory, linked
+existing tasks and all ten production stages. Its additive schema, access rules,
+interaction behavior and remaining render-review scope are documented in
+`PROJECT_DELIVERABLES.md`. Local UI/navigation checks pass 130 cases. The new
+schema, server endpoints and browser workflows are awaiting complete CI and
+isolated-provider verification; no hosted migration or deployment has occurred.
+
 The user authorized a different display font on 25 November 2026. NAM now selects
 Newsreader for editorial headings, paired with the existing Inter UI face.
 Newsreader's normal variable Latin/Latin Extended files and OFL licence are
@@ -39,14 +46,13 @@ upload recovery suite. Upload timing checks now await transfer/refresh signals
 instead of counting event-loop cycles; cancellation assertions remain intact.
 New disposable-provider browser coverage checks real task routing, native nonmodal behavior,
 400px geometry, mobile reading order, unsaved navigation and denied task links.
-The continuation CI passes TypeScript, all 446 source/database checks and the
-production build. The second native-provider run passes 53 of 58 scenarios,
-including Back/Forward, direct URLs, native nonmodal behavior, measured desktop
-geometry, mobile reading order and denied task links. Its five remaining viewport
-failures checked for a per-row status badge that grouping had visually concealed.
-Grouped rows now omit that duplicate badge, and geometry checks require their
-shared status header to remain visible. The complete rerun and direct visual
-review remain pending.
+The font/task-workspace baseline at commit `1b60f76` passes TypeScript, all 446
+source/database checks, the production build and all 58 native-provider browser
+scenarios. This covers Back/Forward, direct URLs, native nonmodal behavior,
+measured desktop geometry, mobile reading order and denied task links. Grouped
+rows omit duplicate status badges, and geometry checks require their shared
+status header to remain visible. Direct visual review remains pending. These
+baseline results do not establish the newly added image inventory's verification.
 
 Task navigation clears the old page synchronously and consumes its deferred
 native close without invalidating the new request. A source regression case and

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import ts from 'typescript';
+import {isProductionStage} from '../public/production-stages.js';
 import {ApiError,readJSON} from '../lib/api/security-helpers.ts';
 import {database,asUser,ids} from './database.mjs';
 
@@ -14,7 +15,7 @@ let db,dispatch,queue=Promise.resolve();
 const serial=fn=>{const result=queue.then(fn,fn);queue=result.catch(()=>{});return result;};
 before(async()=>{
  db=await database();const source=await readFile(new URL('../lib/api/tasks.ts',import.meta.url),'utf8'),js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,module={exports:{}};
- vm.runInNewContext(js,{exports:module.exports,require:name=>{assert.equal(name,'./context');return {ApiError,readJSON,json:(data,status=200)=>Response.json(data,{status})};},URL,URLSearchParams,Request,Response,Date,Number,String,Set,Map},{filename:'tasks.ts'});dispatch=module.exports.dispatchTasks;
+ vm.runInNewContext(js,{exports:module.exports,require:name=>{if(name==='../../public/production-stages.js')return {isProductionStage};assert.equal(name,'./context');return {ApiError,readJSON,json:(data,status=200)=>Response.json(data,{status})};},URL,URLSearchParams,Request,Response,Date,Number,String,Set,Map},{filename:'tasks.ts'});dispatch=module.exports.dispatchTasks;
 });
 after(async()=>{await db?.close();});
 const identifier=value=>{assert.match(value,/^[a-z_][a-z0-9_]*$/);return `"${value}"`;};

@@ -188,7 +188,7 @@ test('My day limits Founder projects to explicit participation; Studio retains t
 test('business export retains project context, learning structure and grants without exporting another workspace or Auth',async()=>{
  const pid=await project({title:'Export the approved brief'});
  const other=(await db.query("insert into nam_projects(workspace_id,title,lead_id,created_by,create_payload) values($1,'A different workspace',$2,$2,'{}') returning id",[ids.otherW,ids.outsider])).rows[0].id;
- const exported=await rpc(ids.founder,'nam_export_business',[ids.w]);assert.equal(exported.version,4);assert.equal(exported.videoBytesIncluded,false);assert.equal(exported.attachmentBytesIncluded,false);
+ const exported=await rpc(ids.founder,'nam_export_business',[ids.w]);assert.equal(exported.version,5);assert.equal(exported.videoBytesIncluded,false);assert.equal(exported.attachmentBytesIncluded,false);
  assert(exported.data.nam_projects.some(row=>row.id===pid));assert(!exported.data.nam_projects.some(row=>row.id===other));
  assert(exported.data.nam_project_members.some(row=>row.project_id===pid&&row.user_id===ids.artist));
  assert(exported.data.nam_project_events.some(row=>row.project_id===pid));

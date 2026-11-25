@@ -1,6 +1,6 @@
 import {icon} from './icons.js';
+import {productionStages} from './production-stages.js';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const stages=['Brief','Modelling','Materials','Lighting','Internal review','Client review','Revisions','Delivery'];
 const field=(name,label,value='',extra='')=>`<div class="field"><label for="project-${name}">${label}</label><input id="project-${name}" name="${name}" value="${esc(value)}" ${extra}></div>`;
 const text=(name,label,value='',max=10000)=>`<div class="field"><label for="project-${name}">${label}</label><textarea id="project-${name}" name="${name}" maxlength="${max}">${esc(value)}</textarea></div>`;
 
@@ -26,7 +26,7 @@ export function createProductionProjects({request,openDialog,getData}){
   if(task.project&&!choices.some(p=>p.id===task.project.id))choices.push(task.project);
   if(project&&!choices.some(p=>p.id===project.id))choices.push(project);
   const unavailable=current&&!choices.some(p=>p.id===current)?`<option value="${esc(current)}" selected>Project brief not shared</option>`:'';
-  return `<div class="form-grid"><div class="field"><label for="task-project">Project</label><select name="project_id" id="task-project"><option value="">No project · standalone work</option>${unavailable}${choices.filter(p=>!p.archived||p.id===current).map(p=>`<option value="${esc(p.id)}" ${p.id===current?'selected':''}>${esc(p.title)}</option>`).join('')}</select></div><div class="field"><label for="task-stage">Production stage</label><select name="production_stage" id="task-stage"><option value="">Not set</option>${stages.map(stage=>`<option value="${stage}" ${stage===task.production_stage?'selected':''}>${stage}</option>`).join('')}</select></div></div>`;
+  return `<div class="form-grid"><div class="field"><label for="task-project">Project</label><select name="project_id" id="task-project"><option value="">No project · standalone work</option>${unavailable}${choices.filter(p=>!p.archived||p.id===current).map(p=>`<option value="${esc(p.id)}" ${p.id===current?'selected':''}>${esc(p.title)}</option>`).join('')}</select></div><div class="field"><label for="task-stage">Production stage</label><select name="production_stage" id="task-stage"><option value="">Not set</option>${productionStages(task.production_stage).map(stage=>`<option value="${stage}" ${stage===task.production_stage?'selected':''}>${stage}</option>`).join('')}</select></div></div>${getData()?.capabilities?.deliverables==='records'?`<div class="field"><label for="task-deliverable">Image / deliverable</label><select name="deliverable_id" id="task-deliverable" data-project="${esc(current)}"><option value="">No specific deliverable</option>${task.deliverable_id?`<option value="${esc(task.deliverable_id)}" selected>${esc(task.deliverable?task.deliverable.code+' · '+task.deliverable.title:'Current deliverable')}</option>`:''}</select></div>`:''}`;
  }
  function form(edit=false){
   const p=edit?project:null,people=eligible();
@@ -52,21 +52,22 @@ export function createProductionProjects({request,openDialog,getData}){
  }
  function projectHash(view='overview'){
   if(!project)return '#projects';
-  return '#projects/'+encodeURIComponent(project.id)+(view==='work'?'/work':'');
+  return '#projects/'+encodeURIComponent(project.id)+(['work','images'].includes(view)?'/'+view:'');
  }
- function projectViewLabel(view='overview'){return view==='work'?'Project Management':'Overview';}
+ function projectViewLabel(view='overview'){return view==='work'?'Project Management':view==='images'?'Images & deliverables':'Overview';}
  function navigation(view='overview'){
   if(!project)return '';
-  const active=view==='work'?'work':'overview';
+  const active=['work','images'].includes(view)?view:'overview';
   const choices=[project,...records.filter(record=>record.id!==project.id)];
-  return `<div class="project-context-heading"><button type="button" class="icon-btn project-nav-back" aria-label="Back to projects" title="Back to projects" data-action="project-back">${icon('arrow')}</button><details class="project-switcher"><summary aria-label="Switch project: ${esc(project.title)}"><span class="project-context-name">${esc(project.title)}</span>${icon('chevron')}</summary><div class="project-switcher-menu" aria-label="Available projects">${choices.map(record=>`<button type="button" data-action="project-open" data-id="${esc(record.id)}" aria-pressed="${record.id===project.id}">${esc(record.title)}</button>`).join('')}</div></details></div><nav aria-label="Project navigation" data-project-navigation>${[['overview','overview'],['work','tasks']].map(([key,symbol])=>`<a class="nav-link ${active===key?'active':''}" href="${esc(projectHash(key))}" ${active===key?'aria-current="page"':''}>${icon(symbol)}${projectViewLabel(key)}</a>`).join('')}</nav>`;
+  return `<div class="project-context-heading"><button type="button" class="icon-btn project-nav-back" aria-label="Back to projects" title="Back to projects" data-action="project-back">${icon('arrow')}</button><details class="project-switcher"><summary aria-label="Switch project: ${esc(project.title)}"><span class="project-context-name">${esc(project.title)}</span>${icon('chevron')}</summary><div class="project-switcher-menu" aria-label="Available projects">${choices.map(record=>`<button type="button" data-action="project-open" data-id="${esc(record.id)}" aria-pressed="${record.id===project.id}">${esc(record.title)}</button>`).join('')}</div></details></div><nav aria-label="Project navigation" data-project-navigation>${[['overview','overview'],...(getData()?.capabilities?.deliverables==='records'?[['images','image']]:[]),['work','tasks']].map(([key,symbol])=>`<a class="nav-link ${active===key?'active':''}" href="${esc(projectHash(key))}" ${active===key?'aria-current="page"':''}>${icon(symbol)}${projectViewLabel(key)}</a>`).join('')}</nav>`;
  }
  function projectWorkSummary(projectTaskCount){
   const count=Number.isSafeInteger(projectTaskCount)&&projectTaskCount>=0?projectTaskCount:null;
   return `<section class="project-overview-work" aria-labelledby="project-task-summary-title"><div><h2 id="project-task-summary-title">Project tasks</h2>${count===null?'':`<strong class="project-task-total">${count.toLocaleString('en-GB')}</strong>`}<p>${founder()?'All permitted tasks linked to this project.':'Your assigned tasks linked to this project.'}</p></div><div class="project-overview-actions"><a class="button" href="${esc(projectHash('work'))}">Open Project Management</a>${founder()?`<button class="button text small" data-action="project-archive">${project.archived?'Restore project':'Archive project'}</button>`:''}</div></section>`;
  }
- function render({taskWorkspace,newTaskButton,taskTab=false,projectView='overview',projectTaskCount=null}){
+ function render({taskWorkspace,newTaskButton,taskTab=false,projectView='overview',projectTaskCount=null,deliverableView}){
   if(project){
+   if(projectView==='images'&&getData()?.capabilities?.deliverables==='records')return deliverableView();
    if(projectView==='work')return `<div class="page-head project-detail-header"><div><h1>Project Management</h1><p>${esc(project.title)}</p></div>${!project.archived?newTaskButton('projects'):''}</div><section class="project-work-section" aria-label="Project tasks">${taskWorkspace('projects')}</section>`;
    const hasContext=!!(project.outcome||project.reference_url);
    const metadata=hasContext?`<aside class="project-overview-meta" aria-label="Project context">${project.outcome?`<section><h2>Definition of done</h2><p class="brief-copy">${esc(project.outcome)}</p></section>`:''}${project.reference_url?`<section><h2>References</h2><p>Open the project’s shared reference folder or brief.</p><a class="button small" href="${esc(project.reference_url)}" target="_blank" rel="noopener noreferrer">Open project references ${icon('arrow')}</a></section>`:''}</aside>`:'';

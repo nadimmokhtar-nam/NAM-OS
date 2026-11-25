@@ -140,6 +140,31 @@ test('project routes mount their shared work only in Project Management and keep
  assert(!html.includes('data-project-navigation'));assert.equal(h.location.hash,'#projects');
 });
 
+test('the image workspace loads actual deliverables and keeps task work on its separate project route',async()=>{
+ const project={id:'camera-project',title:'Camera project',member_ids:[actor.id],lead_id:actor.id,version:1},image={id:'camera-one',project_id:'camera-project',code:'INT-01',title:'Living room hero',kind:'still',stage:'Camera approval',artist_id:actor.id,due_date:null};
+ const h=await harness({intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records',deliverables:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:[project]});
+  if(url==='/api/projects/camera-project')return response(project);
+  if(url.startsWith('/api/projects/camera-project/deliverables?'))return response({items:[image],total:1,page:1,hasMore:false});
+  return null;
+ }});
+ h.location.hash='#projects/camera-project/images';await h.ui.navigate();const html=h.nodes.get('#app').innerHTML;
+ assert.equal(h.ui.state.projectView,'images');assert(html.includes('Living room hero'));assert(html.includes('Camera approval'));assert(html.includes('href="#projects/camera-project/images" aria-current="page"'));assert(!html.includes('id="task-results"'));
+ const count=h.requests.filter(entry=>entry.url.startsWith('/api/tasks?')).length;h.location.hash='#projects/camera-project/work';await h.ui.navigate();assert(h.nodes.get('#app').innerHTML.includes('id="task-results"'));assert.equal(h.requests.filter(entry=>entry.url.startsWith('/api/tasks?')).length,count+1);
+});
+
+test('a denied camera page displays the real access error without an earlier image or private brief',async()=>{
+ const h=await harness({intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records',deliverables:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:[]});
+  if(url==='/api/projects/hidden-images')return response({id:'hidden-images',title:'Shared brief',member_ids:[]});
+  if(url.startsWith('/api/projects/hidden-images/deliverables?'))return response({error:'Images are no longer shared.'},404);
+  return null;
+ }});
+ h.location.hash='#projects/hidden-images/images';await h.ui.navigate();assert(h.nodes.get('#main').innerHTML.includes('Images are no longer shared.'));assert(!h.nodes.get('#main').innerHTML.includes('deliverable-row'));
+});
+
 test('project deep links decode the requested record and preserve unavailable-record errors without leaking a prior brief',async()=>{
  const h=await harness({intercept:(url,init,model,response)=>{
   if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records'}});

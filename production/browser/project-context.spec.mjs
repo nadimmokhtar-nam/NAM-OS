@@ -34,14 +34,14 @@ test('global Work creation changes from Sales to project work and assigns one re
   await expect(owner).toBeEnabled();
   await expect.poll(()=>owner.evaluate(control=>Array.from(control.options,option=>option.value).sort())).toEqual([lead.id,person.id].sort());
   expect(await owner.locator('option[value="'+other.id+'"]').count()).toBe(0);
-  await owner.selectOption(person.id);await stage.selectOption('Lighting');
+  await owner.selectOption(person.id);await stage.selectOption('Materials and lighting');
   await dialog.getByLabel('Task name',{exact:true}).fill(title);
   await dialog.getByLabel('What needs to happen?',{exact:true}).fill('Prepare the first lighting pass using the shared brief.');
   const response=founder.page.waitForResponse(result=>result.url().endsWith('/api/tasks')&&result.request().method()==='POST');
   await dialog.getByRole('button',{name:'Create task',exact:true}).click();
   const createdResponse=await response;expect(createdResponse.status()).toBe(201);const task=await createdResponse.json();
   await expect(dialog.locator('.context-title')).toHaveText(project.title);
-  expect(task.project_id).toBe(project.id);expect(task.owner_id).toBe(person.id);expect(task.production_stage).toBe('Lighting');
+  expect(task.project_id).toBe(project.id);expect(task.owner_id).toBe(person.id);expect(task.production_stage).toBe('Materials and lighting');
   const listing=await founder.context.request.get('/api/tasks?project_id='+project.id+'&page=1');expect(listing.status()).toBe(200);
   const items=await listing.json();expect(items.total).toBe(1);expect(items.items.filter(row=>row.id===task.id&&row.title===title)).toHaveLength(1);
   expect((await artist.context.request.get('/api/projects/'+project.id)).status()).toBe(200);
