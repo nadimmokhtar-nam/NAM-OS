@@ -6,11 +6,12 @@ import {loadBrowserModule} from './support/browser-module.mjs';
 
 const uuid=()=>randomUUID();
 const settle=async()=>{for(let n=0;n<16;n++)await new Promise(done=>setImmediate(done));};
-async function harness(request){
+const uploadTransition=async ready=>{const deadline=Date.now()+2000;while(!ready()){assert(Date.now()<deadline,'The expected upload transition did not arrive.');await new Promise(done=>setTimeout(done,5));}};
+async function harness(request,{cryptoProvider=webcrypto}={}){
  const listeners={},dialogs=[],messages=[],forms=new Map(),created=[];let closed=0,project={id:'project-one',title:'Courtyard',archived:false},actor={id:'founder',role:'founder'},route='files';
  const document={addEventListener(event,handler){(listeners[event]??=[]).push(handler);},querySelector(selector){if(selector==='#dialog')return {close(){closed++;}};return forms.get(selector)||null;},querySelectorAll(){return [];},createElement(){const value={innerHTML:'',className:''};created.push(value);return value;}};
  class FormData{constructor(form){this.values=form.values||{};}get(key){return this.values[key]??null;}has(key){return Object.hasOwn(this.values,key);}}
- const context=vm.createContext({Intl,Date,URL,URLSearchParams,FormData,crypto:webcrypto,Uint8Array,ArrayBuffer,document,globalThis:undefined});context.globalThis=context;context.confirm=()=>true;
+ const context=vm.createContext({Intl,Date,URL,URLSearchParams,FormData,crypto:cryptoProvider,Uint8Array,ArrayBuffer,document,globalThis:undefined});context.globalThis=context;context.confirm=()=>true;
  const module=await loadBrowserModule(context,'project-resources.js');
  const controller=module.createProjectResources({request,openDialog(title,html){dialogs.push({title,html});},getData:()=>({actor,members:[],capabilities:{projectResources:'records'}}),getProject:()=>project,render(){},toast(message){messages.push(message);},contextKey:()=>route});
  const emit=(type,target)=>{for(const listener of listeners[type]||[])listener({target,preventDefault(){}});};
@@ -79,14 +80,15 @@ test('only public HTTPS links render as references and no remote URL becomes a s
 });
 
 test('an upload metadata conflict requires a visible sharing review and acknowledgement before retrying its finish',async()=>{
+ const cryptoProvider={randomUUID,subtle:{async digest(...args){await new Promise(resolve=>setTimeout(resolve,25));return webcrypto.subtle.digest(...args);}}};
  const id=uuid(),content=Buffer.from('Studio upload fixture'),sha=createHash('sha256').update(content).digest('hex'),file={name:'Direction.txt',type:'text/plain',size:content.length,arrayBuffer:async()=>content.buffer.slice(content.byteOffset,content.byteOffset+content.length)},latest=row({id,kind:'file',title:'Shared direction',visibility:'project',version:2,file_name:file.name}),finish=[];let acknowledged=false;
  const h=await harness(async(url,method,body)=>{
   if(url.endsWith('/finish')){finish.push(body.expectedVersion);if(finish.length===1)throw Object.assign(Error('File sharing changed'),{status:409});return {...latest,status:'ready'};}
   if(url.endsWith('/upload')||method==='POST')return {id,status:'pending',uploaded:true,mime:file.type,sha256:sha,size:file.size,fileName:file.name,expectedVersion:acknowledged?2:1};
   if(url.endsWith('/'+id))return latest;return result([]);
- });
+ },{cryptoProvider});
  const nodes={'.form-error':{textContent:''},'[name="file"]':{files:[file],disabled:false},'[name="title"]':{value:'Founder direction'},'[name="visibility"]':{value:'founder'},'.resource-upload-progress':{hidden:true},'.resource-upload-recovery':{hidden:true},'[role="status"]':{textContent:''},'[data-resource-action="upload-stop"]':{disabled:true},'.form-actions':{before(){}}};
  const form={dataset:{resourceForm:'upload',id:'',version:''},isConnected:true,querySelector(selector){return selector==='.resource-upload-conflict'?h.created.at(-1)||null:nodes[selector]||null;},querySelectorAll(){return [];}};
- h.emit('submit',form);await settle();assert.equal(form._resourceUpload.expectedVersion,1);assert.equal(form._resourceUpload.latest.visibility,'project');assert(h.created.at(-1).innerHTML.includes('Project team'));assert(h.created.at(-1).innerHTML.includes('Shared direction'));
- h.emit('submit',form);await settle();assert.deepEqual(finish,[1]);h.click('upload-use-latest',{},form);acknowledged=true;h.emit('submit',form);await settle();assert.deepEqual(finish,[1,2]);
+ h.emit('submit',form);await uploadTransition(()=>!!form._resourceUpload?.latest&&!h.controller.isSaving());assert.equal(form._resourceUpload.expectedVersion,1);assert.equal(form._resourceUpload.latest.visibility,'project');assert(h.created.at(-1).innerHTML.includes('Project team'));assert(h.created.at(-1).innerHTML.includes('Shared direction'));
+ h.emit('submit',form);await uploadTransition(()=>nodes['.form-error'].textContent.includes('Review the changed file metadata'));assert.deepEqual(finish,[1]);h.click('upload-use-latest',{},form);acknowledged=true;h.emit('submit',form);await uploadTransition(()=>finish.length===2&&!h.controller.isSaving());assert.deepEqual(finish,[1,2]);
 });

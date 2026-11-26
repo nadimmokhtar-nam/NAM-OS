@@ -1,88 +1,76 @@
 # Programa fidelity review — 26 November 2026
 
 Reference: the authenticated application at https://app.programa.design/projects.
-This is a measured-reference source correction, not completed visual acceptance.
+This records the directory comparison and its limits. It does not establish
+complete application visual acceptance or hosted release readiness.
 
-## Fresh reference inspection
+## Authenticated reference
 
-The local authenticated browser successfully opened Projects, a populated example
-project, Project Management and an existing task. No task, project, invitation,
-approval or sharing setting was changed. The original Timeline selection was
-restored before returning to Projects.
+Projects, an example project, Project Management and an existing task were
+inspected without changing business records, invitations, approvals or sharing.
+Temporary view choices were restored. The later directory inspection covered
+1280 × 720, 1440 × 1000 and 390 × 844.
 
-At 1280 × 720, the directory displayed four project columns. The project-list DOM
-reported a 16 px gap and a 1004 px content width. The screenshot shows approximately
-240 × 120 px thumbnails (a 2:1 frame); individual thumbnail rectangles were not
-separately measured. Titles stay on one line with an ellipsis. These observations
-do not establish other viewport breakpoints.
+The desktop navigation allocation is 228 px and the workspace begins at x236.
+The directory has four columns, 16 px gaps, 93:46 thumbnails and a 10 px gap above
+42 px captions. List rows measure 54 px. The view menu is 280 px wide with 4 px
+padding and an 8 px radius. Exact rectangles and responsive observations are in
+`PROGRAMA_REFERENCE_MEASUREMENTS.json`; account text and artwork are excluded.
 
-The task title again measured 18 px / 28.8 px in InterVariable. The properties
-rail measured 400 px, with 16 px top and 24 px side/bottom padding, on the warm
-`rgb(248,246,243)` surface. These agree with the existing task tokens and rules.
-The prior 1440 px shell measurements remain separate from this 1280 px inspection.
+The task title measured 18 px / 28.8 px in InterVariable. Its properties rail
+measured 400 px with 16 px top and 24 px side/bottom padding on
+`rgb(248,246,243)`. This confirms those existing tokens, not every task control.
 
-## Source correction
+## Directory behavior and geometry
 
-The reviewed branch used three desktop project columns, 24 px gaps and a 156 px
-minimum cover height. Its 24 px thumbnail padding also inset selected cover images.
+NAM's actual client modules were rendered with clearly synthetic responses.
+At 1280 px, NAM and Programa both measured grid x252/y174, 1004 px grid width,
+239 × 118.2109375 px thumbnails, 42 px captions and 16 px gaps. At 1440 px, both
+measured 1164 px grids and 279 × 138 px thumbnails. NAM fits 320/390 px without
+document overflow. It retains 44 px mobile controls, making its toolbar taller
+than the observed reference.
 
-The directory now uses four desktop columns and 16 px gaps. Desktop frames use a
-2:1 ratio; covers fill and crop inside the frame without changing the selected
-render or original bytes. Project titles visually truncate while retaining their
-full text in the button's accessible name. Existing two-column and one-column
-breakpoints remain; the narrower layouts retain their earlier 16:9 cover ratio
-and minimum heights. Changes stay in the canonical workspace/planning stylesheets.
+Traditional scrollbars reserve space inside NAM's stable main-panel gutter.
+The native geometry assertion therefore checks the panel's actual client width
+minus its two 16 px content insets, while independently checking the outer panel
+insets and 93:46 media ratio. Overlay-scrollbar measurements above retain their
+recorded widths.
 
-## Verification and limits
+The directory provides client-side search by permitted name, client, location
+and type; natural-name/date sorting; Grid/List; empty-search recovery; keyboard
+dismissal/focus return; and retained filters when entering and leaving a project.
+Opening a project adds a history entry for browser Back/Forward. All production
+work remains available in the view menu. Unmount and identity/access changes
+clear directory context. Manual ordering, pinning and reference context menus
+remain outside this implementation.
 
-The preceding source commit `836d67ee3d9ccc034d9fbfb891096a1206acd71e` passed
-776 source/database/API checks, TypeScript, the production build and 89 distinct
-isolated-provider browser scenarios. Those counts are baseline evidence and
-must not be attributed to this correction before its own workflows finish.
+Migration 037 exposes existing creation/update timestamps in the same read-only,
+security-invoker summary. Existing RLS, task scope, ordering and the 200-record
+bound remain. Search/sorting explicitly apply to those loaded summaries.
 
-The development computer became unavailable during source reconciliation.
-The live reference was inspected before disconnection; the corrected NAM layout
-has not yet been directly rendered alongside it. GitHub verification and another
-matching-size visual review remain required. Main, hosted migrations and studio
-data are outside this source-only correction.
+## Verification
 
-## Connected directory pass after reconnection
+The preceding `6ab59b33a15955a5b21a045ae8c781b35a275e93` baseline passed
+776 source/database/API checks, TypeScript/build and 89 distinct isolated-provider
+browser scenarios. Those counts are baseline evidence.
 
-The authenticated reference was measured again at 1280 × 720, 1440 × 1000 and
-390 × 844. The earlier 220 px navigation estimate was inaccurate: the reference
-uses a 228 px desktop navigation allocation and a workspace starting at 236 px.
-Its project thumbnail ratio is 93:46, with a 10 px gap above a 42 px caption.
-The List view uses 54 px rows. The view menu is 280 px wide, with 4 px padding
-and an 8 px radius. The measured record is in
-`PROGRAMA_REFERENCE_MEASUREMENTS.json`; private account text and artwork are
-excluded.
+The first directory candidate, `44b2953aa32d79b3ad1c603392506c5ec8b9e15c`,
+passed 782 of 784 source checks and 89 of 90 native scenarios. The follow-up
+preserves the original exact directory-class assertion, waits for the upload
+test's actual asynchronous hashing/review transition, and accounts for the
+native browser's reserved scrollbar width. The upload test deliberately delays
+real WebCrypto hashing and still requires explicit changed-sharing acknowledgement.
+Its production upload implementation is unchanged.
 
-NAM's actual client modules were rendered locally with clearly synthetic project
-responses. This local fixture establishes layout and client interactions, not
-Supabase authorization, persisted writes or hosted readiness. The existing
-native-provider test captures were also read from the preceding verified run.
+The corrected focused controller/bridge/route/resource suite passes all 152
+checks. Full current-commit source, database, build and native workflow results
+are recorded in PR 15 after execution; interrupted or failed runs do not count
+as passing.
 
-At 1280 px, NAM and the reference both measure: grid x252/y174, 1004 px grid width,
-239 px cards, 118.2109375 px thumbnails, 42 px captions and 16 px grid gaps.
-At 1440 px, both grids are 1164 px wide with 279 × 138 px thumbnails. The mobile
-client fits 320/390 px without document overflow. NAM retains 44 px mobile
-controls, so its toolbar is deliberately taller than Programa's observed one.
-
-The directory now provides real client-side search by permitted name, client,
-location and type; natural-name/date sorting; Grid/List; empty-search recovery;
-keyboard dismissal/focus return; and retained filters when opening a project
-and returning. Opening a project adds a browser-history entry for Back/Forward.
-All production work remains available in the view menu. Directory context is
-cleared at unmount and identity/access changes. No permission scope is expanded.
-
-Migration 037 adds existing creation/update timestamps to the same read-only,
-security-invoker project summary. Its existing RLS, task scope, ordering and
-200-record bound remain. Search/sorting are explicitly limited to those loaded
-summaries; manual ordering and pinning are not represented as implemented.
-
-The local 130-check controller/bridge/route suite passes. The new native scenario
-uses the disposable provider to check metadata, search/sort/List, Back/Forward,
-320/390 px containment, accessibility and the artist's restricted directory.
-The complete source/database/build and native workflows still need their run on
-this candidate. Hosted migrations, provider reconciliation and full application
-visual acceptance remain separate requirements.
+The local visual fixture establishes client layout/interactions, not hosted
+Auth/RLS or persisted writes. Native scenarios use the disposable provider and
+check metadata, search/sort/List, browser history, 320/390 px containment,
+accessibility and the artist's restricted directory. Hosted migration/recovery,
+provider reconciliation, real curriculum/media and full visual acceptance remain
+separate release requirements. Main, the hosted tenant and studio data are
+unchanged by this source review.

@@ -30,11 +30,12 @@ continuation. All native test identities, project data and emails are disposable
 
 ## Remaining production scope
 
-New migrations028–037 and their browser controllers are an unaccepted development
-batch until consolidated source, database, API and native browser checks pass.
-Private resource reads and downloads, real cross-module task handoffs, retained
-issued files and current authorization require behavioral verification. Existing
-native tests do not imply new workflows have been exercised. Animation review
+Migrations028–036 and their browser controllers passed the consolidated baseline
+through commit `6ab59b33a15955a5b21a045ae8c781b35a275e93`: 776 source/database/API
+checks, TypeScript/build and 89 distinct isolated-provider browser scenarios.
+Migration037 and the directory continuation require their own current-commit
+results, recorded in PR15. This execution evidence does not establish hosted
+rehearsal or final visual acceptance. Animation review
 and optional bulk delivery ZIP packaging are not part of the current JPEG/PNG
 render pipeline.
 
@@ -53,9 +54,9 @@ without the user's instruction.
 ## Evidence and release gates
 
 Current implementation commits and exact CI/native workflow results are tracked
-in PR 15. The current cloud workspace is a full Git checkout reconciled to the
-review branch with Git tree hashes. Local source/database/API checks and
-TypeScript/build checks run on Node 24. Native PostgreSQL/provider and browser
+in PR 15. The local source copy is reconciled to the review branch with Git blob
+hashes. Focused browser-controller checks run locally on Node24; complete
+source/database/API, TypeScript/build, native PostgreSQL/provider and browser
 checks run in isolated GitHub CI. See the current dated verification checkpoint
 for exact passed and failed scenarios; source counts do not establish browser
 execution.
