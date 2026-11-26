@@ -91,7 +91,11 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: secondary-layout-counts-${{ github.run_id }}
-          path: ${{ runner.temp }}/nam-os/isolated/safe-summary.json
+          # The spec constructs this telemetry from fixed route/issue enums,
+          # viewport sizes and numeric rectangles. No DOM or account text.
+          path: |
+            ${{ runner.temp }}/nam-os/isolated/safe-summary.json
+            ${{ runner.temp }}/nam-os/isolated/secondary-layout.jsonl
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false
