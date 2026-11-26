@@ -22,11 +22,13 @@ function configuration(ctx:JobContext,source:Source):ProviderConfig|null {
  // The same server may serve more than one workspace. Explicit binding keeps a
  // workspace's API credentials from being used by another authenticated tenant.
  if(process.env.NAM_INTEGRATIONS_WORKSPACE_ID!==ctx.workspaceId)return null;
- if(source==='attio')return process.env.ATTIO_API_KEY?{token:process.env.ATTIO_API_KEY,dealsObject:process.env.ATTIO_DEALS_OBJECT||'deals'}:null;
+ if(source==='attio')return process.env.ATTIO_API_KEY?{token:process.env.ATTIO_API_KEY,dealsObject:process.env.ATTIO_DEALS_OBJECT||'deals',...(process.env.ATTIO_REPORTING_SCHEMA?{attioSchema:process.env.ATTIO_REPORTING_SCHEMA}:{})}:null;
  if(source==='lemlist')return process.env.LEMLIST_API_KEY?{key:process.env.LEMLIST_API_KEY}:null;
  return process.env.JUSTCALL_API_KEY&&process.env.JUSTCALL_API_SECRET?{key:process.env.JUSTCALL_API_KEY,secret:process.env.JUSTCALL_API_SECRET}:null;
 }
 function fingerprints(ctx:JobContext){return Object.fromEntries(SOURCES.map(source=>{const config=configuration(ctx,source);return [source,config?createHash('sha256').update(JSON.stringify(config)).digest('hex'):null];}));}
+// Server-only binding for additional sales reads. Never serialize these hashes.
+export function integrationFingerprints(ctx:JobContext){return fingerprints(ctx);}
 async function savedConnections(ctx:APIContext){const {data,error}=await ctx.supabase.rpc('nam_integration_connection_state',{w:ctx.workspaceId,fingerprints:fingerprints(ctx)});if(error)databaseFailure(error);return (data||[]) as SavedConnection[];}
 async function connectedData(ctx:APIContext,query:Query={}){const {data,error}=await ctx.supabase.rpc('nam_connected_sales_data',{w:ctx.workspaceId,fingerprints:fingerprints(ctx),record_limit:query.limit||20,record_offset:query.offset||0,filters:{kind:query.kind||'',source:query.source||'',owner:query.owner||'',q:query.q||''}});if(error)databaseFailure(error);return (data||EMPTY) as ConnectedData;}
 async function mappings(ctx:APIContext){const {data,error}=await ctx.supabase.from('nam_integration_owner_map').select('source,external_owner_id,member_id,updated_at').eq('workspace_id',ctx.workspaceId);if(error)databaseFailure(error);return (data||[]) as OwnerMapping[];}

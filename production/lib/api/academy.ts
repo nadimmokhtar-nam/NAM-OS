@@ -83,6 +83,14 @@ export async function dispatchAcademy(ctx:APIContext,path:string[],request:Reque
     const expected=body.expectedRevision===undefined||body.expectedRevision===0?null:positive(body.expectedRevision,'Response revision');
     return json(await rpc(ctx,'nam_academy_submit',{w:ctx.workspaceId,a_id:identifier(path[2],'Assignment'),expected_revision:expected,response_body:inputText(body.body,'Written response',{max:20000})}));
   }
+  if(path[1]==='submissions'&&path.length===3){
+    requireFounder(ctx);if(method!=='GET')throw new ApiError(405,'Method not allowed.');
+    const submission=await ctx.supabase.from('nam_academy_submissions').select('id,assignment_id,user_id,body,status,revision,submitted_at,feedback').eq('workspace_id',ctx.workspaceId).eq('id',identifier(path[2],'Submission')).maybeSingle();
+    if(submission.error)dbFailure(submission.error);if(!submission.data)throw new ApiError(404,'This practical response is not available.');
+    const assignment=await ctx.supabase.from('nam_academy_assignments').select('title,instructions').eq('workspace_id',ctx.workspaceId).eq('id',submission.data.assignment_id).maybeSingle();
+    if(assignment.error)dbFailure(assignment.error);if(!assignment.data)throw new ApiError(404,'This practical assignment is not available.');
+    const response=submission.data;return json({...response,title:assignment.data.title,instructions:assignment.data.instructions,owner_name:ctx.members.find(member=>member.id===response.user_id)?.name||'Studio member'});
+  }
   if(path[1]==='submissions'&&path.length===4&&path[3]==='review'){
     requireFounder(ctx);if(method!=='POST')throw new ApiError(405,'Method not allowed.');const body=await readJSON(request);fields(body,['expectedRevision','status','feedback']);
     if(!['approved','changes_requested'].includes(String(body.status)))throw new ApiError(400,'Choose approved or changes requested.');
