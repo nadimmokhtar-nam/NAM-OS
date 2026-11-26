@@ -30,7 +30,7 @@
 .team-directory-toolbar form{display:flex;min-width:0;width:100%;gap:var(--space-2);align-items:flex-end;flex:1;max-width:480px}
 .team-directory-toolbar .field{flex:1;margin:0}
 .team-directory-toolbar input{min-width:0;max-width:100%}
-.team-directory-table{width:100%;min-width:0;max-width:100%;overflow:auto;overscroll-behavior-x:contain;border-block:1px solid var(--border-subtle)}
+.team-directory-table{position:relative;width:100%;min-width:0;max-width:100%;overflow:auto;overscroll-behavior-x:contain;border-block:1px solid var(--border-subtle)}
 .team-directory-table table{width:100%;border-collapse:collapse;font-size:var(--type-label);line-height:var(--line-label);text-align:left}
 .team-directory-table th,.team-directory-table td{padding:var(--space-3);font-weight:400;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
 .team-directory-table thead th{height:44px;background:var(--surface-control);color:var(--text-secondary);font-size:var(--type-meta);font-weight:500;white-space:nowrap}

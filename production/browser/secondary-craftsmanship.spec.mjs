@@ -55,7 +55,7 @@ async function geometry(page){
   const gaps=blocks.slice(1).map((rect,index)=>+(rect.top-blocks[index].bottom).toFixed(1));
   const header=main.querySelector('.page-head'),heading=header?.querySelector('h1'),action=header?.querySelector(':scope > .button');
   const h=heading?.getBoundingClientRect(),a=action?.getBoundingClientRect();
-  const selectors=['#app','#dialog','.main','.topbar','.top-actions','.identity','.page-head','.member-card','.member-card>div','.team-directory','.team-directory-toolbar','.team-directory-toolbar form','.team-directory-toolbar .field','.team-directory-toolbar input','.team-directory-table','.team-directory-table table','.team-person-name','.pwa-install-slot','.pwa-tools','#toast'];
+  const selectors=['#app','#dialog','.main','.topbar','.top-actions','.identity','.page-head','.member-card','.member-card>div','.team-directory','.team-directory-toolbar','.team-directory-toolbar form','.team-directory-toolbar .field','.team-directory-toolbar input','.team-directory-table','.team-directory-table table','.team-directory-table .sr-only','.team-person-name','.pwa-install-slot','.pwa-tools','#toast'];
   const overflow=selectors.flatMap(selector=>Array.from(document.querySelectorAll(selector)).map(el=>{const r=el.getBoundingClientRect();return {selector,left:+r.left.toFixed(1),right:+r.right.toFixed(1),width:+r.width.toFixed(1),clientWidth:el.clientWidth,scrollWidth:el.scrollWidth};}).filter(r=>r.width>0&&(r.right>viewport+1||r.scrollWidth>r.clientWidth+1))).slice(0,40);
   return {viewport,documentWidth:document.documentElement.scrollWidth,overflow,issues:issues.slice(0,16),gaps,headingActionOffset:h&&a&&a.left>=h.right-1?+(a.top-h.top).toFixed(1):null};
  });

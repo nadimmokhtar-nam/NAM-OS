@@ -124,3 +124,12 @@ curriculum decisions/media verification and matching-size visual acceptance are
 still separate release requirements. See `REDESIGN_ACCEPTANCE.md` for scope.
 The actual hosting runtime must also pass the maximum-original test described
 in `HOSTED_MEDIA_ACCEPTANCE.md`; loopback native success does not certify Vercel.
+
+The first width bounds did not resolve the remaining document extent. Synthetic
+screenshots and rectangle measurements confirmed that the visible table viewport
+was contained. Its absolutely positioned screen-reader caption/Actions label
+needed a local containing block. The table viewport now uses position:relative
+so those labels stay inside its scrolling clip; accessible text and real table
+columns remain present. The production build passes with release build-aa6ea26016c55ab4. The full mobile/native gate must verify this final fix.
+The 26 November production dependency audit reports zero known vulnerabilities
+across 31 production dependencies; this is not a complete security assessment.
