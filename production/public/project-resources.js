@@ -1,5 +1,15 @@
 import {icon} from './icons.js';
 
+// The same signed, non-upserting transfer serves files and laptop covers.
+export async function transferProjectFile(plan,file,{onProgress=()=>{},onRequest=()=>{}}={}){
+ if(plan.uploaded||plan.status==='ready')return;
+ try{await new Promise((resolve,reject)=>{const operation=new XMLHttpRequest();onRequest(operation);operation.open('PUT',plan.uploadUrl);operation.setRequestHeader('Content-Type',plan.mime);operation.setRequestHeader('x-upsert','false');operation.setRequestHeader('Cache-Control','max-age=0');operation.timeout=240000;
+  operation.upload.onprogress=event=>{if(event.lengthComputable)onProgress(Math.round(event.loaded/event.total*100));};
+  operation.onload=()=>operation.status>=200&&operation.status<300?resolve():reject(new Error('The file upload did not finish. Retry the same original file.'));
+  operation.onerror=()=>reject(new Error('The upload connection was interrupted. Retry the same original file.'));operation.ontimeout=()=>reject(new Error('The upload timed out. Retry the same original file.'));operation.onabort=()=>reject(new Error('Upload stopped. Retry the same original file to continue.'));operation.send(file);
+ });}finally{onRequest(null);}
+}
+
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const path=value=>encodeURIComponent(value),clone=value=>JSON.parse(JSON.stringify(value));
 const types={folder:'Folder',file:'File',note:'Note',meeting:'Meeting notes',reference:'Reference link',board:'Pinboard'};
@@ -106,11 +116,7 @@ export function createProjectResources({request,openDialog,getData,getProject,re
  }
  async function putFile(plan,file,form,c){
   if(plan.uploaded||plan.status==='ready')return;const progress=form.querySelector('progress'),status=form.querySelector('[role="status"]'),stop=form.querySelector('[data-resource-action="upload-stop"]');stop.disabled=false;status.textContent='Uploading file…';
-  await new Promise((resolve,reject)=>{const operation=new XMLHttpRequest();xhr=operation;operation.open('PUT',plan.uploadUrl);operation.setRequestHeader('Content-Type',plan.mime);operation.setRequestHeader('x-upsert','false');operation.setRequestHeader('Cache-Control','max-age=0');operation.timeout=240000;
-   operation.upload.onprogress=event=>{if(current(c)&&event.lengthComputable){progress.value=Math.round(event.loaded/event.total*100);status.textContent='Uploading '+progress.value+'%';}};
-   operation.onload=()=>operation.status>=200&&operation.status<300?resolve():reject(new Error('The file upload did not finish. Retry the same original file.'));
-   operation.onerror=()=>reject(new Error('The upload connection was interrupted. Retry the same original file.'));operation.ontimeout=()=>reject(new Error('The upload timed out. Retry the same original file.'));operation.onabort=()=>reject(new Error('Upload stopped. Retry the same original file to continue.'));operation.send(file);
-  });if(current(c)){xhr=null;stop.disabled=true;}
+  await transferProjectFile(plan,file,{onRequest:operation=>{if(current(c))xhr=operation;},onProgress:value=>{if(current(c)){progress.value=value;status.textContent='Uploading '+value+'%';}}});if(current(c)){xhr=null;stop.disabled=true;}
  }
  async function upload(form){
   if(isSaving()||!editable())return;const c=capture(),error=form.querySelector('.form-error'),file=form._resourceUpload?.file||form.querySelector('[name="file"]').files?.[0];if(!file){error.textContent='Choose a file first.';return;}if(!file.size||file.size>20971520){error.textContent='Choose a file between 1 byte and 20 MiB.';return;}

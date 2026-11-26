@@ -29,7 +29,7 @@ async function shell(page,width){
  const result=await page.evaluate(()=>{
   const box=selector=>{const node=document.querySelector(selector);if(!node)return null;const rect=node.getBoundingClientRect();return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height};};
   const title=document.querySelector('#main h1'),style=getComputedStyle(title),menu=document.querySelector('#mobile-menu-trigger'),nav=document.querySelector('.sidebar .nav-link');
-  return {viewport:document.documentElement.clientWidth,document:document.documentElement.scrollWidth,main:box('#main'),header:box('.topbar'),sidebar:box('.sidebar'),title:box('#main h1'),titleFont:style.fontFamily,headingFaceLoaded:Array.from(document.fonts).some(face=>face.family.replaceAll('"','').replaceAll("'",'')==='Newsreader'&&face.status==='loaded'),titleSize:parseFloat(style.fontSize),titleLine:parseFloat(style.lineHeight),titleWeight:Number(style.fontWeight),navigationHeight:nav?.getBoundingClientRect().height,menuVisible:!!menu?.getClientRects().length&&getComputedStyle(menu).display!=='none'};
+  return {viewport:document.documentElement.clientWidth,document:document.documentElement.scrollWidth,main:box('#main'),header:box('.topbar'),sidebar:box('.sidebar'),title:box('#main h1'),titleFont:style.fontFamily,headingFaceLoaded:Array.from(document.fonts).some(face=>face.family.replaceAll('"','').replaceAll("'",'')==='Inter'&&face.status==='loaded'),titleSize:parseFloat(style.fontSize),titleLine:parseFloat(style.lineHeight),titleWeight:Number(style.fontWeight),navigationHeight:nav?.getBoundingClientRect().height,menuVisible:!!menu?.getClientRects().length&&getComputedStyle(menu).display!=='none'};
  });
  expect(result.document,'The page must fit without concealing work beyond the viewport').toBeLessThanOrEqual(result.viewport+1);
  expect(result.main.right).toBeLessThanOrEqual(result.viewport+1);
@@ -41,8 +41,8 @@ async function shell(page,width){
  expect(result.titleSize).toBeGreaterThanOrEqual(22);expect(result.titleSize).toBeLessThanOrEqual(28);
  expect(result.titleLine/result.titleSize).toBeGreaterThanOrEqual(1.15);expect(result.titleLine/result.titleSize).toBeLessThanOrEqual(1.4);
  const families=result.titleFont.toLowerCase().split(',').map(value=>value.trim().replaceAll('"','').replaceAll("'",''));
- expect(families.includes('serif'),'Page headings retain the intended editorial serif family').toBe(true);
- expect(families[0],'NAM uses the selected Newsreader display face').toBe('newsreader');
+ expect(families.includes('sans-serif'),'Page headings use the requested modern sans-serif family').toBe(true);
+ expect(families[0],'NAM uses self-hosted Inter consistently').toBe('inter');expect(result.titleWeight).toBe(600);
  expect(result.headingFaceLoaded,'The self-hosted display font must load rather than silently falling back').toBe(true);
  if(!result.menuVisible){
   expect(result.sidebar.width).toBeGreaterThanOrEqual(224);expect(result.sidebar.width).toBeLessThanOrEqual(232);

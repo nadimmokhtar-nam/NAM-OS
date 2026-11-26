@@ -1,6 +1,6 @@
 .project-resources,.project-pinboard{min-width:0;color:var(--text-primary);font-family:var(--font-ui);font-size:13px;line-height:20px}
 .resource-heading,.pinboard-heading{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-5)}
-.resource-heading h1,.pinboard-heading h1{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:400;letter-spacing:0;margin:0}
+.resource-heading h1,.pinboard-heading h1{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:550;letter-spacing:0;margin:0}
 .resource-heading>.muted{font-size:12px}
 .resource-toolbar{display:flex;align-items:center;gap:var(--space-4);min-height:40px;margin-bottom:var(--space-3)}
 .resource-search{display:flex;align-items:center;gap:var(--space-2);min-width:180px;max-width:340px;flex:1;border:1px solid var(--border-subtle);border-radius:var(--radius-small);padding:0 var(--space-2);background:var(--surface-canvas)}
@@ -42,7 +42,7 @@
 .resource-table .icon-btn{width:28px;height:28px;min-height:28px}
 .resource-table .icon-btn>.icon{width:14px;height:14px}
 .resource-empty{padding:var(--space-7,40px) 0;max-width:520px}
-.resource-empty h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:400;margin:0 0 var(--space-2)}
+.resource-empty h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:550;margin:0 0 var(--space-2)}
 .resource-empty p{margin:0 0 var(--space-4);color:var(--text-secondary);font-size:13px;line-height:20px}
 .resource-pagination{padding:var(--space-4) 0}
 .resource-read dl{display:grid;gap:var(--space-5);margin-block:var(--space-5)}
@@ -64,7 +64,7 @@
 .pinboard-section{padding-bottom:var(--space-6);margin-bottom:var(--space-6);border-bottom:1px solid var(--border-subtle)}
 .pinboard-section:last-child{border-bottom:0}
 .pinboard-section>header{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-4)}
-.pinboard-section>header>h2{font-family:var(--font-display);font-size:22px;line-height:28px;font-weight:400;margin:0}
+.pinboard-section>header>h2{font-family:var(--font-display);font-size:22px;line-height:28px;font-weight:550;margin:0}
 .pinboard-section-title{width:auto;min-width:100px;max-width:55%;font-family:var(--font-display);font-size:22px;line-height:28px;border:1px solid transparent;background:transparent;border-radius:var(--radius-small);padding:var(--space-1) var(--space-2);margin-left:calc(-1 * var(--space-2));color:var(--text-primary)}
 .pinboard-section-title:hover,.pinboard-section-title:focus-visible{border-color:var(--border-subtle);background:var(--surface-canvas)}
 .pinboard-section-actions{display:flex;align-items:center;gap:var(--space-1)}

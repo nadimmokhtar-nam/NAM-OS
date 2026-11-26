@@ -126,7 +126,7 @@ form[data-daily-review]{margin-top:var(--space-6)}
 .daily-summary-note{font-size:var(--type-meta);line-height:18px;color:var(--text-secondary)}
 .sales-desk-heading{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:var(--space-6);margin-bottom:var(--space-6)}
 .sales-desk-heading>div:first-child{flex:1 1 260px}
-.sales-desk-heading h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:400;letter-spacing:-.3px}
+.sales-desk-heading h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:550;letter-spacing:-.3px}
 .sales-desk-heading p{max-width:60ch;margin-top:var(--space-2);font-size:var(--type-body);line-height:var(--line-body);color:var(--text-secondary)}
 .sales-desk-heading>.filters{flex:1 1 340px;min-width:0;max-width:100%;justify-content:flex-start;align-content:flex-start;gap:var(--space-2)}
 .sales-desk-heading>.filters>*{max-width:100%}
@@ -248,7 +248,7 @@ dialog.drawer:has(.deliverable-detail){width:min(var(--deliverable-panel-width),
 .project-overview-work{display:flex;justify-content:space-between;align-items:center;gap:var(--space-6);padding-block:var(--space-5);border-bottom:1px solid var(--border-subtle)}
 .project-overview-work p{margin-top:var(--space-2);color:var(--text-secondary)}
 .project-overview-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
-.project-task-total{display:block;margin-top:var(--space-2);font-family:var(--font-display);font-size:var(--type-display);line-height:var(--line-display);font-weight:400}
+.project-task-total{display:block;margin-top:var(--space-2);font-family:var(--font-display);font-size:var(--type-display);line-height:var(--line-display);font-weight:550}
 @media(max-width:700px){.project-overview-work{align-items:flex-start;flex-direction:column;gap:var(--space-4)}.project-overview-actions{width:100%}}
 .project-navigation{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-4);margin-bottom:var(--space-4)}
 .project-navigation>.tabs{margin-bottom:0}
@@ -306,7 +306,7 @@ dialog.drawer:has(.deliverable-detail){width:min(var(--deliverable-panel-width),
 .project-completion{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-3);font-size:var(--type-meta);line-height:18px;color:var(--text-secondary)}
 .project-completion b{font-weight:500;color:var(--text-secondary)}
 .project-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;grid-column:1/-1;min-height:260px;gap:var(--space-3);text-align:center;background:var(--surface-canvas);border-color:transparent}
-.project-empty>h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:400}
+.project-empty>h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:550}
 .project-empty>p:last-child{max-width:62ch;font-size:var(--type-label);line-height:var(--line-label);color:var(--text-secondary)}
 .project-overview-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(240px,1fr);gap:var(--space-6);align-items:start;margin-bottom:var(--space-6)}
 .project-overview-single{grid-template-columns:minmax(0,1fr)}
@@ -388,7 +388,7 @@ form[data-form="edit-task"]:not(.task-detail-editor)>.form-grid{background:var(-
 /* Academy keeps a quiet editorial introduction and direct lesson navigation. */
 .learning-path{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-6);padding:var(--space-6);margin-bottom:var(--space-6);background:var(--surface-canvas);border-color:transparent}
 .learning-path-intro>.eyebrow,.learning-resume>.eyebrow{margin-bottom:var(--space-3)}
-.learning-path-intro h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:400;letter-spacing:-.3px;max-width:30ch;margin-bottom:var(--space-3)}
+.learning-path-intro h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:550;letter-spacing:-.3px;max-width:30ch;margin-bottom:var(--space-3)}
 .learning-path-intro>p:not(.eyebrow){max-width:52ch;color:var(--text-secondary);font-size:var(--type-body);line-height:var(--line-body);margin-bottom:var(--space-4)}
 .learning-path-intro>small{font-size:var(--type-meta);line-height:18px;color:var(--text-secondary)}
 .learning-resume{display:flex;flex-direction:column;justify-content:center;min-width:0;padding-left:var(--space-6);border-left:1px solid var(--line)}
@@ -413,7 +413,7 @@ progress::-moz-progress-bar{background:var(--primary)}
 .learning-cards{gap:var(--space-4)}
 .learning-cards .course-card{min-height:224px}
 .learning-cards .course-card .course-number{margin-bottom:var(--space-5);font-size:var(--type-meta);line-height:18px;letter-spacing:0}
-.learning-cards .course-card h2{font-family:var(--font-display);font-size:22px;line-height:28px;font-weight:400;letter-spacing:-.2px}
+.learning-cards .course-card h2{font-family:var(--font-display);font-size:22px;line-height:28px;font-weight:550;letter-spacing:-.2px}
 .learning-cards .course-card p{font-size:var(--type-label);line-height:var(--line-label);color:var(--text-secondary);margin-bottom:var(--space-4)}
 .learning-cards .course-card .button{margin-top:var(--space-4);width:100%;justify-content:space-between}
 .learning-empty{grid-column:1/-1;text-align:center;padding:var(--space-8) var(--space-6)}
@@ -432,7 +432,7 @@ progress::-moz-progress-bar{background:var(--primary)}
 .lesson-nav small{display:block;font-size:var(--type-meta);line-height:18px;margin-top:var(--space-1);color:var(--text-secondary)}
 .lesson-nav .lesson-module{display:block;width:100%;margin:var(--space-4) 0 var(--space-2);padding:0 var(--space-2);font-size:var(--type-label);font-weight:500;line-height:var(--line-label);color:var(--text-secondary);overflow-wrap:anywhere;white-space:normal;word-break:normal}
 .lesson-nav .lesson-module:first-child{margin-top:0}
-.lesson-body h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:400;letter-spacing:-.2px;margin:var(--space-2) 0 var(--space-5)}
+.lesson-body h2{font-family:var(--font-display);font-size:24px;line-height:30px;font-weight:550;letter-spacing:-.2px;margin:var(--space-2) 0 var(--space-5)}
 .lesson-body .prose{font-size:var(--type-body);line-height:1.75;max-width:78ch}
 .lesson-body>.spread{flex-wrap:wrap;gap:var(--space-3)}
 .lesson-actions{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}

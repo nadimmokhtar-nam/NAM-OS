@@ -50,13 +50,24 @@ export async function dispatchProjectPlanning(ctx:APIContext,path:string[],reque
   const page=Number(query.get('page')||1),search=query.get('search')||'';if(!Number.isSafeInteger(page)||page<1||page>100000||search.length>200)throw new ApiError(400,'Choose a valid cover image page.');
   return json(await rpc(ctx,'nam_review_images_page',{pid,page,search}));
  }
+ if(action==='cover'&&path.length===3&&method==='PATCH'){
+  requireFounder(ctx);const input=await readJSON(request);fields(input,['expectedVersion','resourceId','renderId']);
+  if(!Number.isSafeInteger(input.expectedVersion)||Number(input.expectedVersion)<1)throw new ApiError(400,'A saved project version is required.');
+  const resourceId=input.resourceId===null||input.resourceId===undefined?null:id(input.resourceId),renderId=input.renderId===null||input.renderId===undefined?null:id(input.renderId);
+  if(resourceId&&renderId)throw new ApiError(400,'Choose one project cover.');
+  const retry=request.headers.get('Idempotency-Key');if(!retry||!/^[A-Za-z0-9_-]{8,128}$/.test(retry))throw new ApiError(400,'A stable cover request key is required.');
+  await requireLiveContext(ctx,{founder:true});
+  await rpc(ctx,'nam_set_project_cover',{pid,expected_version:input.expectedVersion,resource_id:resourceId,render_id:renderId,retry_key:retry});
+  return json(await rpc(ctx,'nam_project_detail',{pid}));
+ }
  if(action==='cover'&&path.length===3&&method==='GET'){
   const variant=query.get('variant')||'preview';if([...query.keys()].some(k=>k!=='variant')||!['preview','thumbnail'].includes(variant))throw new ApiError(400,'Choose a valid project cover view.');
   await requireLiveContext(ctx);const ticket=await rpc(ctx,'nam_project_cover_media',{pid,variant}),storage=internal.storage||clientProvider(true).storage;
-  const {data,error}=await storage.from('nam-render-versions').download(ticket.path);if(error||!data)throw new ApiError(503,'The project cover could not load. Please retry.');
+  const bucket=ticket.bucket||'nam-render-versions';if(!['nam-render-versions','nam-project-resources'].includes(bucket))throw new ApiError(503,'The project cover could not be verified.');
+  const {data,error}=await storage.from(bucket).download(ticket.path);if(error||!data)throw new ApiError(503,'The project cover could not load. Please retry.');
   if(data.size!==Number(ticket.size)||data.size>52428800)throw new ApiError(503,'The project cover could not be verified.');
   const bytes=Buffer.from(await data.arrayBuffer());if(createHash('sha256').update(bytes).digest('hex')!==ticket.sha256)throw new ApiError(503,'The project cover could not be verified.');
-  await requireLiveContext(ctx);const current=await rpc(ctx,'nam_project_cover_media',{pid,variant});if(current.path!==ticket.path||current.sha256!==ticket.sha256)throw new ApiError(409,'The project cover changed while loading. Reload the project.');
+  await requireLiveContext(ctx);const current=await rpc(ctx,'nam_project_cover_media',{pid,variant});if((current.bucket||'nam-render-versions')!==bucket||current.path!==ticket.path||current.sha256!==ticket.sha256)throw new ApiError(409,'The project cover changed while loading. Reload the project.');
   return new Response(Uint8Array.from(bytes),{headers:{'Content-Type':'image/webp','Content-Length':String(bytes.length),'Content-Disposition':'inline','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"sandbox; default-src 'none'",'Referrer-Policy':'no-referrer'}});
  }
  throw new ApiError(405,'Method not allowed.');
