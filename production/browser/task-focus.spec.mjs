@@ -19,6 +19,11 @@ async function openKeyboardTask(browser){
  await expect(run.page.getByRole('dialog')).toBeVisible();
  return {...run,task,child,checkbox:run.page.locator('[data-subtask="'+child.id+'"]')};
 }
+async function closeKeyboardTask(run){
+ await run.page.keyboard.press('Escape');
+ await expect(run.page.getByRole('dialog')).not.toBeVisible();
+ await expect(run.page).toHaveURL(/\/workspace#tasks$/);
+}
 
 test('native keyboard focus survives a successful subtask rerender and persists the result',async({browser})=>{
  const run=await openKeyboardTask(browser);
@@ -86,9 +91,9 @@ test('completing and reopening a task by keyboard keeps the logical row focused'
  const run=await openKeyboardTask(browser);
  try{
   expect((await mutate(run.context,'/tasks/'+run.task.id+'/subtasks',{id:run.child.id,completed:true})).status()).toBe(200);
-  await run.page.keyboard.press('Escape');
+  await closeKeyboardTask(run);
   const checkbox=run.page.locator('[data-complete="'+run.task.id+'"]');
-  await checkbox.focus();await run.page.keyboard.press('Space');
+  await checkbox.focus();await expect(checkbox).toBeFocused();await run.page.keyboard.press('Space');
   await expect(checkbox).toBeChecked();await expect(checkbox).toBeEnabled();await expect(checkbox).toBeFocused();
   expect((await (await run.context.request.get('/api/tasks/'+run.task.id)).json()).status).toBe('Done');
   await run.page.keyboard.press('Space');
@@ -100,13 +105,15 @@ test('completing and reopening a task by keyboard keeps the logical row focused'
 test('failed keyboard task completion retains the row focus and original status',async({browser})=>{
  const run=await openKeyboardTask(browser);
  try{
-  await run.page.keyboard.press('Escape');
+  await closeKeyboardTask(run);
   await run.page.route('**/api/tasks/'+run.task.id,async route=>{
    if(route.request().method()!=='PATCH')return route.continue();
    await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Task update interrupted. Your saved task is unchanged.'})});
   });
   const checkbox=run.page.locator('[data-complete="'+run.task.id+'"]');
-  await checkbox.focus();await run.page.keyboard.press('Space');
+  await checkbox.focus();await expect(checkbox).toBeFocused();
+  const failed=run.page.waitForResponse(response=>new URL(response.url()).pathname==='/api/tasks/'+run.task.id&&response.request().method()==='PATCH');
+  await run.page.keyboard.press('Space');expect((await failed).status()).toBe(503);
   await expect(run.page.locator('#toast')).toContainText('Task update interrupted');
   await expect(checkbox).not.toBeChecked();await expect(checkbox).toBeEnabled();await expect(checkbox).toBeFocused();
   expect((await (await run.context.request.get('/api/tasks/'+run.task.id)).json()).status).toBe('Todo');

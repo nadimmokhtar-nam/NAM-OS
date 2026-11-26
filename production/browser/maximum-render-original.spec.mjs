@@ -26,7 +26,10 @@ async function imageDetail(founder,did){const response=await founder.context.req
 async function original(context,path,digest,size){
  const response=await context.request.get(path,{timeout:60000});
  try{
-  expect(response.status()).toBe(200);expect(response.headers()['cache-control']).toBe('private, no-store');expect(response.headers()['content-type']).toBe('image/png');expect(response.headers()['content-disposition']).toMatch(/^attachment;/);expect(response.headers()['content-length']).toBe(String(size));
+  expect(response.status()).toBe(200);expect(response.headers()['cache-control']).toBe('private, no-store');expect(response.headers()['content-type']).toBe('image/png');expect(response.headers()['content-disposition']).toMatch(/^attachment;/);
+  // Next streams route responses and may omit the supplied framing header.
+  // The complete body length and fingerprint remain mandatory below.
+  const contentLength=response.headers()['content-length'];if(contentLength!==undefined)expect(contentLength).toBe(String(size));
   const bytes=await response.body();expect(bytes.length).toBe(size);expect(hash(bytes)).toBe(digest);
  }finally{await response.dispose();}
 }

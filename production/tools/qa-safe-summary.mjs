@@ -21,7 +21,7 @@ const stackSite=new RegExp('(?:^|[\\s(])('+Array.from(known.keys()).flatMap(file
 // Only this checked-in geometry assertion may publish its numeric coordinates.
 // Report messages and arbitrary strings never become evidence fields.
 function secondaryGeometry(message,file,line,assertion){
- if(file!=='browser/secondary-craftsmanship.spec.mjs'||line!==secondaryGeometryLine||assertion!=='toEqual')return null;
+ if(file!=='browser/secondary-craftsmanship.spec.mjs'||!secondaryGeometryLine||!Number.isInteger(line)||Math.abs(line-secondaryGeometryLine)>1||assertion!=='toEqual')return null;
  const marker=message.match(/(?:^|\n)NAM_SECONDARY_GEOMETRY (.{1,4096})(?:\n|$)/);if(!marker)return null;
  let value;try{value=JSON.parse(marker[1]);}catch{return null;}
  if(!['settings','team','library','operations'].includes(value?.route)||![320,390,768,1440].includes(value?.width)||!Array.isArray(value?.issues)||value.issues.length>16)return null;

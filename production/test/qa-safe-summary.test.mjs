@@ -175,3 +175,16 @@ test('secondary layout evidence rejects arbitrary text, dimensions and source si
  const invalid=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[{message:'NAM_SECONDARY_GEOMETRY '+JSON.stringify({...valid,issues:[{kind:'panel action exceeds content grid',left:NaN,right:20,contentRight:15}]})+'\nexpect(received).toEqual(expected)',location:{file,line,column:4}}]}]});
  const nonFinite=await summarize(invalid);assert.equal('secondaryGeometry' in nonFinite.output.tests[0].results[0].failureSites[0],false);
 });
+
+
+test('secondary geometry diagnostics tolerate only an adjacent source-map offset at the checked-in marker',async()=>{
+ const file=resolve(app,'browser/secondary-craftsmanship.spec.mjs'),line=(await readFile(file,'utf8')).split('\n').findIndex(value=>value.includes("expect(result.issues,'NAM_SECONDARY_GEOMETRY '"))+1;
+ const {expect}=await import('@playwright/test');let message='';
+ const value={route:'settings',width:320,issues:[{kind:'overlapping actions',i:0,j:1}]};
+ try{expect(value.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify(value)).toEqual([]);}catch(error){message=error.message;}
+ assert(message.includes('NAM_SECONDARY_GEOMETRY'));
+ const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[-2,-1,0,1,2].map(offset=>({message,location:{file,line:line+offset,column:4}}))}]});
+ const result=await summarize(fixture),sites=result.output.tests[0].results[0].failureSites;
+ assert.equal('secondaryGeometry' in sites[0],false);assert.equal('secondaryGeometry' in sites[4],false);
+ for(const site of sites.slice(1,4))assert.deepEqual(site.secondaryGeometry,value);
+});

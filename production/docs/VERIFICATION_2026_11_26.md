@@ -73,6 +73,25 @@ in 30 files. The native run must pass before accepting these changes. The
 production release identity is
 `build-346f008214f49825`.
 
+Review commit `a618b3c1a39a91e28d873771598a88a20e1be294` subsequently passed
+[source CI 45779751995](https://github.com/nadimmokhtar-nam/NAM-OS/actions/runs/45779751995),
+including all 771 tests. [Native run 45779752039](https://github.com/nadimmokhtar-nam/NAM-OS/actions/runs/45779752039)
+passed 85 of 89 scenarios with zero skips; the revision round, Team persistence and
+independent PostgreSQL transaction checks passed. Remaining failures were two
+Settings geometry cases, a keyboard fixture focusing the still-inert task list
+before the queued native dialog-close event, and an original-download test
+requiring a Content-Length header that Next intentionally removes.
+
+The next test-only correction waits for the actual task-list close lifecycle and
+observes the failed PATCH before asserting its toast. The original-download case
+accepts HTTP streaming without a Content-Length header while retaining mandatory
+complete byte count and SHA256 checks. A real loopback HTTP check through the
+installed Next response adapter transferred all 52,428,800 bytes with the exact
+digest; wrong declared length, truncation and wrong digest were rejected by the
+test helper. Geometry evidence accepts only the adjacent source-map line offset,
+known viewport/routes and bounded numbers; the original assertion remains.
+These corrections still require the next full native run.
+
 Hosted migration/deployment, actual provider credentials and ownership mappings,
 curriculum decisions/media verification and matching-size visual acceptance are
 still separate release requirements. See `REDESIGN_ACCEPTANCE.md` for scope.
