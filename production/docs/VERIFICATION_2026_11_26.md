@@ -92,6 +92,33 @@ test helper. Geometry evidence accepts only the adjacent source-map line offset,
 known viewport/routes and bounded numbers; the original assertion remains.
 These corrections still require the next full native run.
 
+The subsequent run on `d2c170d6826cc46084fdf96c677c8453fe104247`
+([45781195272](https://github.com/nadimmokhtar-nam/NAM-OS/actions/runs/45781195272))
+passed 87 of 89 distinct browser scenarios, with no skips. The 50 MiB original
+completed the real Supabase upload/verification, staff and client exact-byte
+downloads, retained issued-version/manifest checks and revoked-access checks.
+All task-focus cases and the independent PostgreSQL gate passed.
+
+Constructed numeric telemetry subsequently showed that Settings itself fits.
+The two remaining document-width failures occurred in the Team directory at
+320 px and 390 px. The earlier sanitizer had mistaken a neighbouring code-frame
+`toEqual` for the actual `toBeLessThanOrEqual` width failure. Numeric matchers are
+now recognised directly. The directory, search controls and table viewport now
+have explicit shrink/width bounds while retaining horizontal table scrolling.
+The Team persistence scenario additionally checks the page/main width, bounded
+scrollable table and visible search control. The layout assertion is retained.
+
+The mobile containment batch passes 31 sanitizer contracts and 12 Team UI
+contracts. Its release identity is `build-1de25ef817bdff46`; the next full native
+run remains required. An early five-case layout/accessibility gate now runs
+before the full 89-case suite; these are repeated checks, not 94 unique cases.
+Only constructed viewport/rectangle telemetry and sanitized summaries are
+published. Browser logs, sessions and captured mail stay private.
+
+The cloud Programa reference returned 403 on 26 November; its one ordinary reload
+did not restore access. The authenticated reference audit from 25 November remains
+available, but no fresh reference acceptance is claimed.
+
 Hosted migration/deployment, actual provider credentials and ownership mappings,
 curriculum decisions/media verification and matching-size visual acceptance are
 still separate release requirements. See `REDESIGN_ACCEPTANCE.md` for scope.

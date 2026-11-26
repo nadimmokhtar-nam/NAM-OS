@@ -52,7 +52,7 @@ const safeFailure=error=>{
  let file=sourceFile(error?.location?.file),line=lineNumber(file,error?.location?.line),column=Number(error?.location?.column);
  if(!file||!line){const match=String(error?.stack||'').match(stackSite);file=match?sourceFile(match[1]):null;line=lineNumber(file,match?.[2]);column=Number(match?.[3]);}
  const location=file&&line?file+':'+line+(Number.isInteger(column)&&column>0&&column<100000?':'+column:''):null;
- const message=String(error?.message||'').replace(/\u001b\[[0-9;]*m/g,''),assertion=message.match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toBeDisabled|toHaveText|toContainText|toEqual|toBe|toHaveCount|toHaveAttribute|toBeCloseTo|toBeGreaterThan)\b/)?.[1]||null;
+ const message=String(error?.message||'').replace(/\u001b\[[0-9;]*m/g,''),assertion=message.match(/\b(toBeVisible|toBeFocused|toHaveValue|toBeChecked|toBeEnabled|toBeDisabled|toHaveText|toContainText|toEqual|toBe|toHaveCount|toHaveAttribute|toBeCloseTo|toBeLessThanOrEqual|toBeLessThan|toBeGreaterThanOrEqual|toBeGreaterThan)\b/)?.[1]||null;
  // Timeout diagnostics expose only known Playwright operations and a bounded
  // duration at a checked-in source site. Locators and call logs stay private.
  const operation=location?message.match(/^(locator\.(?:click|fill|check|uncheck|press|selectOption|setInputFiles|waitFor|focus)|page\.(?:goto|waitForResponse|waitForURL)|keyboard\.press):/)?.[1]:null;

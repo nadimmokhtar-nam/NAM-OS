@@ -210,3 +210,10 @@ test('independent layout evidence is not published for unrelated failures or pas
  const report=secondaryFailedReport();report.suites[0].specs[0].tests[0]={status:'expected',results:[{status:'passed',duration:1}]};
  const passing=await summarize(report,{layout:[layoutFixture()]});assert.equal(passing.exit,0);assert.equal('secondaryLayout' in passing.output,false);
 });
+
+
+test('a numeric width matcher is identified before a neighbouring source-frame equality assertion',async()=>{
+ const file=resolve(app,'browser/secondary-craftsmanship.spec.mjs');
+ const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[{message:'Error: expect(received).toBeLessThanOrEqual(expected)\nCode frame: expect(result.issues).toEqual([])\n'+marker,location:{file,line:80,column:73}}]}]});
+ const result=await summarize(fixture);assert.equal(result.exit,1);assert.equal(result.output.tests[0].results[0].failureSites[0].assertion,'toBeLessThanOrEqual');
+});

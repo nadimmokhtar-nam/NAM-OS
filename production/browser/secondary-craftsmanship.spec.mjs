@@ -76,9 +76,9 @@ for(const width of [320,390,768,1440])test('secondary screens preserve grids, ac
    }
    await page.evaluate(()=>document.fonts.ready);
    const result=await geometry(page);
-   await appendFile(resolve(qaRoot,'secondary-layout.jsonl'),JSON.stringify({commit:process.env.GITHUB_SHA,route,width,issues:result.issues})+'\n',{mode:0o600});
+   await appendFile(resolve(qaRoot,'secondary-layout.jsonl'),JSON.stringify({commit:process.env.GITHUB_SHA,route,width,viewport:result.viewport,documentWidth:result.documentWidth,issues:result.issues})+'\n',{mode:0o600});
    expect(result.documentWidth,route+' document must fit its viewport').toBeLessThanOrEqual(result.viewport+1);
-   expect(result.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify({route,width,issues:result.issues})).toEqual([]);
+   expect(result.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify({route,width,viewport:result.viewport,documentWidth:result.documentWidth,issues:result.issues})).toEqual([]);
    if(route==='settings'){
     await expect(page.locator('.sidebar .nav-link[href="#settings"]')).toHaveAttribute('aria-current','page');
     expect(result.gaps.length).toBeGreaterThanOrEqual(2);

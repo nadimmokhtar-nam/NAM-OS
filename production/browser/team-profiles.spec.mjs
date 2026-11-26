@@ -72,6 +72,10 @@ test('Founder department assignment and an artist profile save persist in the fi
   const row=founder.page.locator('.team-directory-table tbody tr');await expect(row).toHaveCount(1);
   await expect(row.getByRole('rowheader',{name:original.name,exact:true})).toBeVisible();
   for(const text of [jobTitle,departmentName,'CGI Artist'])await expect(row.getByRole('cell',{name:text,exact:true})).toBeVisible();
+  await founder.page.setViewportSize({width:390,height:844});
+  const mobile=await founder.page.locator('.team-directory-table').evaluate(region=>({width:region.getBoundingClientRect().width,scrollWidth:region.scrollWidth,clientWidth:region.clientWidth,mainWidth:document.querySelector('#main').clientWidth,mainScrollWidth:document.querySelector('#main').scrollWidth,viewport:document.documentElement.clientWidth,documentWidth:document.documentElement.scrollWidth}));
+  expect(mobile.documentWidth).toBeLessThanOrEqual(mobile.viewport+1);expect(mobile.mainScrollWidth).toBeLessThanOrEqual(mobile.mainWidth+1);expect(mobile.width).toBeLessThan(mobile.viewport);expect(mobile.scrollWidth).toBeGreaterThan(mobile.clientWidth);
+  await expect(founder.page.getByRole('button',{name:'Search',exact:true})).toBeInViewport();
   const access=await read(founder.context,'/auth/access/'+person.id);expect(access.role).toBe(originalAccess.role);expect(grants(access.grants)).toEqual(grants(originalAccess.grants));
   const persisted=await read(artist.context,'/team/profile');expect(persisted.name).toBe(original.name);expect(persisted.notifications).toEqual(original.notifications);
  }finally{
