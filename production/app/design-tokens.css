@@ -1,0 +1,87 @@
+/* NAM OS: Programa's compact geometry with the requested neutral palette
+   and one modern, self-hosted sans-serif family across the workspace. */
+:root{
+  --font-ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-display:var(--font-ui);
+  --ink:#171717;
+  --text-primary:var(--ink);
+  --text-secondary:#616161;
+  --muted:#707070;
+  --primary:#171717;
+  --surface-canvas:#f6f6f6;
+  --surface-sidebar:var(--surface-canvas);
+  --surface-workspace:#fff;
+  --surface-raised:#fff;
+  --surface-control:#fff;
+  --surface-muted:var(--surface-canvas);
+  --surface-hover:#f0f0f0;
+  --surface-pressed:#e6e6e6;
+  --line:rgba(0,0,0,.12);
+  --border-subtle:rgba(0,0,0,.08);
+  --border-strong:rgba(0,0,0,.24);
+  --input-border:#8a8a8a;
+  --panel:var(--surface-raised);
+  --focus-ring:#171717;
+  --status-progress-ink:#4a4a4a;
+  --status-progress-bg:#ededed;
+  --status-blocked-ink:#333;
+  --status-blocked-bg:#e9e9e9;
+  --status-done-ink:#333;
+  --status-done-bg:#ededed;
+  --status-danger-ink:#9b4438;
+  --status-danger-bg:#fcf0ed;
+  --radius-small:6px;
+  --radius-control:6px;
+  --radius-panel:8px;
+  --radius-workspace:10px;
+  --radius-row:10px;
+  --type-body:1rem;
+  --type-label:.928571rem;
+  --type-meta:.857143rem;
+  --type-display:24px;
+  --line-body:21px;
+  --line-label:20px;
+  --line-display:32px;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-8:32px;
+  --control-height:32px;
+  --button-height:28px;
+  --tab-height:28px;
+  --task-properties-width:400px;
+  --deliverable-panel-width:480px;
+  --timeline-label-width:320px;
+  --timeline-row-height:90px;
+  --phase-panel-width:560px;
+  --control-padding-block:6px;
+  --control-padding-inline:10px;
+  --nav-item-height:28px;
+  --nav-width:228px;
+  --project-cover-aspect:93/46;
+  --project-card-gap:10px;
+  --project-caption-gap:2px;
+  --project-menu-width:280px;
+  --project-list-row-height:54px;
+  --project-status-active:#525252;
+  --project-status-attention:#171717;
+  --project-status-archived:#a3a3a3;
+  --shell-inset:8px;
+  --header-height:52px;
+  --page-gutter:16px;
+  --shadow-nav-active:0 0 0 1px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-dialog:0 12px 40px rgba(0,0,0,.12);
+  --shadow-control:0 0 0 1px rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --shadow-primary:inset 0 .75px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.4),0 0 0 1px #18181b;
+  --shadow-menu:0 0 0 1px rgba(0,0,0,.08),0 4px 8px rgba(0,0,0,.08),0 8px 16px rgba(0,0,0,.08);
+  --motion-press:70ms;
+  --motion-fast:100ms;
+  --motion-panel:160ms;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+}
+@media(max-width:700px){
+  :root{--control-height:44px;--button-height:44px;--tab-height:44px;--nav-item-height:44px;--timeline-label-width:220px}
+}

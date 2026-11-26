@@ -49,8 +49,15 @@ export async function dispatchSales(ctx:APIContext,path:string[],request:Request
  if(path.join('/')==='sales/reports'&&method==='POST'){
   const input=await readJSON(request);fields(input,['week_start','outcomes','blockers','next_week']);const week=date(input.week_start,'Week start');if(new Date(`${week}T12:00:00Z`).getUTCDay()!==1)throw new ApiError(400,'Choose the Monday of the reporting week.');await rpc(ctx,'nam_submit_sales_report',{w:ctx.workspaceId,payload:{week_start:week,outcomes:text(input.outcomes,'Outcomes',5000),blockers:text(input.blockers??'','Blockers',5000,false),next_week:text(input.next_week,'Next week',5000)}});return json(await manualSales(ctx));
  }
+ if(path.length===3&&path[0]==='sales'&&path[1]==='reports'&&method==='GET'){
+  const result=await ctx.supabase.from('nam_sales_reports').select('id,owner_id,week_start,outcomes,blockers,next_week,submitted_at,reviewed_at,reviewed_by').eq('workspace_id',ctx.workspaceId).eq('id',identifier(path[2])).maybeSingle();
+  if(result.error)databaseFailure(result.error);if(!result.data)throw new ApiError(404,'The sales report is not available.');
+  const report=result.data;return json({...report,owner_name:ctx.members.find(member=>member.id===report.owner_id)?.name||'Studio member'});
+ }
  if(path.length===4&&path[0]==='sales'&&path[1]==='reports'&&path[3]==='review'&&method==='POST'){
-  requireFounder(ctx);const input=await readJSON(request);fields(input,[]);await rpc(ctx,'nam_review_sales_report',{w:ctx.workspaceId,report_id:identifier(path[2])});return json(await manualSales(ctx));
+  requireFounder(ctx);const input=await readJSON(request);fields(input,['expectedSubmittedAt']);const expected=text(input.expectedSubmittedAt,'The report submission date',64);
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(expected)||!Number.isFinite(Date.parse(expected)))throw new ApiError(400,'Reload the current report before reviewing.');
+  await rpc(ctx,'nam_review_sales_report_checked',{w:ctx.workspaceId,report_id:identifier(path[2]),expected_submitted_at:expected});return json(await manualSales(ctx));
  }
  if(path.join('/')==='sales/targets'&&method==='POST'){
   requireFounder(ctx);const input=await readJSON(request);fields(input,['owner_id','metric','period','target','expectedVersion']);if(input.expectedVersion!==undefined&&(!Number.isSafeInteger(input.expectedVersion)||Number(input.expectedVersion)<1||Number(input.expectedVersion)>2147483647))throw new ApiError(400,'The target revision is invalid.');identifier(input.owner_id,'Sales member');if(typeof input.metric!=='string'||!METRICS.includes(input.metric))throw new ApiError(400,'Invalid target metric.');if(typeof input.period!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.period))throw new ApiError(400,'Choose a target month.');if(!Number.isInteger(input.target)||Number(input.target)<1||Number(input.target)>100000)throw new ApiError(400,'Target must be a positive whole number.');await rpc(ctx,'nam_set_sales_target',{w:ctx.workspaceId,payload:input});return json(await manualSales(ctx));

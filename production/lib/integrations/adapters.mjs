@@ -4,22 +4,40 @@ function owner(value){return !['string','number'].includes(typeof value)||value=
 function record(source,kind,id,values){return {source,kind,external_id:stableId(id),external_owner_id:null,title:'Untitled',occurred_at:null,...values};}
 const first=(values,key)=>Array.isArray(values?.[key])?values[key][0]:null;
 const textValue=v=>safeText(v?.value)||safeText(v?.full_name)||null;
+const choiceValue=v=>safeText(v?.status?.title)||safeText(v?.option?.title)||textValue(v);
+function calendarDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||value<'1900-01-01'||value>'2200-12-31')return null;const d=new Date(`${value}T12:00:00Z`);return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value?value:null;}
+function attioSchema(config){
+  if(!config.attioSchema)return {};
+  let schema;try{if(config.attioSchema.length>16000)throw new Error();schema=JSON.parse(config.attioSchema);}catch{throw new IntegrationError('configuration_error','ATTIO_REPORTING_SCHEMA must be a valid JSON object of at most 16000 characters.');}
+  const object=v=>v&&typeof v==='object'&&!Array.isArray(v),slug=v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(v);
+  if(!object(schema)||Object.keys(schema).some(k=>!['people','companies','deals','stageCategories','qualifiedValues','probabilityScale'].includes(k)))throw new IntegrationError('configuration_error','The Attio reporting schema contains unsupported fields.');
+  const allowed={people:['owner','leadStatus'],companies:['owner'],deals:['owner','stage','value','closeDate','closedDate','probability']};
+  for(const [type,fields] of Object.entries(allowed))if(Object.hasOwn(schema,type)&&(!object(schema[type])||Object.entries(schema[type]).some(([k,v])=>!fields.includes(k)||!slug(v))))throw new IntegrationError('configuration_error',`Confirm the Attio ${type} attribute slugs.`);
+  if(Object.hasOwn(schema,'stageCategories')&&(!object(schema.stageCategories)||Object.entries(schema.stageCategories).some(([k,v])=>!k||k.length>300||!['open','won','lost'].includes(v))))throw new IntegrationError('configuration_error','Attio stage categories must map exact status IDs or titles to open, won or lost.');
+  if(Object.hasOwn(schema,'qualifiedValues')&&(!Array.isArray(schema.qualifiedValues)||schema.qualifiedValues.length>100||schema.qualifiedValues.some(v=>typeof v!=='string'||!v||v.length>300)))throw new IntegrationError('configuration_error','Confirm the qualified lead status values.');
+  if(schema.probabilityScale!==undefined&&![1,100].includes(schema.probabilityScale))throw new IntegrationError('configuration_error','Attio probability scale must be 1 or 100.');
+  if(schema.deals?.probability&&!schema.probabilityScale)throw new IntegrationError('configuration_error','Confirm the Attio probability scale before forecasting.');
+  return schema;
+}
+function stageCategory(schema,id,title){const mapping=schema.stageCategories||{};return (id&&Object.hasOwn(mapping,id)?mapping[id]:null)||(title&&Object.hasOwn(mapping,title)?mapping[title]:null)||null;}
 
 export async function attioSnapshot(config,options={}){
   const request=transport({source:'Attio',origin:'https://api.attio.com',authorization:`Bearer ${config.token}`,...options});
-  const result=[],warnings=[],objects=[['people','lead'],['companies','company'],[config.dealsObject||'deals','deal']];
-  for(const [object,kind] of objects){
+  const schema=attioSchema(config),result=[],warnings=[],objects=[['people','lead','people'],['companies','company','companies'],[config.dealsObject||'deals','deal','deals']];
+  for(const [object,kind,type] of objects){
     if(!/^[a-zA-Z0-9_-]{1,100}$/.test(object))throw new IntegrationError('configuration_error','The Attio deals object slug is invalid.');
     for(let page=0;page<MAX_PAGES;page++){
       let response;try{response=await request(`/v2/objects/${encodeURIComponent(object)}/records/query`,{method:'POST',body:{limit:500,offset:page*500}});}catch(e){if(kind==='deal'&&e.code==='configuration_error'){warnings.push('Deal records unavailable: confirm that the configured Attio deals object is enabled and readable.');break;}throw e;}
       const rows=arrayBody(response,['data']);
-      for(const row of rows){const v=row.values||{},name=first(v,'name'),stage=first(v,'stage'),value=first(v,'value'),ref=first(v,'owner');
-        result.push(record('attio',kind,row.id?.record_id,{title:textValue(name)||`${kind==='lead'?'Person':kind==='company'?'Company':'Deal'} ${stableId(row.id?.record_id)}`,external_owner_id:ref?.referenced_actor_type==='workspace-member'?owner(ref.referenced_actor_id):null,stage:safeText(stage?.status?.title)||safeText(stage?.value),amount:typeof value?.currency_value==='number'&&Number.isFinite(value.currency_value)?value.currency_value:null,currency:typeof value?.currency_code==='string'&&/^[A-Z]{3}$/.test(value.currency_code)?value.currency_code:null,email:safeText(first(v,'email_addresses')?.email_address),company_ids:(v.associated_company||[]).map(x=>safeText(x.target_record_id)).filter(Boolean),source_url:safeUrl(row.web_url,['app.attio.com']),occurred_at:dateISO(row.created_at)}));
+      for(const row of rows){const v=row.values||{},mapping=schema[type]||{},name=first(v,'name'),stage=first(v,mapping.stage||'stage'),value=first(v,mapping.value||'value'),ref=first(v,mapping.owner||'owner');
+        const stageTitle=choiceValue(stage),stageId=safeText(stage?.status?.id?.status_id),leadStatus=mapping.leadStatus?choiceValue(first(v,mapping.leadStatus)):null,probability=mapping.probability?first(v,mapping.probability)?.value:null,ratio=typeof probability==='number'&&Number.isFinite(probability)?probability/schema.probabilityScale:null;
+        const refs=key=>(Array.isArray(v[key])?v[key]:[]).map(x=>safeText(x.target_record_id)).filter(Boolean);
+        result.push(record('attio',kind,row.id?.record_id,{title:textValue(name)||`${kind==='lead'?'Person':kind==='company'?'Company':'Deal'} ${stableId(row.id?.record_id)}`,external_owner_id:ref?.referenced_actor_type==='workspace-member'?owner(ref.referenced_actor_id):null,stage:stageTitle,stage_id:stageId,stage_category:kind==='deal'?stageCategory(schema,stageId,stageTitle):null,amount:typeof value?.currency_value==='number'&&Number.isFinite(value.currency_value)?value.currency_value:null,currency:typeof value?.currency_code==='string'&&/^[A-Z]{3}$/.test(value.currency_code)?value.currency_code:null,email:safeText(first(v,'email_addresses')?.email_address),phone:safeText(first(v,'phone_numbers')?.normalized_phone_number)||safeText(first(v,'phone_numbers')?.original_phone_number),job_title:textValue(first(v,'job_title')),domain:safeText(first(v,'domains')?.domain),lead_status:leadStatus,is_qualified:leadStatus&&schema.qualifiedValues?.length?schema.qualifiedValues.includes(leadStatus):null,company_ids:refs(kind==='lead'?'company':'associated_company'),people_ids:refs('associated_people'),projected_close_on:mapping.closeDate?calendarDate(first(v,mapping.closeDate)?.value):null,closed_on:mapping.closedDate?calendarDate(first(v,mapping.closedDate)?.value):null,probability:ratio!==null&&ratio>=0&&ratio<=1?ratio:null,probability_basis:mapping.probability?'Attio record attribute':null,source_url:safeUrl(row.web_url,['app.attio.com']),occurred_at:dateISO(row.created_at)}));
       }
       if(rows.length<500)break;if(page===MAX_PAGES-1)throw new IntegrationError('limit_exceeded','Attio sync exceeded the safety limit. No partial snapshot was published.');
     }
   }
-  return {records:result,warnings,coverage:{period:'current CRM snapshot',deals_available:!warnings.length}};
+  return {records:result,warnings,coverage:{period:'current CRM snapshot',deals_available:!warnings.length,reporting_schema_configured:!!config.attioSchema,stage_categories_configured:!!Object.keys(schema.stageCategories||{}).length,lead_status_configured:!!schema.people?.leadStatus,close_date_configured:!!schema.deals?.closeDate,closed_date_configured:!!schema.deals?.closedDate,probability_configured:!!schema.deals?.probability}};
 }
 
 async function lemlistPages(request,path){const all=[];for(let page=0;page<MAX_PAGES;page++){const delimiter=path.includes('?')?'&':'?',r=await request(`${path}${delimiter}limit=100&offset=${page*100}&version=v2`),rows=arrayBody(r,['data','activities','campaigns']);all.push(...rows);if(rows.length<100)return all;if(page===MAX_PAGES-1)throw new IntegrationError('limit_exceeded','Lemlist sync exceeded the safety limit. No partial snapshot was published.');}return all;}

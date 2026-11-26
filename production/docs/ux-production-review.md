@@ -1,3 +1,5 @@
+> Historical checkpoint. Current implementation and executed reinvention checks are in [REINVENTION_VALIDATION.md](REINVENTION_VALIDATION.md). The owner’s latest requirements and migration 015 permit password-only Founder sign-in; verified authenticator enrollment is optional. Earlier feature/assurance statements below describe their recorded revision.
+
 # Production UX and interface contract review
 
 24 November 2026. Scope: the real production browser modules, route/data contracts and approved visual specification. This independent review executes application source with simulated document/HTTP boundaries and inspects schema/API compatibility. It does not certify native layout, accessibility, live integration data or a complete testing round.

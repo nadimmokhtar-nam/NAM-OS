@@ -1,3 +1,4 @@
+import {loadBrowserModule} from './support/browser-module.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -11,15 +12,15 @@ async function harness(){
  const listeners={},courses=new Map([['one',base('one')],['two',base('two')]]),calls=[],messages=[];let failure=null,hold=null;
  const document={addEventListener(type,fn){(listeners[type]??=[]).push(fn);},querySelector(){return {close(){}};}};
  class FormData{constructor(form){this.values=Object.entries(form.values);}[Symbol.iterator](){return this.values[Symbol.iterator]();}}
- const context=vm.createContext({document,FormData,Intl,Date,Map,Set,JSON,String,Number,encodeURIComponent});let source=await readFile(new URL('../public/academy-admin.js',import.meta.url),'utf8');source=source.replace('export function createAcademyAdmin','function createAcademyAdmin');vm.runInContext(source+'\nglobalThis.factory=createAcademyAdmin;',context);
- const module=context.factory({request:async(path,method='GET',body)=>{calls.push({path,method,body:structuredClone(body)});if(failure&&failure(path,method))throw new Error('Temporary network failure');if(path==='/bootstrap')return {members:[]};if(path==='/academy/admin/courses')return [...courses.values()].map(c=>({...structuredClone(c),lesson_count:0,enrollment_count:0}));const id=path.split('/').at(-1),course=courses.get(id);if(method==='PATCH'){if(body.expectedRevision!==course.revision)throw Object.assign(new Error('This course changed elsewhere. Reload before saving.'),{status:409});const result={...course,...body,revision:course.revision+1};delete result.expectedRevision;if(hold)await new Promise(resolve=>hold.resolve=resolve);courses.set(id,result);return structuredClone(result);}return structuredClone(course);},openDialog(){},toast:message=>messages.push(message),onChange:async()=>{}});
+ const context=vm.createContext({document,FormData,Intl,Date,Map,Set,JSON,String,Number,encodeURIComponent});const {createAcademyAdmin}=await loadBrowserModule(context,'academy-admin.js');
+ const module=createAcademyAdmin({request:async(path,method='GET',body)=>{calls.push({path,method,body:structuredClone(body)});if(failure&&failure(path,method))throw new Error('Temporary network failure');if(path==='/bootstrap')return {members:[]};if(path==='/academy/admin/courses')return [...courses.values()].map(c=>({...structuredClone(c),lesson_count:0,enrollment_count:0}));const id=path.split('/').at(-1),course=courses.get(id);if(method==='PATCH'){if(body.expectedRevision!==course.revision)throw Object.assign(new Error('This course changed elsewhere. Reload before saving.'),{status:409});const result={...course,...body,revision:course.revision+1};delete result.expectedRevision;if(hold)await new Promise(resolve=>hold.resolve=resolve);courses.set(id,result);return structuredClone(result);}return structuredClone(course);},openDialog(){},toast:message=>messages.push(message),onChange:async()=>{}});
  const button=()=>({disabled:false,isConnected:true,setAttribute(){},removeAttribute(){}});
  const emit=async(type,target,extra={})=>{for(const fn of listeners[type]||[])fn({target,preventDefault(){},...extra});await tick();};
  async function action(name,dataset={}){const target={dataset:{academyAction:name,...dataset},...button(),closest(selector){return selector==='[data-academy-action]'?this:null;}};await emit('click',target);}
  function form(id='one',{revision=courses.get(id).revision,values={},baseline}={}){const course=courses.get(id),original=baseline||{title:course.title,area:course.area,summary:course.summary},error={innerHTML:'',replaceChildren(){this.innerHTML='';},focus(){}};return {dataset:{academyForm:'metadata',course:id,revision:String(revision),base:JSON.stringify(original)},values:{...original,...values},error,submit:button(),matches:()=>true,querySelector(selector){return selector==='.form-error'?error:this.submit;}};}
  async function edit(form,values){Object.assign(form.values,values);const target={closest:selector=>selector==='[data-academy-form="metadata"]'?form:null};await emit('input',target);}
  async function submit(form){await emit('submit',form,{submitter:form.submit});}
- await module.load();await action('open',{course:'one'});
+ await module.load();await action('open',{course:'one'});await action('authoring-view',{view:'details'});
  return {module,courses,calls,messages,action,form,edit,submit,setFailure:fn=>failure=fn,holdSave(){hold={};return {release:()=>hold.resolve()};}};
 }
 

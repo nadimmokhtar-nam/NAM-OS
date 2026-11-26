@@ -1,3 +1,5 @@
+> Historical adapter-build assessment. The owner subsequently supplied the existing protected `nam-os-staging` site and Ireland Supabase project. Use [DEPLOYMENT.md](DEPLOYMENT.md), [current reinvention evidence](docs/REINVENTION_VALIDATION.md) and [the new source packaging check](docs/NETLIFY_REINVENTION_PACKAGING.md) for this branch. The older source hashes, counts and accountless packaging results below are retained as historical evidence.
+
 # Free online pilot: Netlify + Supabase
 
 Netlify Free is a feasible candidate for the existing Next.js application, with Supabase Free retaining authentication, PostgreSQL and private files. No paid plan, account, project, site or deployment was created during this check. This document records build compatibility and limitations, not launch readiness.

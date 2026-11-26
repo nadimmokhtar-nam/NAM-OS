@@ -26,6 +26,10 @@ export function WorkspaceClient({nonce}:{nonce?:string}){
     bridge.mount().catch(()=>{if(active.current)setScriptError(true);});
   };
   return <>
+    {/* Fetch the public module graph while React hydrates. Execution/mounting
+        still waits for the scaffold and the existing idempotent bridge. */}
+    <link rel="modulepreload" href="/workspace-entry.js" nonce={nonce}/>
+    <link rel="modulepreload" href="/app.js" nonce={nonce}/>
     <div id="app" suppressHydrationWarning>
       <main id="main" className="loading-state" role="status" tabIndex={-1}>Opening the studio workspace…</main>
     </div>

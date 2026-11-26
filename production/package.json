@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test --test-concurrency=2 test/*.test.mjs tests/*.test.mjs",
     "prebuild": "node scripts/pwa-release.mjs",
-    "predev": "node scripts/pwa-release.mjs"
+    "predev": "node scripts/pwa-release.mjs",
+    "test:browser": "playwright test --config=playwright.config.mjs"
   },
   "engines": {
     "node": ">=24"
@@ -21,11 +22,14 @@
     "next": "16.x",
     "react": "19.x",
     "react-dom": "19.x",
-    "server-only": "0.0.1"
+    "server-only": "0.0.1",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.1",
     "@electric-sql/pglite": "^0.6.0",
     "@netlify/plugin-nextjs": "5.16.9",
+    "@playwright/test": "1.65.1",
     "@types/node": "24.x",
     "@types/react": "19.x",
     "@types/react-dom": "19.x",
