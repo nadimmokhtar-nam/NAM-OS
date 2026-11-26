@@ -55,11 +55,13 @@ async function geometry(page){
   const gaps=blocks.slice(1).map((rect,index)=>+(rect.top-blocks[index].bottom).toFixed(1));
   const header=main.querySelector('.page-head'),heading=header?.querySelector('h1'),action=header?.querySelector(':scope > .button');
   const h=heading?.getBoundingClientRect(),a=action?.getBoundingClientRect();
-  return {viewport,documentWidth:document.documentElement.scrollWidth,issues:issues.slice(0,16),gaps,headingActionOffset:h&&a&&a.left>=h.right-1?+(a.top-h.top).toFixed(1):null};
+  const selectors=['#app','#dialog','.main','.topbar','.top-actions','.identity','.page-head','.member-card','.member-card>div','.team-directory','.team-directory-toolbar','.team-directory-toolbar form','.team-directory-toolbar .field','.team-directory-toolbar input','.team-directory-table','.team-directory-table table','.team-person-name','.pwa-install-slot','.pwa-tools','#toast'];
+  const overflow=selectors.flatMap(selector=>Array.from(document.querySelectorAll(selector)).map(el=>{const r=el.getBoundingClientRect();return {selector,left:+r.left.toFixed(1),right:+r.right.toFixed(1),width:+r.width.toFixed(1),clientWidth:el.clientWidth,scrollWidth:el.scrollWidth};}).filter(r=>r.width>0&&(r.right>viewport+1||r.scrollWidth>r.clientWidth+1))).slice(0,40);
+  return {viewport,documentWidth:document.documentElement.scrollWidth,overflow,issues:issues.slice(0,16),gaps,headingActionOffset:h&&a&&a.left>=h.right-1?+(a.top-h.top).toFixed(1):null};
  });
 }
 
-for(const width of [320,390,768,1440])test('secondary screens preserve grids, action groups and long names at '+width+'px',async({browser})=>{
+for(const width of [320,390,768,1440])test('secondary screens preserve grids, action groups and long names at '+width+'px',async({browser},testInfo)=>{
  const {context,page}=await actor(browser,'founder',{viewport:{width,height:1000}});
  try{
   await displayLabels(page);
@@ -76,9 +78,10 @@ for(const width of [320,390,768,1440])test('secondary screens preserve grids, ac
    }
    await page.evaluate(()=>document.fonts.ready);
    const result=await geometry(page);
-   await appendFile(resolve(qaRoot,'secondary-layout.jsonl'),JSON.stringify({commit:process.env.GITHUB_SHA,route,width,viewport:result.viewport,documentWidth:result.documentWidth,issues:result.issues})+'\n',{mode:0o600});
+   await appendFile(resolve(qaRoot,'secondary-layout.jsonl'),JSON.stringify({commit:process.env.GITHUB_SHA,route,width,viewport:result.viewport,documentWidth:result.documentWidth,overflow:result.overflow,issues:result.issues})+'\n',{mode:0o600});
+   if(route==='team'&&width<700)await page.screenshot({path:testInfo.outputPath('task-fidelity-secondary-team-'+width+'.png'),animations:'disabled'});
    expect(result.documentWidth,route+' document must fit its viewport').toBeLessThanOrEqual(result.viewport+1);
-   expect(result.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify({route,width,viewport:result.viewport,documentWidth:result.documentWidth,issues:result.issues})).toEqual([]);
+   expect(result.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify({route,width,viewport:result.viewport,documentWidth:result.documentWidth,overflow:result.overflow,issues:result.issues})).toEqual([]);
    if(route==='settings'){
     await expect(page.locator('.sidebar .nav-link[href="#settings"]')).toHaveAttribute('aria-current','page');
     expect(result.gaps.length).toBeGreaterThanOrEqual(2);
