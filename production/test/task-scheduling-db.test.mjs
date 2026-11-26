@@ -75,11 +75,24 @@ test('completion, reopening and deletion honor prerequisites under one graph loc
  for(const name of ['nam_task_schedule_lock','nam_save_task_before_scheduling','nam_create_task_before_scheduling','nam_task_action_before_scheduling'])assert.equal((await db.query("select has_function_privilege('authenticated',p.oid,'execute') allowed from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=$1",[name])).rows[0].allowed,false);
 });
 
+test('ordinary task writes and unrelated completion or reopening stay scoped to the named task RPC argument',async()=>{
+ const prerequisite=await task('Scoped prerequisite'),dependent=await task('Scoped dependent'),unrelated=await task('Scoped unrelated task');
+ await configure(dependent.id,{prerequisite_ids:[prerequisite.id]});
+ let saved=await change(unrelated.id,{status:'In progress'},{user:ids.sales});assert.equal(saved.id,unrelated.id);assert.equal(saved.status,'In progress');
+ saved=await change(unrelated.id,{description:'Description saved with another dependency present'},{user:ids.sales});assert.equal(saved.description,'Description saved with another dependency present');
+ saved=await change(unrelated.id,{archived:true});assert.equal(saved.archived,true);saved=await change(unrelated.id,{archived:false});assert.equal(saved.archived,false);
+ saved=await change(unrelated.id,{status:'Done'},{user:ids.sales});assert.equal(saved.status,'Done');assert(saved.completed_at);assert.equal((await schedule(dependent.id)).status,'Todo');
+ await change(prerequisite.id,{status:'Done'});await change(dependent.id,{status:'Done'});
+ saved=await change(unrelated.id,{status:'Todo'},{user:ids.sales});assert.equal(saved.id,unrelated.id);assert.equal(saved.status,'Todo');assert.equal(saved.completed_at,null);
+ const before=await schedule(prerequisite.id);await assert.rejects(change(prerequisite.id,{status:'Todo'}),e=>e.code==='40001'&&e.message.startsWith('A completed task depends'));
+ const after=await schedule(prerequisite.id);assert.equal(after.status,'Done');assert.equal(after.version,before.version);assert.equal((await schedule(dependent.id)).status,'Done');
+});
+
 test('monthly recurrence creates real stable task UUIDs, retains its anchor and never copies private child records',async()=>{
  const current=await task('Repeat anchored on 31');await rpc(ids.sales,'nam_task_action',{w:ids.w,tid:current.id,action:'subtask',input:{title:'Occurrence-only checklist'}});
  await configure(current.id,{recurrence:{frequency:'monthly',interval:1,until:'2027-03-31'}},{user:ids.sales});await change(current.id,{status:'Done',confirmOpenSubtasks:true},{user:ids.sales});
  const first=await schedule(current.id,ids.sales),next=first.next_task;assert(next.id!==current.id);assert.equal(next.due_date,'2027-02-28');
- const stored=(await db.query('select * from nam_tasks where id=$1',[next.id])).rows[0];assert.equal(stored.status,'Todo');assert.equal(stored.recurrence_occurrence,1);assert.equal(stored.recurrence_anchor_date,'2027-01-31');assert.equal((await db.query('select count(*)::integer n from nam_task_subtasks where task_id=$1',[next.id])).rows[0].n,0);
+ const stored=(await db.query('select t.*,t.recurrence_anchor_date::text as anchor_date_iso from nam_tasks t where t.id=$1',[next.id])).rows[0];assert.equal(stored.status,'Todo');assert.equal(stored.recurrence_occurrence,1);assert.equal(stored.anchor_date_iso,'2027-01-31');assert.equal((await db.query('select count(*)::integer n from nam_task_subtasks where task_id=$1',[next.id])).rows[0].n,0);
  await change(current.id,{status:'Todo'},{user:ids.sales});await change(current.id,{status:'Done',confirmOpenSubtasks:true},{user:ids.sales});assert.equal((await schedule(current.id,ids.sales)).next_task.id,next.id);
  await change(next.id,{status:'Done'},{user:ids.sales});const last=(await schedule(next.id,ids.sales)).next_task;assert.equal(last.due_date,'2027-03-31');await change(last.id,{status:'Done'},{user:ids.sales});assert.equal((await schedule(last.id,ids.sales)).next_task,null);
  const march=await calendar(ids.sales,{search:'Repeat anchored on 31'},'2027-03-01','2027-03-31');assert.equal(march.total,1);assert.equal(march.items[0].id,last.id);assert.equal((await db.query('select count(*)::integer n from nam_tasks where recurrence_series_id=$1',[stored.recurrence_series_id])).rows[0].n,3);

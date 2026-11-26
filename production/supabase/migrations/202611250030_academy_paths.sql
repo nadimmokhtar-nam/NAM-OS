@@ -177,108 +177,119 @@ begin
 end $$;
 
 create function public.nam_learning_path_command(w uuid,op text,p_id uuid,expected_revision integer,changes jsonb,command_key uuid) returns jsonb language plpgsql security definer set search_path='' as $$
-declare p public.nam_learning_paths;c public.nam_courses;v public.nam_course_versions;a public.nam_learning_path_assignments;previous public.nam_learning_path_commands;
- payload jsonb;result jsonb;allowed text[];topics text[];item jsonb;ids uuid[];n integer;i integer;learner uuid;assignment_id uuid;key_id uuid:=command_key;
+declare
+ p_workspace alias for $1;p_operation alias for $2;p_path_id alias for $3;
+ p_expected_revision alias for $4;p_changes alias for $5;p_command_key alias for $6;
+ v_path public.nam_learning_paths;v_course public.nam_courses;v_assignment public.nam_learning_path_assignments;v_previous public.nam_learning_path_commands;
+ v_payload jsonb;v_result jsonb;v_allowed text[];v_topics text[];v_item jsonb;v_course_ids uuid[];v_count integer;v_position integer;v_learner_id uuid;v_assignment_id uuid;v_command_key uuid:=p_command_key;
 begin
- if not public.nam_founder(w) then raise exception 'Founder access required' using errcode='42501';end if;
- -- Serialize access administration with this mutation and recheck the same
- -- managed session/optional-MFA policy after acquiring its membership lock.
- perform 1 from public.nam_memberships m where m.workspace_id=w and m.user_id=auth.uid() for share;
- if not public.nam_founder(w) then raise exception 'Founder access changed' using errcode='42501';end if;
- if key_id is null or p_id is null then raise exception 'A command and record identifier are required' using errcode='22023';end if;
- allowed:=case op when 'create' then array['title','summary','topics','courses'] when 'edit' then array['title','summary','topics','courses'] when 'archive' then array['archived'] when 'assign' then array['member_id','mandatory'] when 'revoke' then array['assignment_id'] when 'classify' then array['topics'] else null end;
- if allowed is null or not public.nam_academy_keys(changes,allowed) then raise exception 'Unsupported learning path fields' using errcode='22023';end if;
- payload:=jsonb_build_object('op',op,'id',p_id,'revision',expected_revision,'changes',changes);
+ -- Share the task/access administration lock order before any business lock.
+ -- This pins the exact active membership, account and JWT session through commit.
+ perform public.nam_task_schedule_lock(p_workspace);
+ if not public.nam_founder(p_workspace) then raise exception 'Founder access required' using errcode='42501';end if;
+ if v_command_key is null or p_path_id is null then raise exception 'A command and record identifier are required' using errcode='22023';end if;
+ v_allowed:=case p_operation when 'create' then array['title','summary','topics','courses'] when 'edit' then array['title','summary','topics','courses'] when 'archive' then array['archived'] when 'assign' then array['member_id','mandatory'] when 'revoke' then array['assignment_id'] when 'classify' then array['topics'] else null end;
+ if v_allowed is null or not public.nam_academy_keys(p_changes,v_allowed) then raise exception 'Unsupported learning path fields' using errcode='22023';end if;
+ v_payload:=jsonb_build_object('op',p_operation,'id',p_path_id,'revision',p_expected_revision,'changes',p_changes);
  -- Transaction-scoped command lock makes concurrent/lost-response retries
  -- deterministic. Reusing a key for a different payload never repeats effects.
- perform pg_advisory_xact_lock(hashtextextended(w::text||':'||key_id::text,0));
- select * into previous from public.nam_learning_path_commands x where x.workspace_id=w and x.command_key=key_id;
+ perform pg_advisory_xact_lock(hashtextextended(p_workspace::text||':'||v_command_key::text,0));
+ if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+ select * into v_previous from public.nam_learning_path_commands q_x where q_x.workspace_id=p_workspace and q_x.command_key=v_command_key;
  if found then
-  if previous.actor_id<>auth.uid() or previous.payload<>payload then raise exception 'This request key was already used for another change.' using errcode='40001';end if;
-  return previous.result;
+  if v_previous.actor_id<>auth.uid() or v_previous.payload<>v_payload then raise exception 'This request key was already used for another change.' using errcode='40001';end if;
+  if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+  return v_previous.result;
  end if;
- if op='classify' then
-  select * into c from public.nam_courses x where x.workspace_id=w and x.id=p_id for update;
+ if p_operation='classify' then
+  select * into v_course from public.nam_courses q_x where q_x.workspace_id=p_workspace and q_x.id=p_path_id for update;
   if not found then raise exception 'Course not found' using errcode='P0002';end if;
-  if c.revision is distinct from expected_revision then raise exception 'The course changed. Reload before classifying it.' using errcode='40001';end if;
-  if c.archived then raise exception 'Restore the course before editing its subjects.' using errcode='22023';end if;
+  if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+  if v_course.revision is distinct from p_expected_revision then raise exception 'The course changed. Reload before classifying it.' using errcode='40001';end if;
+  if v_course.archived then raise exception 'Restore the course before editing its subjects.' using errcode='22023';end if;
  else
-  if op='create' then
-   if expected_revision is not null then raise exception 'New paths have no revision.' using errcode='22023';end if;
-   if (select count(*) from public.nam_learning_paths x where x.workspace_id=w)>=1000 then raise exception 'This workspace already has 1000 learning paths.' using errcode='22023';end if;
-   insert into public.nam_learning_paths(id,workspace_id,title,summary,created_by) values(p_id,w,trim(changes->>'title'),coalesce(changes->>'summary',''),auth.uid()) returning * into p;
+  if p_operation='create' then
+   if p_expected_revision is not null then raise exception 'New paths have no revision.' using errcode='22023';end if;
+   if (select count(*) from public.nam_learning_paths q_x where q_x.workspace_id=p_workspace)>=1000 then raise exception 'This workspace already has 1000 learning paths.' using errcode='22023';end if;
+   insert into public.nam_learning_paths(id,workspace_id,title,summary,created_by) values(p_path_id,p_workspace,trim(p_changes->>'title'),coalesce(p_changes->>'summary',''),auth.uid()) returning * into v_path;
+   if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
   else
-   select * into p from public.nam_learning_paths x where x.workspace_id=w and x.id=p_id for update;
+   select * into v_path from public.nam_learning_paths q_x where q_x.workspace_id=p_workspace and q_x.id=p_path_id for update;
    if not found then raise exception 'Path not found' using errcode='P0002';end if;
-   if p.revision is distinct from expected_revision then raise exception 'The path changed. Reload before saving or assigning it.' using errcode='40001';end if;
+   if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+   if v_path.revision is distinct from p_expected_revision then raise exception 'The path changed. Reload before saving or assigning it.' using errcode='40001';end if;
   end if;
  end if;
- if op in ('create','edit','classify') then
-  if jsonb_typeof(changes->'topics') is distinct from 'array' or jsonb_array_length(changes->'topics')>8 then raise exception 'Choose up to eight Academy subjects.' using errcode='22023';end if;
-  select coalesce(array_agg(x),array[]::text[]) into topics from jsonb_array_elements_text(changes->'topics') x;
-  if cardinality(topics)<>(select count(distinct x) from unnest(topics) x) or exists(select 1 from unnest(topics) x where not exists(select 1 from public.nam_academy_topics t where t.code=x)) then raise exception 'Choose each Academy subject once.' using errcode='22023';end if;
+ if p_operation in ('create','edit','classify') then
+  if jsonb_typeof(p_changes->'topics') is distinct from 'array' or jsonb_array_length(p_changes->'topics')>8 then raise exception 'Choose up to eight Academy subjects.' using errcode='22023';end if;
+  select coalesce(array_agg(q_x),array[]::text[]) into v_topics from jsonb_array_elements_text(p_changes->'topics') q_x;
+  if cardinality(v_topics)<>(select count(distinct q_x) from unnest(v_topics) q_x) or exists(select 1 from unnest(v_topics) q_x where not exists(select 1 from public.nam_academy_topics q_t where q_t.code=q_x)) then raise exception 'Choose each Academy subject once.' using errcode='22023';end if;
  end if;
- if op='classify' then
-  delete from public.nam_course_topics t where t.workspace_id=w and t.course_id=c.id;
-  insert into public.nam_course_topics(workspace_id,course_id,topic) select w,c.id,x from unnest(topics) x;
-  update public.nam_courses set revision=revision+1,publication_status='draft',updated_at=now() where id=c.id and workspace_id=w returning * into c;
-  result:=jsonb_build_object('id',c.id,'revision',c.revision,'topics',to_jsonb(topics));
- elsif op in ('create','edit') then
-  if jsonb_typeof(changes->'title') is distinct from 'string' or (changes?'summary' and jsonb_typeof(changes->'summary')<>'string') or jsonb_typeof(changes->'courses') is distinct from 'array' or jsonb_array_length(changes->'courses')>100 then raise exception 'Provide a title and up to 100 published courses.' using errcode='22023';end if;
-  if p.archived then raise exception 'Restore the path before editing it.' using errcode='22023';end if;
-  select coalesce(array_agg((x->>'course_id')::uuid),array[]::uuid[]) into ids from jsonb_array_elements(changes->'courses') x;
-  if cardinality(ids)<>(select count(distinct x) from unnest(ids) x) then raise exception 'Include each course once.' using errcode='22023';end if;
+ if p_operation='classify' then
+  delete from public.nam_course_topics q_t where q_t.workspace_id=p_workspace and q_t.course_id=v_course.id;
+  insert into public.nam_course_topics(workspace_id,course_id,topic) select p_workspace,v_course.id,q_x from unnest(v_topics) q_x;
+  update public.nam_courses set revision=revision+1,publication_status='draft',updated_at=now() where id=v_course.id and workspace_id=p_workspace returning * into v_course;
+  v_result:=jsonb_build_object('id',v_course.id,'revision',v_course.revision,'topics',to_jsonb(v_topics));
+ elsif p_operation in ('create','edit') then
+  if jsonb_typeof(p_changes->'title') is distinct from 'string' or (p_changes?'summary' and jsonb_typeof(p_changes->'summary')<>'string') or jsonb_typeof(p_changes->'courses') is distinct from 'array' or jsonb_array_length(p_changes->'courses')>100 then raise exception 'Provide a title and up to 100 published courses.' using errcode='22023';end if;
+  if v_path.archived then raise exception 'Restore the path before editing it.' using errcode='22023';end if;
+  select coalesce(array_agg((q_x->>'course_id')::uuid),array[]::uuid[]) into v_course_ids from jsonb_array_elements(p_changes->'courses') q_x;
+  if cardinality(v_course_ids)<>(select count(distinct q_x) from unnest(v_course_ids) q_x) then raise exception 'Include each course once.' using errcode='22023';end if;
   -- Publication identity is always explicit. Latest is never inferred.
-  for item in select value from jsonb_array_elements(changes->'courses') loop
-   if not public.nam_academy_keys(item,array['course_id','publication_id']) or not item?'course_id' or not item?'publication_id' then raise exception 'Provide an exact course publication.' using errcode='22023';end if;
-   if not exists(select 1 from public.nam_course_versions z join public.nam_courses x on x.workspace_id=w and x.id=z.course_id and not x.archived where z.workspace_id=w and z.course_id=(item->>'course_id')::uuid and z.id=(item->>'publication_id')::uuid) then raise exception 'A selected publication is unavailable. Reload the course choices.' using errcode='22023';end if;
+  for v_item in select value from jsonb_array_elements(p_changes->'courses') loop
+   if not public.nam_academy_keys(v_item,array['course_id','publication_id']) or not v_item?'course_id' or not v_item?'publication_id' then raise exception 'Provide an exact course publication.' using errcode='22023';end if;
+   if not exists(select 1 from public.nam_course_versions q_z join public.nam_courses q_x on q_x.workspace_id=p_workspace and q_x.id=q_z.course_id and not q_x.archived where q_z.workspace_id=p_workspace and q_z.course_id=(v_item->>'course_id')::uuid and q_z.id=(v_item->>'publication_id')::uuid) then raise exception 'A selected publication is unavailable. Reload the course choices.' using errcode='22023';end if;
   end loop;
-  delete from public.nam_learning_path_courses x where x.workspace_id=w and x.path_id=p.id;
-  i:=0;for item in select value from jsonb_array_elements(changes->'courses') loop
-   i:=i+1;insert into public.nam_learning_path_courses(workspace_id,path_id,course_id,course_version_id,position) values(w,p.id,(item->>'course_id')::uuid,(item->>'publication_id')::uuid,i);
+  delete from public.nam_learning_path_courses q_x where q_x.workspace_id=p_workspace and q_x.path_id=v_path.id;
+  v_position:=0;for v_item in select value from jsonb_array_elements(p_changes->'courses') loop
+   v_position:=v_position+1;insert into public.nam_learning_path_courses(workspace_id,path_id,course_id,course_version_id,position) values(p_workspace,v_path.id,(v_item->>'course_id')::uuid,(v_item->>'publication_id')::uuid,v_position);
   end loop;
-  delete from public.nam_learning_path_topics x where x.workspace_id=w and x.path_id=p.id;
-  insert into public.nam_learning_path_topics(workspace_id,path_id,topic) select w,p.id,x from unnest(topics) x;
-  update public.nam_learning_paths set title=trim(changes->>'title'),summary=coalesce(changes->>'summary',''),revision=revision+case when op='create' then 0 else 1 end,updated_at=now() where id=p.id and workspace_id=w returning * into p;
-  result:=jsonb_build_object('id',p.id,'revision',p.revision);
- elsif op='archive' then
-  if jsonb_typeof(changes->'archived') is distinct from 'boolean' then raise exception 'Choose an archive state.' using errcode='22023';end if;
-  update public.nam_learning_paths set archived=(changes->>'archived')::boolean,revision=revision+1,updated_at=now() where id=p.id and workspace_id=w returning * into p;
-  result:=jsonb_build_object('id',p.id,'revision',p.revision,'archived',p.archived);
- elsif op='assign' then
-  if p.archived then raise exception 'Restore the path before assigning it.' using errcode='22023';end if;
-  if jsonb_typeof(changes->'member_id') is distinct from 'string' or (changes?'mandatory' and jsonb_typeof(changes->'mandatory')<>'boolean') then raise exception 'Choose a studio member and required state.' using errcode='22023';end if;
-  learner:=(changes->>'member_id')::uuid;
-  perform 1 from public.nam_memberships m where m.workspace_id=w and m.user_id=learner for share;
-  perform 1 from public.nam_section_grants g where g.workspace_id=w and g.user_id=learner and g.section='academy' for share;
-  if not public.nam_member_section(w,learner,'academy') then raise exception 'This member has no current Academy access.' using errcode='42501';end if;
-  if exists(select 1 from public.nam_learning_path_assignments x where x.workspace_id=w and x.path_id=p.id and x.user_id=learner and x.revoked_at is null) then raise exception 'This learner already has this path. Revoke the existing path before assigning a new revision.' using errcode='40001';end if;
-  select count(*) into n from public.nam_learning_path_courses x where x.workspace_id=w and x.path_id=p.id;
-  if n=0 then raise exception 'Add a published course before assigning the path.' using errcode='22023';end if;
+  delete from public.nam_learning_path_topics q_x where q_x.workspace_id=p_workspace and q_x.path_id=v_path.id;
+  insert into public.nam_learning_path_topics(workspace_id,path_id,topic) select p_workspace,v_path.id,q_x from unnest(v_topics) q_x;
+  update public.nam_learning_paths set title=trim(p_changes->>'title'),summary=coalesce(p_changes->>'summary',''),revision=revision+case when p_operation='create' then 0 else 1 end,updated_at=now() where id=v_path.id and workspace_id=p_workspace returning * into v_path;
+  v_result:=jsonb_build_object('id',v_path.id,'revision',v_path.revision);
+ elsif p_operation='archive' then
+  if jsonb_typeof(p_changes->'archived') is distinct from 'boolean' then raise exception 'Choose an archive state.' using errcode='22023';end if;
+  update public.nam_learning_paths set archived=(p_changes->>'archived')::boolean,revision=revision+1,updated_at=now() where id=v_path.id and workspace_id=p_workspace returning * into v_path;
+  v_result:=jsonb_build_object('id',v_path.id,'revision',v_path.revision,'archived',v_path.archived);
+ elsif p_operation='assign' then
+  if v_path.archived then raise exception 'Restore the path before assigning it.' using errcode='22023';end if;
+  if jsonb_typeof(p_changes->'member_id') is distinct from 'string' or (p_changes?'mandatory' and jsonb_typeof(p_changes->'mandatory')<>'boolean') then raise exception 'Choose a studio member and required state.' using errcode='22023';end if;
+  v_learner_id:=(p_changes->>'member_id')::uuid;
+  perform 1 from public.nam_memberships q_m where q_m.workspace_id=p_workspace and q_m.user_id=v_learner_id for share;
+  perform 1 from public.nam_section_grants q_g where q_g.workspace_id=p_workspace and q_g.user_id=v_learner_id and q_g.section='academy' for share;
+  if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+  if not public.nam_member_section(p_workspace,v_learner_id,'academy') then raise exception 'This member has no current Academy access.' using errcode='42501';end if;
+  if exists(select 1 from public.nam_learning_path_assignments q_x where q_x.workspace_id=p_workspace and q_x.path_id=v_path.id and q_x.user_id=v_learner_id and q_x.revoked_at is null) then raise exception 'This learner already has this path. Revoke the existing path before assigning a new revision.' using errcode='40001';end if;
+  select count(*) into v_count from public.nam_learning_path_courses q_x where q_x.workspace_id=p_workspace and q_x.path_id=v_path.id;
+  if v_count=0 then raise exception 'Add a published course before assigning the path.' using errcode='22023';end if;
   -- The same locks used by native course enrollment prevent a concurrent edit
   -- from switching a publication between the conflict check and enrollment.
-  perform 1 from public.nam_courses x where x.workspace_id=w and x.id in(select i.course_id from public.nam_learning_path_courses i where i.workspace_id=w and i.path_id=p.id) order by x.id for update;
-  if exists(select 1 from public.nam_learning_path_courses i join public.nam_courses x on x.id=i.course_id and x.workspace_id=w where i.workspace_id=w and i.path_id=p.id and x.archived) then raise exception 'A course in this path is archived. Update the path first.' using errcode='40001';end if;
-  if exists(select 1 from public.nam_learning_path_courses i join public.nam_enrollments e on e.workspace_id=w and e.course_id=i.course_id and e.user_id=learner and e.revoked_at is null where i.workspace_id=w and i.path_id=p.id and e.course_version_id<>i.course_version_id) then raise exception 'This learner is enrolled in a different course publication. Review that enrollment explicitly before assigning this path; existing enrollment and progress were retained.' using errcode='40001';end if;
+  perform 1 from public.nam_courses q_x where q_x.workspace_id=p_workspace and q_x.id in(select q_path_course.course_id from public.nam_learning_path_courses q_path_course where q_path_course.workspace_id=p_workspace and q_path_course.path_id=v_path.id) order by q_x.id for update;
+  if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+  if exists(select 1 from public.nam_learning_path_courses q_path_course join public.nam_courses q_x on q_x.id=q_path_course.course_id and q_x.workspace_id=p_workspace where q_path_course.workspace_id=p_workspace and q_path_course.path_id=v_path.id and q_x.archived) then raise exception 'A course in this path is archived. Update the path first.' using errcode='40001';end if;
+  if exists(select 1 from public.nam_learning_path_courses q_path_course join public.nam_enrollments q_e on q_e.workspace_id=p_workspace and q_e.course_id=q_path_course.course_id and q_e.user_id=v_learner_id and q_e.revoked_at is null where q_path_course.workspace_id=p_workspace and q_path_course.path_id=v_path.id and q_e.course_version_id<>q_path_course.course_version_id) then raise exception 'This learner is enrolled in a different course publication. Review that enrollment explicitly before assigning this path; existing enrollment and progress were retained.' using errcode='40001';end if;
   insert into public.nam_learning_path_assignments(workspace_id,path_id,user_id,path_revision,title,summary,topics,mandatory,assigned_by)
-   values(w,p.id,learner,p.revision,p.title,p.summary,coalesce((select array_agg(t.topic order by t.topic) from public.nam_learning_path_topics t where t.workspace_id=w and t.path_id=p.id),'{}'),coalesce((changes->>'mandatory')::boolean,false),auth.uid()) returning id into assignment_id;
-  insert into public.nam_learning_path_assignment_courses(workspace_id,assignment_id,course_id,course_version_id,position) select w,assignment_id,i.course_id,i.course_version_id,i.position from public.nam_learning_path_courses i where i.workspace_id=w and i.path_id=p.id;
-  for item in select jsonb_build_object('course_id',i.course_id,'version',v.version,'mandatory',coalesce(e.mandatory,false) or coalesce((changes->>'mandatory')::boolean,false)) from public.nam_learning_path_courses i join public.nam_course_versions v on v.id=i.course_version_id and v.course_id=i.course_id and v.workspace_id=w left join public.nam_enrollments e on e.workspace_id=w and e.course_id=i.course_id and e.user_id=learner and e.revoked_at is null where i.workspace_id=w and i.path_id=p.id order by i.course_id loop
-   perform public.nam_academy_admin(w,'enroll',(item->>'course_id')::uuid,null,jsonb_build_object('member_id',learner,'course_version',(item->>'version')::integer,'mandatory',(item->>'mandatory')::boolean));
+   values(p_workspace,v_path.id,v_learner_id,v_path.revision,v_path.title,v_path.summary,coalesce((select array_agg(q_t.topic order by q_t.topic) from public.nam_learning_path_topics q_t where q_t.workspace_id=p_workspace and q_t.path_id=v_path.id),'{}'),coalesce((p_changes->>'mandatory')::boolean,false),auth.uid()) returning id into v_assignment_id;
+  insert into public.nam_learning_path_assignment_courses(workspace_id,assignment_id,course_id,course_version_id,position) select p_workspace,v_assignment_id,q_path_course.course_id,q_path_course.course_version_id,q_path_course.position from public.nam_learning_path_courses q_path_course where q_path_course.workspace_id=p_workspace and q_path_course.path_id=v_path.id;
+  for v_item in select jsonb_build_object('course_id',q_path_course.course_id,'version',q_v.version,'mandatory',coalesce(q_e.mandatory,false) or coalesce((p_changes->>'mandatory')::boolean,false)) from public.nam_learning_path_courses q_path_course join public.nam_course_versions q_v on q_v.id=q_path_course.course_version_id and q_v.course_id=q_path_course.course_id and q_v.workspace_id=p_workspace left join public.nam_enrollments q_e on q_e.workspace_id=p_workspace and q_e.course_id=q_path_course.course_id and q_e.user_id=v_learner_id and q_e.revoked_at is null where q_path_course.workspace_id=p_workspace and q_path_course.path_id=v_path.id order by q_path_course.course_id loop
+   perform public.nam_academy_admin(p_workspace,'enroll',(v_item->>'course_id')::uuid,null,jsonb_build_object('member_id',v_learner_id,'course_version',(v_item->>'version')::integer,'mandatory',(v_item->>'mandatory')::boolean));
   end loop;
-  result:=jsonb_build_object('id',p.id,'revision',p.revision,'assignment_id',assignment_id,'member_id',learner);
- elsif op='revoke' then
-  if jsonb_typeof(changes->'assignment_id') is distinct from 'string' then raise exception 'Choose a path assignment.' using errcode='22023';end if;
-  update public.nam_learning_path_assignments x set revoked_at=now() where x.workspace_id=w and x.path_id=p.id and x.id=(changes->>'assignment_id')::uuid and x.revoked_at is null returning * into a;
+  v_result:=jsonb_build_object('id',v_path.id,'revision',v_path.revision,'assignment_id',v_assignment_id,'member_id',v_learner_id);
+ elsif p_operation='revoke' then
+  if jsonb_typeof(p_changes->'assignment_id') is distinct from 'string' then raise exception 'Choose a path assignment.' using errcode='22023';end if;
+  update public.nam_learning_path_assignments q_x set revoked_at=now() where q_x.workspace_id=p_workspace and q_x.path_id=v_path.id and q_x.id=(p_changes->>'assignment_id')::uuid and q_x.revoked_at is null returning * into v_assignment;
   if not found then raise exception 'Active path assignment not found' using errcode='P0002';end if;
-  assignment_id:=a.id;
+  if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+  v_assignment_id:=v_assignment.id;
   -- Course enrollments can also serve another path or a direct assignment.
   -- Removing a path never revokes those independent access records.
-  result:=jsonb_build_object('id',p.id,'assignment_id',a.id,'revoked',true);
+  v_result:=jsonb_build_object('id',v_path.id,'assignment_id',v_assignment.id,'revoked',true);
  end if;
- insert into public.nam_learning_path_events(workspace_id,path_id,assignment_id,actor_id,kind,detail) values(w,case when op='classify' then null else p.id end,assignment_id,auth.uid(),op,result);
- insert into public.nam_learning_path_commands(workspace_id,command_key,actor_id,payload,result) values(w,key_id,auth.uid(),payload,result);
- return result;
+ if not public.nam_founder(p_workspace) then raise exception 'Founder access changed' using errcode='42501';end if;
+ insert into public.nam_learning_path_events(workspace_id,path_id,assignment_id,actor_id,kind,detail) values(p_workspace,case when p_operation='classify' then null else v_path.id end,v_assignment_id,auth.uid(),p_operation,v_result);
+ insert into public.nam_learning_path_commands(workspace_id,command_key,actor_id,payload,result) values(p_workspace,v_command_key,auth.uid(),v_payload,v_result);
+ return v_result;
 end $$;
 
 revoke all on public.nam_academy_topics,public.nam_course_topics,public.nam_course_version_topics,public.nam_learning_paths,public.nam_learning_path_topics,public.nam_learning_path_courses,public.nam_learning_path_assignments,public.nam_learning_path_assignment_courses,public.nam_learning_path_events,public.nam_learning_path_commands from public,anon,authenticated;

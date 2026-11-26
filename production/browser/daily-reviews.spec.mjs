@@ -9,7 +9,7 @@ test('Founder reviews the current sales report from Today and stale report decis
  let response=await mutate(sales.context,'/sales/reports',input);expect(response.status()).toBe(200);
  const report=(await response.json()).reports.find(row=>row.owner_id===data.actor.id&&row.week_start===input.week_start);
  expect((await other.context.request.get('/api/sales/reports/'+report.id)).status()).toBe(404);expect((await artist.context.request.get('/api/sales/reports/'+report.id)).status()).toBe(403);
- await founder.page.goto('/workspace#overview');const button=founder.page.locator('[data-action="brief-review"][data-id="'+report.id+'"]');await expect(button).toBeVisible();
+ await founder.page.goto('/workspace#overview');const button=founder.page.locator('.daily-review-queue [data-action="brief-review"][data-id="'+report.id+'"]');await expect(button).toBeVisible();
  await expect(founder.page.getByRole('heading',{name:'Sales, this week',exact:true})).toBeVisible();await button.click();const dialog=founder.page.getByRole('dialog');await expect(dialog).toContainText(input.outcomes);
  const check=await new AxeBuilder({page:founder.page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();expect(check.violations.map(row=>row.id)).toEqual([]);
  response=await mutate(sales.context,'/sales/reports',{...input,outcomes:'[QA] A third proposal advanced after the Founder opened this report.'});expect(response.status()).toBe(200);
@@ -29,7 +29,7 @@ test('a practical assignment flows from artist submission to Founder review and 
  const learnerDialog=learner.page.getByRole('dialog');await learnerDialog.getByLabel('Your written response',{exact:true}).fill('The central plane is the subject. The competing highlight needs a softer value.');await learnerDialog.getByRole('button',{name:'Submit response',exact:true}).click();await expect(learnerDialog).not.toBeVisible();
  const submitted=(await (await learner.context.request.get('/api/courses/'+courseId)).json()).assignments.find(row=>row.id===assignment.id);
  expect((await other.context.request.get('/api/academy/submissions/'+submitted.submission_id)).status()).toBe(403);
- await founder.page.goto('/workspace#overview');const review=founder.page.locator('[data-action="brief-review"][data-id="'+submitted.submission_id+'"]');await expect(review).toBeVisible();await screenshot(founder.page,'after-today-decisions');await review.click();
+ await founder.page.goto('/workspace#overview');const review=founder.page.locator('.daily-review-queue [data-action="brief-review"][data-id="'+submitted.submission_id+'"]');await expect(review).toBeVisible();await screenshot(founder.page,'after-today-decisions');await review.click();
  const dialog=founder.page.getByRole('dialog');await expect(dialog).toContainText('The central plane is the subject.');await dialog.getByLabel('Review decision',{exact:true}).selectOption('changes_requested');await dialog.getByLabel('Feedback',{exact:true}).fill('Show how the reference supports your lighting decision.');
  const check=await new AxeBuilder({page:founder.page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();expect(check.violations.map(row=>row.id)).toEqual([]);
  await dialog.getByRole('button',{name:'Save review',exact:true}).click();await expect(dialog).not.toBeVisible();await expect(review).toHaveCount(0);

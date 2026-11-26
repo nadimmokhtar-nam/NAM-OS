@@ -31,6 +31,7 @@ test('an artist uploads real render versions, compares them and keeps feedback p
   await page.screenshot({path:testInfo.outputPath('task-fidelity-render-review-1440.png'),animations:'disabled'});
   const audit=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();expect(audit.violations.map(item=>({id:item.id,impact:item.impact}))).toEqual([]);
   await page.setViewportSize({width:390,height:844});await expect(dialog.locator('.render-review')).toBeVisible();expect(await dialog.evaluate(node=>node.scrollWidth>node.clientWidth+1)).toBe(false);await expect(dialog.getByLabel('Add internal feedback',{exact:true})).toBeVisible();await dialog.locator('.render-version-item[data-id="'+b.id+'"]').click();await expect(dialog.getByRole('button',{name:'Read feedback marker 1',exact:true})).toBeVisible();await assertMarkerPosition();await page.screenshot({path:testInfo.outputPath('task-fidelity-render-review-390.png'),animations:'disabled'});
+  await page.keyboard.press('Escape');await expect(dialog).not.toBeVisible();await expect(page.getByRole('heading',{name:'Images & deliverables',exact:true})).toBeVisible();
  }finally{await run.close();}
 });
 

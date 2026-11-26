@@ -158,28 +158,28 @@ alter function public.nam_save_task(uuid,uuid,integer,jsonb) rename to nam_save_
 revoke all on function public.nam_save_task_before_scheduling(uuid,uuid,integer,jsonb) from public,anon,authenticated,service_role;
 create function public.nam_save_task(w uuid,task_id uuid,expected_version integer,changes jsonb) returns public.nam_tasks
 language plpgsql security definer set search_path='' as $$
-declare previous public.nam_tasks; result public.nam_tasks; successor public.nam_tasks; next_date date; payload jsonb;
+declare requested_task_id alias for $2; previous public.nam_tasks; result public.nam_tasks; successor public.nam_tasks; next_date date; payload jsonb;
 begin
  perform public.nam_task_schedule_lock(w);
- if task_id is not null then
-  select * into previous from public.nam_tasks t where t.workspace_id=w and t.id=task_id and t.deleted_at is null for update;
-  if not found or not public.nam_task_access(task_id) then raise exception 'Task not found' using errcode='P0002';end if;
+ if requested_task_id is not null then
+  select * into previous from public.nam_tasks t where t.workspace_id=w and t.id=requested_task_id and t.deleted_at is null for update;
+  if not found or not public.nam_task_access(requested_task_id) then raise exception 'Task not found' using errcode='P0002';end if;
   if expected_version is distinct from previous.version then raise exception 'Task changed elsewhere' using errcode='40001';end if;
   if changes->>'status'='Done' and previous.status<>'Done' and exists(
    select 1 from public.nam_task_dependencies d join public.nam_tasks t on t.id=d.prerequisite_id
-   where d.workspace_id=w and d.task_id=task_id and (t.status<>'Done' or t.deleted_at is not null or not public.nam_task_access(t.id)))
+   where d.workspace_id=w and d.task_id=requested_task_id and (t.status<>'Done' or t.deleted_at is not null or not public.nam_task_access(t.id)))
   then raise exception 'Complete the prerequisites before finishing this task' using errcode='40001';end if;
   if previous.status='Done' and changes?'status' and changes->>'status'<>'Done' and exists(
    select 1 from public.nam_task_dependencies d join public.nam_tasks t on t.id=d.task_id
-   where d.workspace_id=w and d.prerequisite_id=task_id and t.status='Done' and t.deleted_at is null)
+   where d.workspace_id=w and d.prerequisite_id=requested_task_id and t.status='Done' and t.deleted_at is null)
   then raise exception 'A completed task depends on this task. Reopen it first' using errcode='40001';end if;
   if previous.recurrence_rule is not null and changes?'due_date' and nullif(changes->>'due_date','')::date is distinct from previous.due_date then
    if nullif(changes->>'due_date','') is null then raise exception 'Turn off repeating before removing the due date' using errcode='22023';end if;
    if exists(select 1 from public.nam_tasks t where t.workspace_id=w and t.recurrence_predecessor_id=previous.id) then raise exception 'Change the latest occurrence to adjust future repeats' using errcode='40001';end if;
-   update public.nam_tasks set recurrence_series_id=gen_random_uuid(),recurrence_anchor_date=(changes->>'due_date')::date,recurrence_occurrence=0 where id=task_id;
+   update public.nam_tasks set recurrence_series_id=gen_random_uuid(),recurrence_anchor_date=(changes->>'due_date')::date,recurrence_occurrence=0 where id=requested_task_id;
   end if;
  end if;
- result:=public.nam_save_task_before_scheduling(w,task_id,expected_version,changes);
+ result:=public.nam_save_task_before_scheduling(w,requested_task_id,expected_version,changes);
  if result.status='Done' and previous.status is distinct from 'Done' and result.recurrence_rule is not null and not result.archived then
   next_date:=public.nam_task_occurrence_date(result.recurrence_anchor_date,result.recurrence_rule->>'frequency',(result.recurrence_rule->>'interval')::integer,result.recurrence_occurrence+1);
   if next_date is not null and (result.recurrence_rule->>'until' is null or next_date<=(result.recurrence_rule->>'until')::date) then

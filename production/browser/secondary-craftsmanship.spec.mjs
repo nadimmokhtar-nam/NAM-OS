@@ -48,7 +48,8 @@ async function geometry(page){
     }
    }
   }
-  const blocks=[...main.children].filter(node=>node.matches('.panel,.two-col')).map(node=>node.getBoundingClientRect()).filter(rect=>rect.width>0);
+  const sectionContainer=main.querySelector('.team-settings-content:has(.settings-table)')||main;
+  const blocks=[...sectionContainer.children].filter(node=>node.matches('.panel,.two-col')).map(node=>node.getBoundingClientRect()).filter(rect=>rect.width>0);
   const gaps=blocks.slice(1).map((rect,index)=>+(rect.top-blocks[index].bottom).toFixed(1));
   const header=main.querySelector('.page-head'),heading=header?.querySelector('h1'),action=header?.querySelector(':scope > .button');
   const h=heading?.getBoundingClientRect(),a=action?.getBoundingClientRect();
@@ -64,7 +65,13 @@ for(const width of [320,390,768,1440])test('secondary screens preserve grids, ac
    await page.goto('/workspace#'+route);await expect(page.locator('#main h1')).toBeVisible();
    await expect(page.locator('#main')).not.toHaveAttribute('aria-busy','true');
    await expect(page.locator('#main h1')).toHaveText({settings:'Settings',team:'Team',library:'Library',operations:'Operations'}[route]);
-   if(route==='settings')await expect(page.getByRole('heading',{name:'Workspace access',exact:true})).toBeVisible();
+   if(route==='settings'){
+    const settings=page.getByRole('navigation',{name:'Settings',exact:true});
+    await expect(settings.getByRole('button',{name:'Profile',exact:true})).toHaveAttribute('aria-current','page');
+    await expect(page.getByRole('heading',{name:'Professional profile',exact:true})).toBeVisible();
+    await settings.getByRole('button',{name:'Account & access',exact:true}).click();
+    await expect(page.getByRole('heading',{name:'Workspace access',exact:true})).toBeVisible();
+   }
    await page.evaluate(()=>document.fonts.ready);
    const result=await geometry(page);
    expect(result.documentWidth,route+' document must fit its viewport').toBeLessThanOrEqual(result.viewport+1);
@@ -101,7 +108,13 @@ test('secondary screens retain automated accessibility with long names and reduc
    await page.goto('/workspace#'+route);await expect(page.locator('#main h1')).toBeVisible();
    await expect(page.locator('#main')).not.toHaveAttribute('aria-busy','true');
    await expect(page.locator('#main h1')).toHaveText({settings:'Settings',team:'Team',library:'Library',operations:'Operations'}[route]);
-   if(route==='settings')await expect(page.getByRole('heading',{name:'Workspace access',exact:true})).toBeVisible();
+   if(route==='settings'){
+    const settings=page.getByRole('navigation',{name:'Settings',exact:true});
+    await expect(settings.getByRole('button',{name:'Profile',exact:true})).toHaveAttribute('aria-current','page');
+    await expect(page.getByRole('heading',{name:'Professional profile',exact:true})).toBeVisible();
+    await settings.getByRole('button',{name:'Account & access',exact:true}).click();
+    await expect(page.getByRole('heading',{name:'Workspace access',exact:true})).toBeVisible();
+   }
    const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();
    expect(result.violations.map(({id,impact,nodes})=>({id,impact,nodes:nodes.length})),route+' accessibility violations').toEqual([]);
   }

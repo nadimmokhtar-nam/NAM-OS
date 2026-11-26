@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Disposable local provider checks. Never reads a linked hosted project and
 // never prints keys, passwords, cookies or the private generated profiles.
-import {readFile,writeFile,mkdir,stat} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,stat,chmod} from 'node:fs/promises';
 import {spawn,spawnSync} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createClient} from '@supabase/supabase-js';
 import ts from 'typescript';
+import {runConcurrency,boundedOutcome,privateDiagnostics} from './task-scheduling-concurrency.mjs';
 
 const app=fileURLToPath(new URL('../',import.meta.url));
 const qaRoot=process.env.NAM_QA_ROOT||'/workspace/.cache/nam-os/isolated';
@@ -28,11 +29,24 @@ async function localConfiguration(){
  check(!parsed.error&&parsed.config.project_id==='nam-os-qa','Refusing a non-QA Supabase configuration. Expected the disposable nam-os-qa stack.');
  check(!parsed.config.remotes,'Refusing a linked/remote Supabase configuration.');
  const result=spawnSync(cli,['status','--workdir',qaRoot,'--output','json'],{env:{...process.env,SUPABASE_HOME:home,SUPABASE_TELEMETRY_DISABLED:'1',DOCKER_HOST:'unix:///var/run/docker.sock'},encoding:'utf8',maxBuffer:4*1024*1024});
- await writeFile(resolve(qaRoot,'status-private.json'),result.stdout||'',{mode:0o600});
+ await writeFile(resolve(qaRoot,'status-private.json'),result.stdout||'',{mode:0o600});await chmod(resolve(qaRoot,'status-private.json'),0o600);
+ await writeFile(resolve(qaRoot,'status-diagnostics.log'),result.stderr||'',{mode:0o600});await chmod(resolve(qaRoot,'status-diagnostics.log'),0o600);
  check(result.status===0,'The isolated Supabase stack is not ready. Its status output was kept private.');
  const status=JSON.parse(result.stdout),url=status.API_URL||status.SUPABASE_URL,publicKey=status.ANON_KEY||status.PUBLISHABLE_KEY,serviceKey=status.SERVICE_ROLE_KEY||status.SECRET_KEY;
  check(url&&localHost(url)&&publicKey&&serviceKey,'The isolated provider must expose loopback API bindings. No hosted fallback is allowed.');
  return {url,publicKey,serviceKey};
+}
+async function concurrency(){
+ let log,outcome;
+ try{
+  // Validate the existing unlinked loopback QA stack before creating any DB.
+  log=await privateDiagnostics(qaRoot);await localConfiguration();
+  outcome=await runConcurrency({mode:'docker',qaRoot});
+ }catch(error){
+  if(log)try{await log.write((error.stack||String(error))+'\n');}catch{}
+  outcome=boundedOutcome('fail','configuration',error);
+ }finally{try{await log?.close();}catch{outcome=boundedOutcome('fail','cleanup',{failureType:'filesystem'});}}
+ console.log(JSON.stringify(outcome));if(outcome.status!=='pass')process.exitCode=1;
 }
 async function prepare(){
  await mkdir(qaRoot,{recursive:true});const config=await localConfiguration();
@@ -71,4 +85,4 @@ async function prepare(){
  await privateJSON(runtimePath,runtime);console.log('Prepared eight isolated Auth identities, a real project, shared tasks and assigned Academy content. Private profiles and runtime bindings saved outside the checkout.');
 }
 async function start(){const runtime=JSON.parse(await readFile(runtimePath,'utf8'));check(localHost(runtime.NEXT_PUBLIC_SUPABASE_URL)&&runtime.NAM_WORKSPACE_ID===workspace&&runtime.NAM_APP_ORIGIN==='http://localhost:3100','Refusing a non-isolated app runtime.');const production=process.argv.includes('--production'),build=command==='build';const child=spawn('npm',build?['run','build']:production?['start','--','--hostname','0.0.0.0','--port','3100']:['--ignore-scripts','run','dev','--','--webpack','--hostname','0.0.0.0','--port','3100'],{cwd:app,env:{...process.env,...runtime},stdio:'inherit'});for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>child.kill(signal));child.on('exit',code=>process.exit(code??1));}
-try{if(command==='prepare')await prepare();else if(command==='start'||command==='build')await start();else if(command==='status'){await localConfiguration();console.log('Isolated local provider bindings are available.');}else throw Error('Use prepare, build, start [--production] or status.');}catch(error){console.error(error.message);process.exitCode=1;}
+try{if(command==='concurrency')await concurrency();else if(command==='prepare')await prepare();else if(command==='start'||command==='build')await start();else if(command==='status'){await localConfiguration();console.log('Isolated local provider bindings are available.');}else throw Error('Use prepare, concurrency, build, start [--production] or status.');}catch(error){console.error(error.message);process.exitCode=1;}

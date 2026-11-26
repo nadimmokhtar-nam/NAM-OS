@@ -43,7 +43,7 @@ const roundDetail=(rid,user=ids.founder,options={})=>rpc(user,'nam_revision_roun
 const deliveryDetail=(did,user=ids.founder,options={})=>rpc(user,'nam_project_delivery_detail',{w:ids.w,did},options);
 const clientDetail=(qid,user=clientId,options={})=>rpc(user,'nam_client_review_detail',{w:ids.w,qid},options);
 const imageRow=async did=>(await db.query('select * from nam_deliverables where id=$1',[did])).rows[0];
-const roundItems=async rid=>(await db.query('select i.*,t.title,t.description,t.section,t.status,t.production_stage,t.project_id,t.owner_id,t.due_date,t.version from nam_project_revision_items i join nam_tasks t on t.id=i.task_id where i.round_id=$1 order by i.deliverable_id',[rid])).rows;
+const roundItems=async rid=>(await db.query('select i.*,t.title,t.description,t.section,t.status,t.production_stage,t.project_id,t.owner_id,t.due_date::text,t.version from nam_project_revision_items i join nam_tasks t on t.id=i.task_id where i.round_id=$1 order by i.deliverable_id',[rid])).rows;
 async function changeTask(tid,status){const task=(await db.query('select version from nam_tasks where id=$1',[tid])).rows[0];return rpc(ids.founder,'nam_save_task',{w:ids.w,task_id:tid,expected_version:task.version,changes:{status}});}
 async function closeRound(rid,version=1,{user=ids.founder,w=ids.w,aal='aal1',sessionId=user}={}){return asUser(db,user,()=>db.query('select public.nam_close_revision_round($1,$2,$3)',[w,rid,version]),{aal,sessionId});}
 async function cancelDelivery(did,version=1,{user=ids.founder,aal='aal1',sessionId=user}={}){return asUser(db,user,()=>db.query('select public.nam_cancel_project_delivery($1,$2,$3)',[ids.w,did,version]),{aal,sessionId});}

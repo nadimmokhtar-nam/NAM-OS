@@ -33,10 +33,22 @@ An unavailable prerequisite is represented by a count, without its UUID or title
 
 `test/task-scheduling-db.test.mjs` executes current migrations, calendar paging, grants/session/MFA revocation, dependencies, repeats and retry identity in actual PostgreSQL through PGlite. `test/task-scheduling-api.test.mjs` exercises the real dispatcher and RPC transport, including revocation after a read, overlapping API requests and meaningful completion errors. PGlite has one backend; those overlapping API tests do not establish independent-backend lock behavior. `test/task-scheduling-ui.test.mjs` executes the browser controller, including response races, loaded/total labels, access-revision repaging, retained exact retries, repeat drafts and hidden-link removal.
 
-For actual independent-backend locking, provision a **new empty disposable local PostgreSQL database**, with `psql` available and an account allowed to create the synthetic auth/storage schemas and test roles. Run:
+For actual independent-backend locking on the existing isolated local QA stack, run this gate after preparation and before building the app:
+
+```sh
+node tools/isolated-dev.mjs concurrency
+```
+
+The helper first validates the existing unlinked `nam-os-qa` configuration and loopback provider bindings. It uses Docker at `unix:///var/run/docker.sock`, executes the container's own `psql` in `supabase_db_nam-os-qa`, and connects through its local PostgreSQL socket. Host `psql` is not required. Each invocation creates a new randomly named `nam_scheduling_qa_<hex>` database from `template0`, checks that it is empty, initializes the synthetic Auth/Storage boundary and applies every current migration. It never applies mock schemas or test migrations to the populated provider database. Finally, it drops only the exact generated database, and only after successful creation. A failed proof or failed cleanup fails the gate.
+
+Separate PostgreSQL backends prove reciprocal dependencies cannot commit a cycle and concurrent completion creates exactly one successor. Three further cases queue a task save behind the workspace advisory lock, commit managed-session revocation or elected MFA in another backend, and require the stale AAL1 task/Academy command to fail with SQLSTATE `42501` without effects. The lock holder takes only the raw advisory lock so it cannot block the revoker by pinning identity rows. Each race verifies the named waiting backend in `pg_stat_activity` before committing the first write or revocation.
+
+The gate prints only a bounded JSON outcome: pass/fail, a known operation name and, on failure, a five-character SQLSTATE or failure category. Raw process diagnostics remain in mode-0600 logs inside a mode-0700 diagnostics directory under the private QA root. No database URL, SQL, UUID or JWT is published by the gate.
+
+A manual opt-in mode remains available when an operator provisions a **new empty disposable loopback PostgreSQL database** and host `psql` is installed:
 
 ```sh
 NAM_SCHEDULING_TEST_DATABASE_URL=postgresql://localhost:5432/nam_scheduling_disposable node --test tools/task-scheduling-concurrency.mjs
 ```
 
-The optional runner refuses remote hosts and existing NAM databases, applies all migrations to the empty database, verifies the second backend is waiting on an advisory lock, then tests reciprocal dependencies and concurrent repeat completion. It leaves that disposable database available for inspection. It is outside the default test glob. It has not been run in this workspace; no hosted database, provider session or deployment has been touched.
+Manual mode refuses remote hosts, host/service overrides and existing user objects. It runs the same proofs, keeps raw diagnostics private and leaves the operator-provided database for inspection. `test/task-scheduling-concurrency-runner.test.mjs` checks the command/configuration guards, database lifecycle, private file permissions and bounded reporting without Docker. Native execution belongs to the isolated CI gate; the local contract checks do not establish native PostgreSQL concurrency or hosted-provider evidence.

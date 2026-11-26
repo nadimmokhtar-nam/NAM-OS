@@ -15,6 +15,10 @@ test('Founder can find a suspended account and restore it through the complete m
   expect((await sales.context.request.get('/api/bootstrap?view=tasks')).status()).toBe(200);
   expect((await sales.context.request.get('/api/auth/members')).status()).toBe(403);
   await founder.page.goto('/workspace#settings');
+  const settings=founder.page.getByRole('navigation',{name:'Settings',exact:true});
+  await expect(settings.getByRole('button',{name:'Profile',exact:true})).toHaveAttribute('aria-current','page');
+  await expect(founder.page.getByRole('heading',{name:'Professional profile',exact:true})).toBeVisible();
+  await settings.getByRole('button',{name:'Account & access',exact:true}).click();
   await expect(founder.page.getByRole('heading',{name:'Workspace access',exact:true})).toBeVisible();
   const suspend=founder.page.locator('[data-security-action="suspend"][data-security-id="'+target.id+'"]');
   await expect(suspend).toBeVisible();

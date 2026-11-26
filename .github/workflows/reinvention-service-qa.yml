@@ -63,6 +63,13 @@ jobs:
           node tools/isolated-supabase.mjs start
           node tools/isolated-dev.mjs prepare
 
+      - name: Verify independent PostgreSQL task transactions
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          node tools/isolated-dev.mjs concurrency
+
       - name: Build for isolated online workflow testing
         timeout-minutes: 7
         run: |

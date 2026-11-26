@@ -26,6 +26,66 @@ async function createPath(courses,title='Synthetic learning path'){
 const assign=(p,member=ids.sales,extra={})=>founder(`academy/admin/paths/${p.id}/assign`,'POST',command({expectedRevision:p.revision,member_id:member,mandatory:true,...extra}));
 const native=(path,method,body,user=ids.founder)=>call(user,path,method,body,{handler:academy});
 
+// Call the public RPC as PostgreSQL's authenticated role, including its actual
+// managed-session claims. This bypasses HTTP validation and response shaping.
+async function directCommand(operation,pathId,revision,changes,key=randomUUID(),options={}){
+ const result=await asUser(db,ids.founder,()=>db.query('select public.nam_learning_path_command($1,$2,$3,$4,$5::jsonb,$6) as result',[ids.w,operation,pathId,revision,JSON.stringify(changes),key]),options);
+ return result.rows[0].result;
+}
+
+test('direct PostgreSQL path commands execute the full ordered lifecycle and preserve exact retry receipts',async()=>{
+ const first=await course('Direct RPC first course'),second=await course('Direct RPC second course');
+ const classified=await directCommand('classify',first.id,first.revision,{topics:['interior','onboarding']});
+ assert.deepEqual(classified,{id:first.id,revision:first.revision+1,topics:['interior','onboarding']});
+ assert.deepEqual((await db.query('select topic from nam_course_topics where course_id=$1 order by topic',[first.id])).rows.map(r=>r.topic),['interior','onboarding']);
+ assert.equal((await db.query('select count(*)::integer as n from nam_course_version_topics where course_version_id=$1',[first.publications[0].id])).rows[0].n,0,'classification leaves an existing immutable publication unchanged');
+ const pathId=randomUUID(),publications=[first,second].map(c=>({course_id:c.id,publication_id:c.publications[0].id}));
+ const created=await directCommand('create',pathId,null,{title:'Direct PostgreSQL lifecycle',summary:'Original snapshot',topics:['onboarding'],courses:publications});
+ assert.deepEqual(created,{id:pathId,revision:1});
+ const edited=await directCommand('edit',pathId,created.revision,{title:'Edited direct lifecycle',summary:'Ordered snapshot',topics:['interior','onboarding'],courses:publications.toReversed()});
+ assert.deepEqual(edited,{id:pathId,revision:2});
+ const archived=await directCommand('archive',pathId,edited.revision,{archived:true});
+ assert.deepEqual(archived,{id:pathId,revision:3,archived:true});
+ await assert.rejects(directCommand('assign',pathId,archived.revision,{member_id:ids.sales,mandatory:true}),errorCode('22023'));
+ const restored=await directCommand('archive',pathId,archived.revision,{archived:false});
+ assert.deepEqual(restored,{id:pathId,revision:4,archived:false});
+ const key=randomUUID(),changes={member_id:ids.sales,mandatory:true};
+ const assigned=await directCommand('assign',pathId,restored.revision,changes,key);
+ assert.deepEqual(assigned,{id:pathId,revision:4,assignment_id:assigned.assignment_id,member_id:ids.sales});
+ const courses=(await db.query('select course_id,course_version_id,position from nam_learning_path_assignment_courses where assignment_id=$1 order by position',[assigned.assignment_id])).rows;
+ assert.deepEqual(courses,publications.toReversed().map((c,index)=>({course_id:c.course_id,course_version_id:c.publication_id,position:index+1})));
+ const snapshot=(await db.query('select title,summary,path_revision,topics,mandatory from nam_learning_path_assignments where id=$1',[assigned.assignment_id])).rows[0];
+ assert.deepEqual(snapshot,{title:'Edited direct lifecycle',summary:'Ordered snapshot',path_revision:4,topics:['interior','onboarding'],mandatory:true});
+ assert.deepEqual(await directCommand('assign',pathId,restored.revision,changes,key),assigned);
+ await assert.rejects(directCommand('assign',pathId,restored.revision,{...changes,member_id:ids.artist},key),errorCode('40001'));
+ assert.equal((await db.query('select count(*)::integer as n from nam_learning_path_events where assignment_id=$1',[assigned.assignment_id])).rows[0].n,1,'an exact retry does not repeat effects');
+ assert.equal((await db.query('select count(*)::integer as n from nam_enrollments where course_id=any($1::uuid[]) and user_id=$2 and revoked_at is null',[publications.map(c=>c.course_id),ids.sales])).rows[0].n,2);
+ const revoked=await directCommand('revoke',pathId,restored.revision,{assignment_id:assigned.assignment_id});
+ assert.deepEqual(revoked,{id:pathId,assignment_id:assigned.assignment_id,revoked:true});
+ assert.equal((await db.query('select revoked_at is not null as revoked from nam_learning_path_assignments where id=$1',[assigned.assignment_id])).rows[0].revoked,true);
+ assert.equal((await db.query('select count(*)::integer as n from nam_enrollments where course_id=any($1::uuid[]) and user_id=$2 and revoked_at is null',[publications.map(c=>c.course_id),ids.sales])).rows[0].n,2,'revoking a path retains independent course access');
+ assert.deepEqual((await db.query('select kind from nam_learning_path_events where path_id=$1 order by id',[pathId])).rows.map(r=>r.kind),['create','edit','archive','archive','assign','revoke']);
+});
+
+test('direct command retries require the exact current session, an available account and opted-in MFA',async()=>{
+ const pathId=randomUUID(),key=randomUUID(),changes={title:'Direct session policy',summary:'',topics:[],courses:[]};
+ const retry=options=>directCommand('create',pathId,null,changes,key,options);
+ const created=await retry({aal:'aal1'});
+ assert.deepEqual(created,{id:pathId,revision:1},'password-only managed sessions can write at AAL1');
+ for(const sessionId of [ids.sales,null,randomUUID()])await assert.rejects(retry({aal:'aal1',sessionId}),errorCode('42501'));
+ const expired=randomUUID();await db.query("insert into auth.sessions(id,user_id,not_after) values($1,$2,now()-interval '1 minute')",[expired,ids.founder]);
+ try{await assert.rejects(retry({aal:'aal1',sessionId:expired}),errorCode('42501'));}finally{await db.query('delete from auth.sessions where id=$1',[expired]);}
+ await db.query("update auth.users set banned_until=now()+interval '1 hour' where id=$1",[ids.founder]);
+ try{await assert.rejects(retry({aal:'aal1'}),errorCode('42501'));}finally{await db.query('update auth.users set banned_until=null where id=$1',[ids.founder]);}
+ await withVerifiedFactor(db,ids.founder,async()=>{
+  await assert.rejects(retry({aal:'aal1'}),errorCode('42501'));
+  assert.deepEqual(await retry({aal:'aal2'}),created,'an opted-in verified factor requires AAL2 even for an exact retry');
+ });
+ assert.deepEqual(await retry({aal:'aal1'}),created);
+ assert.equal((await db.query('select count(*)::integer as n from nam_learning_path_commands where workspace_id=$1 and command_key=$2',[ids.w,key])).rows[0].n,1);
+ assert.equal((await db.query('select count(*)::integer as n from nam_learning_path_events where path_id=$1',[pathId])).rows[0].n,1);
+});
+
 test('path assignments pin exact immutable publications and show real lesson progress and reopen state',async()=>{
  const c=await course(),p=await createPath([c]),assignment=(await assign(p)).body;
  let record=(await call(ids.sales,'academy/paths/'+assignment.assignment_id)).body;assert.equal(record.courses[0].publication_id,c.publications[0].id);assert.equal(record.courses[0].access_status,'available');assert.equal(record.courses[0].completed,0);assert.equal(record.courses[0].completion,null);

@@ -4,6 +4,7 @@
 .team-settings-nav>button:hover{background:var(--surface-hover)}
 .team-settings-nav>button[aria-current]{color:var(--ink);background:var(--surface-control);box-shadow:var(--shadow-nav-active)}
 .team-settings-content{min-width:0;max-width:960px}
+.team-settings-content:has(.settings-table){display:grid;gap:var(--space-5)}
 .team-settings-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-4);margin-bottom:var(--space-6)}
 .team-settings-heading h2{font:400 var(--type-display)/var(--line-display) var(--font-display);margin:0 0 var(--space-2)}
 .team-settings-heading>p,.team-settings-heading>div>p{margin:0;color:var(--text-secondary);font-size:var(--type-label);line-height:var(--line-label)}

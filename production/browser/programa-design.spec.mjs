@@ -80,7 +80,7 @@ async function dialogFit(page,width){
 for(const viewport of viewports)test('Programa geometry supports founder, sales and artist work at '+viewport.width+'px',async({browser})=>{
  test.setTimeout(150000);
  const fixture=await profiles(),founder=await actor(browser,'founder',{viewport}),sales=await actor(browser,'sales_1',{viewport}),artist=await actor(browser,'artist_1',{viewport});
- let originalTask=null,changedPriority=false,loggedActivity=null;
+ let originalTask=null,changedPriority=false,loggedActivity=null,primaryError=null;
  try{
   // Founder: find an actual assigned deliverable, save a reversible change,
   // and reach its shared project without re-entering production context.
@@ -164,11 +164,15 @@ for(const viewport of viewports)test('Programa geometry supports founder, sales 
   const lesson=artist.page.locator('.lesson-nav [data-action="lesson"]').first();await actionable(lesson,viewport.width);await lesson.focus();await lesson.press('Enter');
   await expect(lesson).toHaveAttribute('aria-current','step');await expect(artist.page.locator('.lesson-body > h2')).toBeFocused();
   expect(await artist.page.locator('.lesson-body').evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
- }finally{
+ }catch(error){primaryError=error;throw error;}finally{
   // Only the exact, isolated records touched by this test are restored.
-  try{
-   if(changedPriority&&originalTask){const current=await founder.context.request.get('/api/tasks/'+originalTask.id);expect(current.status()).toBe(200);const value=await current.json();expect((await mutate(founder.context,'/tasks/'+value.id,{expectedVersion:value.version,changes:{priority:originalTask.priority}},'PATCH')).status()).toBe(200);}
-   if(loggedActivity)expect((await mutate(sales.context,'/sales/activities/'+loggedActivity.id,{expectedVersion:loggedActivity.version},'DELETE')).status()).toBe(200);
-  }finally{await Promise.all([founder.context.close(),sales.context.close(),artist.context.close()]);}
+  const cleanupErrors=[],cleanup=async action=>{try{await action();}catch(error){cleanupErrors.push(error);}};
+  await cleanup(async()=>{if(changedPriority&&originalTask){const current=await founder.context.request.get('/api/tasks/'+originalTask.id);expect(current.status()).toBe(200);const value=await current.json();expect((await mutate(founder.context,'/tasks/'+value.id,{expectedVersion:value.version,changes:{priority:originalTask.priority}},'PATCH')).status()).toBe(200);}});
+  await cleanup(async()=>{if(loggedActivity)expect((await mutate(sales.context,'/sales/activities/'+loggedActivity.id,{expectedVersion:loggedActivity.version},'DELETE')).status()).toBe(200);});
+  for(const context of [founder.context,sales.context,artist.context])await cleanup(()=>context.close());
+  if(cleanupErrors.length){
+   if(primaryError)for(const error of cleanupErrors)test.info().annotations.push({type:'cleanup-error',description:String(error)});
+   else throw new AggregateError(cleanupErrors,'Failed to restore isolated design test records');
+  }
  }
 });
