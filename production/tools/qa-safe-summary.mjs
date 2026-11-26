@@ -4,10 +4,12 @@ import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
 import {resolve,relative} from 'node:path';
 const root=process.env.NAM_QA_ROOT;
 if(!root)throw Error('An explicit isolated QA directory is required.');
-const known=new Map();
+const known=new Map();let secondaryGeometryLine=0;
 for(const file of await readdir(resolve('browser'))){
  if(!/^[a-z0-9-]+\.spec\.mjs$/.test(file))continue;
- known.set('browser/'+file,(await readFile(resolve('browser',file),'utf8')).split('\n').length);
+ const lines=(await readFile(resolve('browser',file),'utf8')).split('\n');
+ known.set('browser/'+file,lines.length);
+ if(file==='secondary-craftsmanship.spec.mjs')secondaryGeometryLine=lines.findIndex(line=>line.includes("expect(result.issues,'NAM_SECONDARY_GEOMETRY '"))+1;
 }
 const lineNumber=(file,line)=>Number.isInteger(Number(line))&&Number(line)>0&&Number(line)<=known.get(file)?Number(line):null;
 function sourceFile(file,base=process.cwd()){
@@ -16,6 +18,23 @@ function sourceFile(file,base=process.cwd()){
  return /^browser\/[a-z0-9-]+\.spec\.mjs$/.test(path)&&known.has(path)?path:null;
 }
 const stackSite=new RegExp('(?:^|[\\s(])('+Array.from(known.keys()).flatMap(file=>[resolve(file),file]).map(value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+'):(\\d+):(\\d+)','m');
+// Only this checked-in geometry assertion may publish its numeric coordinates.
+// Report messages and arbitrary strings never become evidence fields.
+function secondaryGeometry(message,file,line,assertion){
+ if(file!=='browser/secondary-craftsmanship.spec.mjs'||line!==secondaryGeometryLine||assertion!=='toEqual')return null;
+ const marker=message.match(/(?:^|\n)NAM_SECONDARY_GEOMETRY (.{1,4096})(?:\n|$)/);if(!marker)return null;
+ let value;try{value=JSON.parse(marker[1]);}catch{return null;}
+ if(!['settings','team','library','operations'].includes(value?.route)||![320,390,768,1440].includes(value?.width)||!Array.isArray(value?.issues)||value.issues.length>16)return null;
+ const coordinate=value=>typeof value==='number'&&Number.isFinite(value)&&Math.abs(value)<100000;
+ const index=value=>Number.isInteger(value)&&value>=0&&value<1000;
+ const issues=[];
+ for(const item of value.issues){
+  if(item?.kind==='panel action exceeds content grid'&&['left','right','contentRight'].every(key=>coordinate(item[key])))issues.push({kind:item.kind,...Object.fromEntries(['left','right','contentRight'].map(key=>[key,Math.round(item[key]*10)/10]))});
+  else if(item?.kind==='overlapping actions'&&index(item.i)&&index(item.j))issues.push({kind:item.kind,i:item.i,j:item.j});
+  else return null;
+ }
+ return {route:value.route,width:value.width,issues};
+}
 const safeFailure=error=>{
  let file=sourceFile(error?.location?.file),line=lineNumber(file,error?.location?.line),column=Number(error?.location?.column);
  if(!file||!line){const match=String(error?.stack||'').match(stackSite);file=match?sourceFile(match[1]):null;line=lineNumber(file,match?.[2]);column=Number(match?.[3]);}
@@ -37,7 +56,8 @@ const safeFailure=error=>{
   if(['200','374','480'].includes(left)&&/^\d{1,4}$/.test(right||''))imageAssertion={expected:Number(left),received:Number(right)};
   else if(left&&right)imageAssertion={expectedShape:shape(left),receivedShape:shape(right)};
  }
- return {location,assertion,...(operation?{operation}:{}),...(Number.isInteger(timeoutMs)&&timeoutMs>0&&timeoutMs<3600000?{timeoutMs}:{}),...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:Number(expected[1]),received:Number(received[1])}}:{}),...(imageAssertion?{imageAssertion}:{})};
+ const geometry=secondaryGeometry(message,file,line,assertion);
+ return {location,assertion,...(geometry?{secondaryGeometry:geometry}:{}),...(operation?{operation}:{}),...(Number.isInteger(timeoutMs)&&timeoutMs>0&&timeoutMs<3600000?{timeoutMs}:{}),...(location&&assertion==='toBe'&&expected&&received?{httpStatus:{expected:Number(expected[1]),received:Number(received[1])}}:{}),...(imageAssertion?{imageAssertion}:{})};
 };
 // Performance evidence is a numeric allowlist bound to this exact CI source.
 // No user labels, endpoints, raw timings, errors or arbitrary evidence fields

@@ -155,3 +155,23 @@ for(const [name,options] of [['missing',{missing:true}],['malformed',{raw:'{inva
   const result=await summarize(undefined,options);assert.equal(result.exit,1);assert.equal(result.output.status,'incomplete');
  });
 }
+
+test('secondary layout evidence retains only literal routes, viewport sizes and bounded action coordinates',async()=>{
+ const file=resolve(app,'browser/secondary-craftsmanship.spec.mjs'),line=(await readFile(file,'utf8')).split('\n').findIndex(value=>value.includes("expect(result.issues,'NAM_SECONDARY_GEOMETRY '"))+1;
+ assert(line>0);
+ const value={route:'settings',width:768,issues:[{kind:'panel action exceeds content grid',left:245.2,right:542.3,contentRight:510.5,private:marker},{kind:'overlapping actions',i:1,j:2,private:marker}],private:marker};
+ const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[{message:'NAM_SECONDARY_GEOMETRY '+JSON.stringify(value)+'\nexpect(received).toEqual(expected)\n'+marker,location:{file,line,column:4}}]}]});
+ const result=await summarize(fixture);
+ assert.deepEqual(result.output.tests[0].results[0].failureSites[0].secondaryGeometry,{route:'settings',width:768,issues:[{kind:'panel action exceeds content grid',left:245.2,right:542.3,contentRight:510.5},{kind:'overlapping actions',i:1,j:2}]});
+});
+
+test('secondary layout evidence rejects arbitrary text, dimensions and source sites',async()=>{
+ const file=resolve(app,'browser/secondary-craftsmanship.spec.mjs'),line=(await readFile(file,'utf8')).split('\n').findIndex(value=>value.includes("expect(result.issues,'NAM_SECONDARY_GEOMETRY '"))+1;
+ const valid={route:'settings',width:768,issues:[{kind:'overlapping actions',i:1,j:2}]};
+ const fixtures=[{value:{...valid,route:marker}},{value:{...valid,width:999999}},{value:{...valid,issues:[{kind:marker,i:1,j:2}]}},{value:{...valid,issues:[{kind:'panel action exceeds content grid',left:0,right:marker,contentRight:0}]}},{value:valid,site:testFile}];
+ const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:fixtures.map(({value,site})=>({message:'NAM_SECONDARY_GEOMETRY '+JSON.stringify(value)+'\nexpect(received).toEqual(expected)',location:{file:site||file,line:site?77:line,column:4}}))}]});
+ const result=await summarize(fixture);
+ assert(result.output.tests[0].results[0].failureSites.every(site=>!Object.hasOwn(site,'secondaryGeometry')));
+ const invalid=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[{message:'NAM_SECONDARY_GEOMETRY '+JSON.stringify({...valid,issues:[{kind:'panel action exceeds content grid',left:NaN,right:20,contentRight:15}]})+'\nexpect(received).toEqual(expected)',location:{file,line,column:4}}]}]});
+ const nonFinite=await summarize(invalid);assert.equal('secondaryGeometry' in nonFinite.output.tests[0].results[0].failureSites[0],false);
+});

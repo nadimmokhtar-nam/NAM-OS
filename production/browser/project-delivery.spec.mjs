@@ -57,13 +57,27 @@ test('a stale image requires reload before a revision round creates one real ass
    expect(round.items).toHaveLength(1);const actual=await run.artist.context.request.get('/api/tasks/'+round.items[0].task_id);expect(actual.status()).toBe(200);task=await actual.json();expect(task.owner_id).toBe(run.owner.id);expect(task.project_id).toBe(run.project.id);expect(task.deliverable_id).toBe(run.image.id);expect(task.production_stage).toBe('Revisions');expect(task.description).toBe('Soften the highlight on the timber wall.');expect(task.status).toBe('Todo');
    const before=await imageDetail(run),replayed=await mutation(run.founder.context,'/projects/'+run.project.id+'/revisions',savedRequest.body,'POST',savedRequest.key);expect(replayed.status()).toBe(201);expect((await replayed.json()).id).toBe(round.id);expect((await imageDetail(run)).version).toBe(before.version);
    const tasks=await (await run.founder.context.request.get('/api/tasks?section=projects&project_id='+run.project.id+'&page=1')).json();expect(tasks.total).toBe(1);expect(tasks.items.map(item=>item.id)).toEqual([task.id]);await page.screenshot({path:testInfo.outputPath('task-fidelity-project-revision-round.png'),animations:'disabled'});
+   // End the Founder interaction before switching to the independent artist.
+   // Revisiting this exact hash later does not close an existing native dialog.
+   await dialog.getByRole('button',{name:'Close dialog',exact:true}).click();await expect(dialog).not.toBeVisible();
   });
   await test.step('Resolve that same task through the assigned artist workspace',async()=>{
    const page=run.artist.page;await page.goto('/workspace#projects/'+run.project.id+'/revisions');await expect(page.locator('.project-round-scope')).toContainText('your assigned work');await expect(page.getByRole('button',{name:'Open revision round',exact:true})).toHaveCount(0);await page.locator('.project-round-row[data-id="'+round.id+'"]').click();const dialog=page.getByRole('dialog');await expect(dialog.locator('.project-round-item')).toHaveCount(1);await dialog.getByRole('button',{name:'Open production task',exact:true}).click();await expect(dialog.locator('form[data-form="edit-task"]')).toBeVisible();
    await dialog.getByLabel('Status',{exact:true}).selectOption('Done');const saved=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/tasks/'+task.id&&response.request().method()==='PATCH');await dialog.getByRole('button',{name:'Save changes',exact:true}).click();const response=await saved;expect(response.status()).toBe(200);expect((await response.json()).status).toBe('Done');await expect(dialog.getByRole('button',{name:'Save changes',exact:true})).toBeEnabled();await dialog.getByRole('button',{name:'Close dialog',exact:true}).click();
   });
   await test.step('Close the resolved round while preserving independent image approval',async()=>{
-   const page=run.founder.page;await page.goto('/workspace#projects/'+run.project.id+'/revisions');await page.locator('.project-round-row[data-id="'+round.id+'"]').click();const dialog=page.getByRole('dialog');await expect(dialog.locator('.project-round-item')).toContainText('Done');page.once('dialog',confirmation=>confirmation.accept());const closed=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/revision-rounds/'+round.id+'/close'&&response.request().method()==='POST');await dialog.getByRole('button',{name:'Close resolved round',exact:true}).click();expect((await closed).status()).toBe(200);await expect(dialog.locator('.project-round-detail>.spread .badge')).toHaveText('closed');expect((await imageDetail(run)).stage).toBe('Revisions');expect((await (await run.founder.context.request.get('/api/projects/'+run.project.id+'/reviews')).json()).total).toBe(0);
+   const page=run.founder.page;await page.goto('/workspace#projects/'+run.project.id+'/revisions');
+   const refreshed=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/revision-rounds/'+round.id&&response.request().method()==='GET');
+   await page.locator('.project-round-row[data-id="'+round.id+'"]').click();
+   const response=await refreshed;expect(response.status()).toBe(200);
+   expect((await response.json()).items.map(item=>({id:item.task_id,status:item.task_status}))).toEqual([{id:task.id,status:'Done'}]);
+   const dialog=page.getByRole('dialog');await expect(dialog.locator('.project-round-item')).toContainText('Done');
+   page.once('dialog',confirmation=>confirmation.accept());
+   const closed=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/revision-rounds/'+round.id+'/close'&&response.request().method()==='POST');
+   await dialog.getByRole('button',{name:'Close resolved round',exact:true}).click();expect((await closed).status()).toBe(200);
+   await expect(dialog.locator('.project-round-detail>.spread .badge')).toHaveText('closed');
+   expect((await imageDetail(run)).stage).toBe('Revisions');
+   expect((await (await run.founder.context.request.get('/api/projects/'+run.project.id+'/reviews')).json()).total).toBe(0);
   });
  }finally{await run?.close();}
 });

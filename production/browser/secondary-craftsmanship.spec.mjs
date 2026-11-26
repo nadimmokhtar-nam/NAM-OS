@@ -75,7 +75,7 @@ for(const width of [320,390,768,1440])test('secondary screens preserve grids, ac
    await page.evaluate(()=>document.fonts.ready);
    const result=await geometry(page);
    expect(result.documentWidth,route+' document must fit its viewport').toBeLessThanOrEqual(result.viewport+1);
-   expect(result.issues,route+' actions must remain inside their panel content grid without overlap').toEqual([]);
+   expect(result.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify({route,width,issues:result.issues})).toEqual([]);
    if(route==='settings'){
     await expect(page.locator('.sidebar .nav-link[href="#settings"]')).toHaveAttribute('aria-current','page');
     expect(result.gaps.length).toBeGreaterThanOrEqual(2);

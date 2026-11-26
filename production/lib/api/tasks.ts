@@ -12,9 +12,9 @@ function keys(value:Record<string,unknown>,allowed:string[]){check(Object.keys(v
 function uuid(value:unknown){check(typeof value==='string'&&UUID.test(value),'Invalid record identifier.');return value;}
 function version(value:unknown){check(Number.isInteger(value)&&Number(value)>0,'A valid record version is required.');return Number(value);}
 function text(value:unknown,name:string,max:number,required=true){check(typeof value==='string',`${name} must be text.`);const result=value.trim();check(result.length<=max&&(!required||result.length>0),`${name} is required and must be at most ${max} characters.`);return result;}
-function dbError(error:{code?:string;message?:string}|null){if(!error)return;
+function dbError(error:{code?:string;message?:string}|null,completingTask=false){if(!error)return;
  const code=error.code||'';
- if(code==='42501')throw new ApiError(403,'You do not have access to this action.');
+ if(code==='42501')throw new ApiError(403,completingTask&&error.message==='Task creation is not granted'?'Remove Repeat before completing this task, or ask a Founder to complete it.':'You do not have access to this action.');
  if(code==='P0002'||code==='PGRST116')throw new ApiError(404,'Task not found.');
  if(code==='40001'){const message=error.message?.startsWith('This task has open subtasks')?'This task has open subtasks. Complete them or confirm finishing the parent.':error.message?.startsWith('Complete the prerequisites')?'Complete the prerequisites before finishing this task.':error.message?.startsWith('A completed task depends')?'A completed task depends on this task. Reopen that task first.':error.message?.startsWith('Change the latest occurrence')?'Change the latest occurrence to adjust future repeats.':'This record changed elsewhere. Reload before saving.';throw new ApiError(409,message);}
  if(code==='23505')throw new ApiError(409,'This record already exists.');
@@ -37,7 +37,7 @@ function changes(input:Record<string,unknown>,create=false){keys(input,['title',
  if('due_date'in out){if(out.due_date===''||out.due_date===null)out.due_date=null;else{check(typeof out.due_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(out.due_date),'Invalid due date.');const parsed=new Date(`${out.due_date}T12:00:00Z`);check(Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===out.due_date,'Invalid due date.');}}
  return out;
 }
-async function rpc(ctx:APIContext,name:string,args:Record<string,unknown>){const {data,error}=await ctx.supabase.rpc(name,args);dbError(error);return data;}
+async function rpc(ctx:APIContext,name:string,args:Record<string,unknown>,completingTask=false){const {data,error}=await ctx.supabase.rpc(name,args);dbError(error,completingTask);return data;}
 export async function taskPage(ctx:APIContext,input:URLSearchParams|Record<string,unknown>={}){
  const source=input instanceof URLSearchParams?Object.fromEntries(input):input;
  const page=Number(source.page||1),pageSize=Number(source.pageSize||source.page_size||200);
@@ -89,7 +89,7 @@ export async function dispatchTasks(ctx:APIContext,path:string[],request:Request
  uuid(id);
  if(path.length===2){
   if(method==='GET')return json(await detail(ctx,id));
-  if(method==='PATCH'){const input=await readJSON(request);keys(input,['expectedVersion','changes']);const expected=version(input.expectedVersion),fields=changes(object(input.changes));await rpc(ctx,'nam_save_task',{w:ctx.workspaceId,task_id:id,expected_version:expected,changes:fields});return json(await detail(ctx,id));}
+  if(method==='PATCH'){const input=await readJSON(request);keys(input,['expectedVersion','changes']);const expected=version(input.expectedVersion),fields=changes(object(input.changes));await rpc(ctx,'nam_save_task',{w:ctx.workspaceId,task_id:id,expected_version:expected,changes:fields},fields.status==='Done');return json(await detail(ctx,id));}
   if(method==='DELETE'){const input=await readJSON(request);keys(input,['expectedVersion']);version(input.expectedVersion);await rpc(ctx,'nam_task_action',{w:ctx.workspaceId,tid:id,action:'delete',input});return json({ok:true,id});}
  }
  if(path.length===3&&method==='POST'){

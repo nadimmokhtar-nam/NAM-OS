@@ -59,6 +59,25 @@ test('ordinary task API surfaces meaningful dependency conflicts and cannot bypa
  await assert.rejects(tasks(ctx,['tasks',prior.id],request('tasks/'+prior.id,'PATCH',{expectedVersion:prerequisite.version,changes:{status:'Todo'}})),e=>e.status===409&&e.message==='A completed task depends on this task. Reopen that task first.');
 });
 
+test('repeat completion denied by current create access explains the remedy while preserving rollback and other access errors',async()=>{
+ const owner=await context(db,ids.sales),founder=await context(db),setCreate=allowed=>db.query("update nam_section_grants set can_create=$3 where workspace_id=$1 and user_id=$2 and section='sales'",[ids.w,ids.sales,allowed]);
+ try{
+  for(const revokeAfter of [false,true]){
+   await setCreate(revokeAfter);const current=await create('Repeat completion permission '+revokeAfter),path='tasks/'+current.id,schedulingPath=path+'/scheduling';
+   let saved=(await call(revokeAfter?owner:founder,schedulingPath,'PATCH',{expectedVersion:current.version,changes:{recurrence:{frequency:'daily'}}})).body;
+   if(revokeAfter)await setCreate(false);
+   const edited=await tasks(owner,['tasks',current.id],request(path,'PATCH',{expectedVersion:saved.version,changes:{status:'In progress',description:'Assigned updates remain permitted'}}));const task=await edited.json();assert.equal(task.status,'In progress');assert.equal(task.description,'Assigned updates remain permitted');
+   await assert.rejects(tasks(owner,['tasks',current.id],request(path,'PATCH',{expectedVersion:task.version,changes:{status:'Done'}})),e=>e.status===403&&e.code==='REQUEST_FAILED'&&e.message==='Remove Repeat before completing this task, or ask a Founder to complete it.');
+   saved=(await call(owner,schedulingPath)).body;assert.equal(saved.status,'In progress');assert.equal(saved.version,task.version);assert.equal(saved.next_task,null);
+   await assert.rejects(tasks(owner,['tasks'],request('tasks','POST',{title:'Creation remains denied',section:'sales'})),e=>e.status===403&&e.code==='REQUEST_FAILED'&&e.message==='You do not have access to this action.');
+   saved=(await call(owner,schedulingPath,'PATCH',{expectedVersion:saved.version,changes:{recurrence:null}})).body;const completed=await tasks(owner,['tasks',current.id],request(path,'PATCH',{expectedVersion:saved.version,changes:{status:'Done'}}));assert.equal((await completed.json()).status,'Done');assert.equal((await call(owner,schedulingPath)).body.next_task,null);
+  }
+ }finally{await setCreate(true);}
+ const current=await create('Other completion permission denial');await db.query('delete from auth.sessions where id=$1',[ids.sales]);
+ try{await assert.rejects(tasks(owner,['tasks',current.id],request('tasks/'+current.id,'PATCH',{expectedVersion:current.version,changes:{status:'Done'}})),e=>e.status===403&&e.code==='REQUEST_FAILED'&&e.message==='You do not have access to this action.');}
+ finally{await db.query('insert into auth.sessions(id,user_id) values($1,$1)',[ids.sales]);}
+});
+
 test('a revocation after the SQL read cannot release a previously read calendar or schedule through the API',async()=>{
  const current=await create('Never release after revoked read'),ctx=await context(db,ids.sales),original=ctx.supabase.rpc;let armed=false;
  ctx.supabase.rpc=async(name,args)=>{const result=await original(name,args);if(armed&&['nam_task_calendar','nam_task_scheduling'].includes(name)){armed=false;await db.query('delete from auth.sessions where id=$1',[ids.sales]);}return result;};

@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const profile={id:'sales-user',name:'Sales colleague',job_title:'Account manager',department:null,revision:3,notifications:{assignment:true,due:true,overdue:true}};
 function deferred(){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};}
-async function harness({role='sales',transport,confirm=true}={}){
+async function harness({role='sales',transport,confirm=true,onChange=async()=>{}}={}){
  const listeners={},requests=[],messages=[],dialogs=[],forms=[],confirmations=[];let data={actor:{id:profile.id,role}},confirmed=confirm,renders=0;
  const dialog={dataset:{},listeners:{},addEventListener(kind,fn){(this.listeners[kind]??=[]).push(fn);},close(){this.closed=true;for(const fn of this.listeners.close||[])fn();}};
  const document={querySelector(selector){if(selector==='#dialog')return dialog;if(selector==='form[data-team-form]')return forms[0];return null;},querySelectorAll(){return forms;},addEventListener(kind,fn){(listeners[kind]??=[]).push(fn);}};
@@ -13,7 +13,7 @@ async function harness({role='sales',transport,confirm=true}={}){
  const ctx=vm.createContext({document,window:{addEventListener(){}},crypto:{randomUUID:()=>`team-ui-key-${requests.length}`},FormData:FormDataStub,confirm:message=>{confirmations.push(message);return confirmed;},console,Array,Object,Number,String,Set,Map,WeakSet});
  const source=(await readFile(new URL('../public/team-profiles.js',import.meta.url),'utf8')).replace(/^export /gm,'');const factory=vm.runInContext(`(()=>{${source};return createTeamProfiles;})()`,ctx);
  const request=async(path,method='GET',body,headers)=>{requests.push({path,method,body:structuredClone(body),headers});if(transport){const result=await transport({path,method,body,headers,requests});if(result!==undefined)return result;}if(path.startsWith('/team/directory'))return {items:[{...profile,role:'sales'}],total:1,page:1,pageSize:50,hasMore:false};if(path.startsWith('/team/departments'))return {items:[],total:0,page:1,pageSize:50,hasMore:false};return structuredClone(profile);};
- const ui=factory({request,getData:()=>data,contextKey:()=>data.view||'settings',openDialog:(title,body)=>dialogs.push({title,body}),toast:message=>messages.push(message),render:()=>renders++,onChange:async()=>{}});
+ const ui=factory({request,getData:()=>data,contextKey:()=>data.view||'settings',openDialog:(title,body)=>dialogs.push({title,body}),toast:message=>messages.push(message),render:()=>renders++,onChange});
  const dispatch=async(kind,event)=>{for(const fn of listeners[kind]||[])await fn(event);};
  function form(kind,values){
   const region={innerHTML:'',textContent:'',focus(){this.focused=true;}},controls=Object.keys(values).map(name=>({name,type:typeof values[name]==='boolean'?'checkbox':'text',disabled:false})),submit={type:'submit',disabled:false};
@@ -76,4 +76,16 @@ test('malformed preference metadata fails closed instead of presenting unchecked
 
 test('late directory replies cannot overwrite the latest requested page',async()=>{
  const hold=deferred();let reads=0;const h=await harness({role:'founder',transport:({path})=>path.startsWith('/team/directory')&&++reads===1?hold.promise:undefined});const old=h.ui.loadDirectory();await h.ui.loadDirectory();hold.resolve({items:[{...profile,name:'Stale directory name',role:'sales'}],total:1,page:1,pageSize:50,hasMore:false});await old;assert(h.ui.directory().includes('Sales colleague'));assert(!h.ui.directory().includes('Stale directory name'));
+});
+
+
+test('department dialogs stay open and guarded until the saved directory refresh finishes',async()=>{
+ const hold=deferred();let refreshing;
+ const began=new Promise(resolve=>refreshing=resolve);
+ const h=await harness({role:'founder',onChange:async()=>{refreshing();await hold.promise;},transport:({method})=>method==='POST'?{id:'new-department',name:'Production',revision:1}:undefined});
+ await h.ui.loadSettings();await h.click('new-department');
+ const form=h.form('department',{department_name:'Production',archived:false}),saving=h.submit(form);
+ await began;assert.equal(h.ui.isBusy(),true);assert.equal(h.ui.canLeave(),false);assert.notEqual(h.dialog.closed,true);assert(form.controls.every(control=>control.disabled));
+ hold.resolve();await saving;
+ assert.equal(h.dialog.closed,true);assert.equal(h.ui.isBusy(),false);assert.equal(h.ui.canLeave(),true);
 });

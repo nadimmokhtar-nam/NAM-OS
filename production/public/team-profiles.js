@@ -75,10 +75,10 @@ export function createTeamProfiles({request,getData,openDialog,toast,render,onCh
   retryDraft??={path,method,body:{...(method==='POST'?{}:{expectedRevision:revision}),changes},key:crypto.randomUUID()};const exact=retryDraft,region=form.querySelector('.form-error');pending=c;region.textContent='';delete state.formErrors[kind];syncBusy();
   try{
    const result=await request(exact.path,exact.method,exact.body,{'Idempotency-Key':exact.key});if(!current(c))return;
-   state.dirty=state.uncertain=false;state.formErrors={};retryDraft=null;if(['profile','notifications'].includes(kind)||result.id===actor())profileValue(result);if(['department','member_department'].includes(kind)){editor=null;document.querySelector('#dialog')?.close();}
+   state.dirty=state.uncertain=false;state.formErrors={};retryDraft=null;if(['profile','notifications'].includes(kind)||result.id===actor())profileValue(result);if(['department','member_department'].includes(kind))editor=null;
    if(kind==='department')state.departments=null;if(kind==='member_department')state.directory=null;
    toast(kind==='notifications'?'Notification preferences saved.':kind==='profile'?'Profile saved.':'Department saved.');
-   try{if(kind==='department')await loadDepartments();if(kind==='member_department')await loadDirectory();await onChange();}catch{toast('Your change was saved. Reload this page to refresh the directory.');}if(current(c))render();
+   try{if(kind==='department')await loadDepartments();if(kind==='member_department')await loadDirectory();await onChange();}catch{toast('Your change was saved. Reload this page to refresh the directory.');}if(current(c)){if(['department','member_department'].includes(kind))document.querySelector('#dialog')?.close();render();}
   }catch(error){
    if(!current(c))return;if([401,403].includes(error.status)){reset();document.querySelector('#dialog')?.close();render();try{await onChange();}catch{}toast(error.message);return;}
    if([400,404,409,413,415].includes(error.status)){retryDraft=null;state.uncertain=false;}else state.uncertain=true;

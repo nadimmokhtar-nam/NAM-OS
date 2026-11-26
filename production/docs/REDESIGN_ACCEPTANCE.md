@@ -53,10 +53,12 @@ without the user's instruction.
 ## Evidence and release gates
 
 Current implementation commits and exact CI/native workflow results are tracked
-in PR 15. Local source is reconciled to the GitHub branch with Git blob hashes;
-the workspace is a source copy rather than a complete CLI Git checkout. Local
-browser/UI cases run through the bundled Node runtime. Full TypeScript, native
-PostgreSQL/provider, build and browser checks run in isolated GitHub CI.
+in PR 15. The current cloud workspace is a full Git checkout reconciled to the
+review branch with Git tree hashes. Local source/database/API checks and
+TypeScript/build checks run on Node 24. Native PostgreSQL/provider and browser
+checks run in isolated GitHub CI. See the current dated verification checkpoint
+for exact passed and failed scenarios; source counts do not establish browser
+execution.
 
 Known verification failures must be resolved before acceptance. A failed provider
 image download is an environment startup failure, not a passing application test.
@@ -67,3 +69,7 @@ existing tenant relationships, configure the verified Auth sender and redirect
 destinations, validate integrations, rehearse migration/recovery and review the
 application at matching desktop/mobile sizes. Keep the existing main branch and
 host unchanged until that concrete release is ready for review.
+
+Maximum-size private image transfer needs an additional check on the selected
+hosting runtime. [Hosted media acceptance](HOSTED_MEDIA_ACCEPTANCE.md) records
+the current Netlify pilot ceiling and the required Vercel verification while preserving current authorization checks.
