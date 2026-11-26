@@ -14,6 +14,7 @@ export const dockerSocket='unix:///var/run/docker.sock';
 const databasePattern=/^nam_scheduling_qa_[0-9a-f]{24}$/;
 const operations=new Set(['configuration','create_database','empty_database','initialize','migrations','fixtures','reciprocal_dependencies','duplicate_completion','queued_session_revocation','queued_task_mfa','queued_command_mfa','cleanup','complete']);
 const failureTypes=new Set(['configuration','process','timeout','assertion','filesystem','unknown']);
+const transports=new Set(['socket','auth','permission','docker','psql','timeout']);
 const quote=value=>"'"+String(value).replaceAll("'","''")+"'";
 const fail=type=>Object.assign(new Error(type),{failureType:type});
 export function boundedOutcome(status,operation,error){
@@ -21,8 +22,19 @@ export function boundedOutcome(status,operation,error){
  if(result.status==='fail'){
   if(/^[A-Z0-9]{5}$/.test(error?.sqlstate||''))result.sqlstate=error.sqlstate;
   else result.failureType=failureTypes.has(error?.failureType)?error.failureType:error?.code==='ERR_ASSERTION'?'assertion':['EACCES','ENOENT','EPERM'].includes(error?.code)?'filesystem':'unknown';
+  if(transports.has(error?.transport))result.transport=error.transport;
  }
  return result;
+}
+// Inspect private diagnostics, but return literal categories only. Never return
+// captured paths, account names, connection strings, SQL or process arguments.
+export function classifyTransportFailure({mode,diagnostics='',timedOut=false,spawnCode}={}){
+ if(timedOut||/timed? out|timeout expired|statement timeout|lock timeout/i.test(diagnostics))return 'timeout';
+ if(mode==='docker'&&(spawnCode==='ENOENT'||/docker daemon|error response from daemon|cannot connect to.*docker|no such container|container .* is not running|OCI runtime|unable to upgrade to tcp|unable to start container process|error during connect/i.test(diagnostics)))return 'docker';
+ if(/authentication failed|no password supplied|password is required|pg_hba\.conf|role .* does not exist/i.test(diagnostics))return 'auth';
+ if(['EACCES','EPERM'].includes(spawnCode)||/permission denied|must be (?:a member|owner|superuser)|not permitted/i.test(diagnostics))return 'permission';
+ if(/connection to server on socket|unix.domain socket|could not connect to server|connection refused|could not translate host name/i.test(diagnostics))return 'socket';
+ return 'psql';
 }
 export function validateManualTarget(target){
  let address;try{address=new URL(target);}catch{throw fail('configuration');}
@@ -38,7 +50,10 @@ export function psqlInvocation({mode,target,database,name='nam-scheduling-test'}
  env.PGAPPNAME=name;env.PGCONNECT_TIMEOUT='5';env.PGOPTIONS='-c statement_timeout=20000 -c lock_timeout=15000';
  if(mode==='docker'){
   if(database!=='postgres'&&!databasePattern.test(database||''))throw fail('configuration');
-  return {binary:'docker',args:['--host='+dockerSocket,'exec','-i','--env','PGAPPNAME='+name,'--env','PGCONNECT_TIMEOUT=5','--env','PGOPTIONS='+env.PGOPTIONS,'--env','PGSERVICE=','--env','PGSERVICEFILE=','--env','PGHOSTADDR=',dockerContainer,'psql',...flags,'--host','/var/run/postgresql','--port','5432','--username','postgres','--dbname',database],env};
+  // An empty PGSERVICE still requests a service in libpq. Truly unset all
+  // host/service overrides inside the container before using its compiled
+  // local UNIX socket defaults, as the working isolated seed helper does.
+  return {binary:'docker',args:['--host='+dockerSocket,'exec','-i','--env','PGAPPNAME='+name,'--env','PGCONNECT_TIMEOUT=5','--env','PGOPTIONS='+env.PGOPTIONS,dockerContainer,'env','-u','PGHOST','-u','PGHOSTADDR','-u','PGPORT','-u','PGSERVICE','-u','PGSERVICEFILE','psql',...flags,'--username','postgres','--dbname',database],env};
  }
  if(mode!=='manual')throw fail('configuration');
  const address=validateManualTarget(target);address.searchParams.set('application_name',name);
@@ -67,7 +82,7 @@ function driver(options,log){
     clearTimeout(timer);sessions.delete(child);
     try{await log.write('\n['+name+']\n'+raw.join('')+'\n');}catch(error){reject(error);return;}
     if(code===0&&!spawnError&&!timedOut)resolveResult(output.trim());
-    else {const error=fail(timedOut?'timeout':'process');error.sqlstate=errors.match(/(?:ERROR|FATAL):\s+([A-Z0-9]{5}):/)?.[1];error.privateMessage=errors;reject(error);}
+    else {const error=fail(timedOut?'timeout':'process');error.sqlstate=errors.match(/(?:ERROR|FATAL):\s+([A-Z0-9]{5}):/)?.[1];error.transport=classifyTransportFailure({mode:options.mode,diagnostics:errors+'\n'+output,timedOut,spawnCode:spawnError?.code});error.privateMessage=errors;reject(error);}
    });
   });done.catch(()=>{});
   child.stdin.write(source+'\n');if(!hold)child.stdin.end();
