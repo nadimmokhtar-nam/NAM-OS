@@ -682,3 +682,36 @@ test('enabled Home announcement edits, uncertain retries and pending saves retai
  h.nodes.delete('form[data-home-form]');h.location.hash='#settings';await h.ui.navigate();assert.equal(h.ui.state.view,'settings');assert(h.nodes.get('#app').innerHTML.includes('Your account'));assert(h.requests.some(row=>row.url==='/api/auth/security'));
  const artist=await harness({intercept:(url,init,model,response)=>{if(endpoint(url,'bootstrap')){model.capabilities.homeAnnouncements='records';model.actor={...actor,role:'artist'};model.sections=['projects'];model.members=[{...model.actor,sections:['projects']}];model.capabilities.createTaskSections=['projects'];model.roleLabels.artist='CGI Artist';return response(model);}if(url.startsWith('/api/home/announcements?'))return response({...feed,focus:{scope:'mine',images:{review_stage:0,revisions:0,items:[]}}});}});assert(!artist.nodes.get('#app').innerHTML.includes('data-home-action="manage"'));assert(!artist.nodes.get('#app').innerHTML.includes('data-home-action="new"'));assert(artist.nodes.get('#app').innerHTML.includes('href="#settings"'));
 });
+
+
+test('directory events preserve search and List when a permitted project is opened and closed',async()=>{
+ const directory=[{id:'directory-one',title:'Courtyard residence',client_name:'Example Architecture',location:'Paris',updated_at:'2026-11-25T12:00:00Z'},{id:'directory-two',title:'Canal studio',client_name:'Example Studio',location:'Lyon',updated_at:'2026-11-24T12:00:00Z'}];
+ const h=await harness({initialHash:'#projects',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:directory});
+  if(url==='/api/projects/directory-one')return response({...directory[0],member_ids:[actor.id],lead_id:actor.id,version:1});
+ }});
+ await h.dispatch('input',{target:{id:'project-search',closest(){return null;},value:'residence'}});
+ assert(h.nodes.get('#app').innerHTML.includes('Courtyard residence'));assert(!h.nodes.get('#app').innerHTML.includes('Canal studio'));
+ await h.ui.action({dataset:{action:'project-directory-view',value:'list'}});
+ await h.ui.action({dataset:{action:'project-directory-sort',value:'title'}});
+ await h.ui.action({dataset:{action:'project-open',id:'directory-one'}});
+ await h.ui.action({dataset:{action:'project-back'}});
+ let html=h.nodes.get('#app').innerHTML;assert(html.includes('class="project-list"'));assert(html.includes('value="residence"'));assert(!html.includes('Canal studio'));
+ await h.ui.action({dataset:{action:'project-search-clear'}});html=h.nodes.get('#app').innerHTML;assert(html.includes('Canal studio'));assert(html.includes('value=""'));
+});
+
+test('directory search waits for composition and unmount clears the prior directory context',async()=>{
+ const records=[{id:'directory-one',title:'Canal studio'},{id:'directory-two',title:'Courtyard residence'}];
+ const h=await harness({initialHash:'#projects',intercept:(url,init,model,response)=>{
+  if(endpoint(url,'bootstrap'))return response({...model,capabilities:{...model.capabilities,projects:'records'}});
+  if(url.startsWith('/api/projects?'))return response({items:records});
+ }});
+ await h.dispatch('input',{isComposing:true,target:{id:'project-search',closest(){return null;},value:'canal'}});
+ assert(h.nodes.get('#app').innerHTML.includes('Courtyard residence'));
+ await h.dispatch('input',{isComposing:false,target:{id:'project-search',closest(){return null;},value:'canal'}});
+ assert(!h.nodes.get('#app').innerHTML.includes('Courtyard residence'));
+ await h.ui.action({dataset:{action:'project-directory-view',value:'list'}});
+ h.ui.unmountWorkspace();await h.ui.mountWorkspace();
+ const html=h.nodes.get('#app').innerHTML;assert(html.includes('Courtyard residence'));assert(html.includes('class="project-grid"'));assert(!html.includes('value="canal"'));
+});

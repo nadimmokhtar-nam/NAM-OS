@@ -25,7 +25,7 @@ test('task workspace keeps project context, direct URLs, Back and mobile reading
   await expect(run.page.locator('.sidebar [data-project-navigation]')).toBeVisible();
   await expect(run.page.locator('.sidebar .nav-link[href="#tasks"]')).toHaveCount(0);
   const desktop=await detail.evaluate(node=>({left:node.getBoundingClientRect().left,rail:node.querySelector('.task-detail-rail').getBoundingClientRect().width}));
-  expect(desktop.left).toBeCloseTo(228,0);expect(desktop.rail).toBeCloseTo(400,0);
+  expect(desktop.left).toBeCloseTo(236,0);expect(desktop.rail).toBeCloseTo(400,0);
   await run.page.screenshot({path:testInfo.outputPath('task-fidelity-1440.png'),animations:'disabled'});
 
   await run.page.goBack();await expect(detail).not.toBeVisible();

@@ -18,7 +18,7 @@ continuation. All native test identities, project data and emails are disposable
 | Authentication | Password/recovery/reset, invitations, session revocation, optional MFA, role/section access and separate guest sign-in. | Missing live reference screens, complete error/activation comparison and hosted email rehearsal. |
 | Home | Existing permission-scoped daily brief, tasks, projects, deadlines, learning and review queues.036 adds real dated role-audience announcements and source-labelled shortcuts into production, client review, Sales and Academy. | Consolidated announcement/privacy/native verification, populated role-by-role workflow and design acceptance. |
 | Task workspaces | Shared task identity, List/Board, status groups, properties, priorities, dates, assignees, subtasks, comments, private files and linkable task pages. Calendar, server sorting, dependencies and completion-driven recurring successors are added in029. | Consolidated DB/API/native verification of029; final cross-module workflow and visual acceptance. |
-| Projects | Real directory, contextual navigation, brief, lead, explicit participants, deadline, history and archive/restore. Private files/folders, references, pinboards and meeting notes are added in028. | Consolidated verification of all resource paths and participant/Founder boundaries; broader visual acceptance. |
+| Projects | Real directory, contextual navigation, brief, lead, explicit participants, deadline, history and archive/restore. Private files/folders, references, pinboards and meeting notes are added in028.037 exposes saved directory timestamps for search/sort/Grid/List; the inspected directory dimensions now match at 1280/1440 px. | Fresh candidate source/native verification; remaining project context menus, manual ordering/pinning, resource paths and broader visual acceptance. |
 | Production | Camera/deliverable inventory, ten production stages, assigned artists and linked central tasks. Real revision rounds and immutable final-file deliveries are added in033. | Consolidated revision/task/client delivery tests, animation media and complete production UX comparison. |
 | Render review | Verified private JPEG/PNG uploads, immutable versions, comparison, pinned internal comments and recovery. | Finish inspector interactions and broader responsive/visual review. |
 | Client review | Explicit guest access, issued immutable images, view-only/decision permissions, optional original downloads, version-specific Accept/Reject events and revocation. | Hosted email configuration/rehearsal and final populated-reference comparison. |
@@ -30,7 +30,7 @@ continuation. All native test identities, project data and emails are disposable
 
 ## Remaining production scope
 
-New migrations028–036 and their browser controllers are an unaccepted development
+New migrations028–037 and their browser controllers are an unaccepted development
 batch until consolidated source, database, API and native browser checks pass.
 Private resource reads and downloads, real cross-module task handoffs, retained
 issued files and current authorization require behavioral verification. Existing

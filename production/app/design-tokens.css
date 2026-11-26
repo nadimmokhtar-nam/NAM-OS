@@ -62,7 +62,15 @@
   --control-padding-block:6px;
   --control-padding-inline:10px;
   --nav-item-height:28px;
-  --nav-width:220px;
+  --nav-width:228px;
+  --project-cover-aspect:93/46;
+  --project-card-gap:10px;
+  --project-caption-gap:2px;
+  --project-menu-width:280px;
+  --project-list-row-height:54px;
+  --project-status-active:#83a3d2;
+  --project-status-attention:#b38d4e;
+  --project-status-archived:#a8a8a2;
   --shell-inset:8px;
   --header-height:52px;
   --page-gutter:16px;

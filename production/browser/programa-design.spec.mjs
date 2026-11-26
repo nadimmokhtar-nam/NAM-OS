@@ -45,7 +45,7 @@ async function shell(page,width){
  expect(families[0],'NAM uses the selected Newsreader display face').toBe('newsreader');
  expect(result.headingFaceLoaded,'The self-hosted display font must load rather than silently falling back').toBe(true);
  if(!result.menuVisible){
-  expect(result.sidebar.width).toBeGreaterThanOrEqual(216);expect(result.sidebar.width).toBeLessThanOrEqual(224);
+  expect(result.sidebar.width).toBeGreaterThanOrEqual(224);expect(result.sidebar.width).toBeLessThanOrEqual(232);
   expect(result.main.left-result.sidebar.right).toBeGreaterThanOrEqual(6);expect(result.main.left-result.sidebar.right).toBeLessThanOrEqual(10);
   expect(result.navigationHeight).toBeGreaterThanOrEqual(26);expect(result.navigationHeight).toBeLessThanOrEqual(34);
  }else{

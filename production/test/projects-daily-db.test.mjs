@@ -22,7 +22,10 @@ test('project brief, explicit participants and a deliverable share the existing 
  assert.equal(page.items.length,1);assert.equal(page.items[0].project_title,'Courtyard residence');assert.equal(page.items[0].id,task.id);
  const saved=await rpc(ids.artist,'nam_save_task',[ids.w,task.id,task.version,{production_stage:'Internal review',status:'In progress'}]);
  assert.equal(saved.version,task.version+1);assert.equal(saved.production_stage,'Internal review');
- assert.equal((await rpc(ids.founder,'nam_project_list',[ids.w,false])).find(p=>p.id===pid).deliverables,1);
+ const directoryRow=(await rpc(ids.founder,'nam_project_list',[ids.w,false])).find(p=>p.id===pid);
+ assert.equal(directoryRow.deliverables,1);
+ assert.equal(typeof directoryRow.created_at,'string');assert(Number.isFinite(Date.parse(directoryRow.created_at)));
+ assert.equal(typeof directoryRow.updated_at,'string');assert(Number.isFinite(Date.parse(directoryRow.updated_at)));
 });
 
 test('knowing a project ID or holding a manager template never grants its brief or another owner’s tasks',async()=>{

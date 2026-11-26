@@ -3,53 +3,172 @@
   "measured_on": "2026-11-25",
   "method": "Authenticated rendered UI, DOM geometry and computed styles; independently implemented NAM components required",
   "viewports": {
-    "desktop": {"width": 1440, "height": 1000},
-    "mobile_task": {"width": 390, "height": 844},
-    "approval_drawer": {"width": 1280, "height": 720}
+    "desktop": {
+      "width": 1440,
+      "height": 1000
+    },
+    "mobile_task": {
+      "width": 390,
+      "height": 844
+    },
+    "approval_drawer": {
+      "width": 1280,
+      "height": 720
+    }
   },
-  "fonts": {"body": "Inter", "controls": "InterVariable", "display": "Rhymes Display", "nam_display": "Newsreader", "note": "Observed Programa names retained as evidence. User authorized an alternate display face on 2026-11-25; NAM self-hosts OFL Newsreader with Inter for the UI. No Programa font redistribution."},
-  "colors": {"canvas": "#f8f6f3", "workspace": "#ffffff", "menu": "#fcfbf9", "text": "#1a1916", "muted": "#7b736c", "primary": "#2b2926", "property_border": "#eeece6"},
+  "fonts": {
+    "body": "Inter",
+    "controls": "InterVariable",
+    "display": "Rhymes Display",
+    "nam_display": "Newsreader",
+    "note": "Observed Programa names retained as evidence. User authorized an alternate display face on 2026-11-25; NAM self-hosts OFL Newsreader with Inter for the UI. No Programa font redistribution."
+  },
+  "colors": {
+    "canvas": "#f8f6f3",
+    "workspace": "#ffffff",
+    "menu": "#fcfbf9",
+    "text": "#1a1916",
+    "muted": "#7b736c",
+    "primary": "#2b2926",
+    "property_border": "#eeece6"
+  },
   "shell": {
     "outer_inset_px": 8,
-    "sidebar_width_px": 220,
-    "workspace_left_px": 228,
-    "workspace_width_at_1440_px": 1204,
+    "sidebar_width_px": 228,
+    "workspace_left_px": 236,
+    "workspace_width_at_1440_px": 1196,
     "workspace_height_at_1000_px": 984,
     "content_gutter_px": 16,
-    "breadcrumb": {"size_px": 12, "line_height_px": 20, "weight": 500},
-    "navigation_item": {"height_px": 28, "width_px": 188, "radius_px": 6, "font_size_px": 13, "line_height_px": 20, "weight": 500, "gap_px": 8}
+    "breadcrumb": {
+      "size_px": 12,
+      "line_height_px": 20,
+      "weight": 500
+    },
+    "navigation_item": {
+      "height_px": 28,
+      "width_px": 196,
+      "radius_px": 6,
+      "font_size_px": 13,
+      "line_height_px": 20,
+      "weight": 500,
+      "gap_px": 8
+    }
   },
   "typography": {
-    "body": {"size_px": 14, "line_height_px": 21, "weight": 400},
-    "page_heading": {"size_px": 24, "line_height_px": 30, "weight": 400},
-    "card_title": {"size_px": 14, "line_height_px": 20, "weight": 500},
-    "task_title": {"size_px": 18, "line_height_px": 28.8}
+    "body": {
+      "size_px": 14,
+      "line_height_px": 21,
+      "weight": 400
+    },
+    "page_heading": {
+      "size_px": 24,
+      "line_height_px": 30,
+      "weight": 400
+    },
+    "card_title": {
+      "size_px": 14,
+      "line_height_px": 20,
+      "weight": 500
+    },
+    "task_title": {
+      "size_px": 18,
+      "line_height_px": 28.8
+    }
   },
   "controls": {
-    "primary_small": {"height_px": 28, "radius_px": 6, "font_size_px": 13, "line_height_px": 20, "weight": 500, "padding_px": [4, 8], "gap_px": 6},
-    "settings_select": {"height_px": 32, "radius_px": 6, "font_size_px": 13},
-    "active_pill": {"height_px": 28, "radius": "9999px", "font_size_px": 13, "line_height_px": 20, "weight": 500, "padding_px": [4, 10]},
-    "view_menu": {"width_px": 280, "padding_px": 4, "radius_px": 8},
+    "primary_small": {
+      "height_px": 28,
+      "radius_px": 6,
+      "font_size_px": 13,
+      "line_height_px": 20,
+      "weight": 500,
+      "padding_px": [
+        4,
+        8
+      ],
+      "gap_px": 6
+    },
+    "settings_select": {
+      "height_px": 32,
+      "radius_px": 6,
+      "font_size_px": 13
+    },
+    "active_pill": {
+      "height_px": 28,
+      "radius": "9999px",
+      "font_size_px": 13,
+      "line_height_px": 20,
+      "weight": 500,
+      "padding_px": [
+        4,
+        10
+      ]
+    },
+    "view_menu": {
+      "width_px": 280,
+      "padding_px": 4,
+      "radius_px": 8
+    },
     "menu_shadow": "0 0 0 1px rgba(0,0,0,.08), 0 4px 8px rgba(0,0,0,.08), 0 8px 16px rgba(0,0,0,.08)",
     "active_shadow": "0 0 0 1px rgba(0,0,0,.08), 0 1px 2px -1px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04)"
   },
   "tasks": {
     "presentation": "Full workspace page retaining project navigation and breadcrumb",
     "list_group_width_px": 720,
-    "list_group_header": {"height_px": 44, "horizontal_padding_px": 12, "background": "#fcfbf9", "group_radius_px": 8, "group_elevation": "active_shadow"},
+    "list_group_header": {
+      "height_px": 44,
+      "horizontal_padding_px": 12,
+      "background": "#fcfbf9",
+      "group_radius_px": 8,
+      "group_elevation": "active_shadow"
+    },
     "list_task_link_height_px": 46,
     "board_task_link_width_px": 280,
     "desktop_properties_width_px": 400,
     "main_padding_px": 16,
-    "properties_padding_px": [16, 24, 24, 24],
-    "mobile_order": ["Title and description", "Subtasks", "Comments", "Properties and attachments"],
+    "properties_padding_px": [
+      16,
+      24,
+      24,
+      24
+    ],
+    "mobile_order": [
+      "Title and description",
+      "Subtasks",
+      "Comments",
+      "Properties and attachments"
+    ],
     "mobile_content_width_at_390_px": 374
   },
-  "compact_table": {"row_height_px": 48, "gap_px": 2, "row_radius_px": 10, "horizontal_padding_px": [8, 16], "cell_gap_px": 12, "hover_timing_css_ms": 75, "timing_note": "Value observed in rendered row class; hover animation was not recorded"},
+  "compact_table": {
+    "row_height_px": 48,
+    "gap_px": 2,
+    "row_radius_px": 10,
+    "horizontal_padding_px": [
+      8,
+      16
+    ],
+    "cell_gap_px": 12,
+    "hover_timing_css_ms": 75,
+    "timing_note": "Value observed in rendered row class; hover animation was not recorded"
+  },
   "dialogs": {
-    "large_form": {"inset_px": 8, "radius_px": 8, "width_at_1440_px": 1424, "height_at_1000_px": 984},
-    "approval_drawer": {"width_px": 560, "inset_px": 8, "radius_px": 8, "height_at_720_px": 704},
-    "approval_tabs": ["Outstanding", "History"],
+    "large_form": {
+      "inset_px": 8,
+      "radius_px": 8,
+      "width_at_1440_px": 1424,
+      "height_at_1000_px": 984
+    },
+    "approval_drawer": {
+      "width_px": 560,
+      "inset_px": 8,
+      "radius_px": 8,
+      "height_at_720_px": 704
+    },
+    "approval_tabs": [
+      "Outstanding",
+      "History"
+    ],
     "date_picker_months": 2
   },
   "authentication_inherited": {
@@ -57,10 +176,119 @@
     "desktop_form_width_px": 480,
     "image_rail_width_at_1280_px": 282,
     "mobile_form_width_at_390_px": 311,
-    "heading": {"size_px": 22, "line_height_px": 33, "weight": 600},
-    "primary": {"height_px": 40, "radius_px": 8, "size_px": 16, "line_height_px": 20, "weight": 500},
-    "input_wrapper": {"height_px": 32, "radius_px": 6, "horizontal_inset_px": 8},
+    "heading": {
+      "size_px": 22,
+      "line_height_px": 33,
+      "weight": 600
+    },
+    "primary": {
+      "height_px": 40,
+      "radius_px": 8,
+      "size_px": 16,
+      "line_height_px": 20,
+      "weight": 500
+    },
+    "input_wrapper": {
+      "height_px": 32,
+      "radius_px": 6,
+      "horizontal_inset_px": 8
+    },
     "focus": "Neutral 1px ring and soft 4px outer ring"
   },
-  "unverified": ["Activation/invitation and authentication-error screens", "Populated client decisions/history", "Notification inbox", "Hover/transition recordings", "Tablet/broader mobile sweep", "Deliberate server/network errors"]
+  "unverified": [
+    "Activation/invitation and authentication-error screens",
+    "Populated client decisions/history",
+    "Notification inbox",
+    "Hover/transition recordings",
+    "Tablet/broader mobile sweep",
+    "Deliberate server/network errors"
+  ],
+  "remeasured_on": "2026-11-26",
+  "project_directory": {
+    "method": "Authenticated rendered reference, DOM geometry and computed styles on 26 November 2026; no reference records were modified.",
+    "desktop_1280": {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "main_left_px": 236,
+      "grid_left_px": 252,
+      "grid_top_px": 174,
+      "grid_width_px": 1004,
+      "columns": 4,
+      "gap_px": 16,
+      "card_width_px": 239,
+      "card_height_px": 170.2109375,
+      "thumbnail_height_px": 118.2109375
+    },
+    "desktop_1440": {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "grid_width_px": 1164,
+      "columns": 4,
+      "card_width_px": 279,
+      "thumbnail_height_px": 138
+    },
+    "thumbnail": {
+      "aspect_ratio": [
+        93,
+        46
+      ],
+      "radius_px": 6
+    },
+    "caption": {
+      "top_gap_px": 10,
+      "internal_gap_px": 2,
+      "height_px": 42,
+      "title_size_px": 14,
+      "title_line_px": 20,
+      "metadata_size_px": 13,
+      "metadata_line_px": 20
+    },
+    "list": {
+      "row_height_px": 54,
+      "padding_px": [
+        6,
+        16,
+        8,
+        16
+      ],
+      "gap_px": 16
+    },
+    "view_menu": {
+      "width_px": 280,
+      "padding_px": 4,
+      "radius_px": 8
+    },
+    "sort_options": [
+      "Project name",
+      "Last updated",
+      "Created",
+      "Manual",
+      "Ascending",
+      "Descending"
+    ],
+    "mobile_390": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "grid_left_px": 24,
+      "grid_top_px": 226,
+      "grid_width_px": 342,
+      "columns": 1,
+      "gap_px": 16,
+      "thumbnail_height_px": 169.15625,
+      "caption_height_px": 42
+    },
+    "nam_adaptations": [
+      "Newsreader headings remain the user-approved display face.",
+      "NAM keeps 44px mobile controls. At 390px their greater height moves the first card down relative to Programa.",
+      "Delivery date is a real NAM sorting option. Manual ordering and pinning are not implemented.",
+      "All production work remains available in the directory view menu.",
+      "Search and sorting use the existing maximum 200 permitted project summaries; that boundary remains explicit."
+    ]
+  }
 }
