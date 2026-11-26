@@ -1,6 +1,6 @@
 // Retain only status counts and real checked-in assertion locations. Report
 // messages, DOM, screenshots, profiles, credentials and logs stay private.
-import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,readdir,stat} from 'node:fs/promises';
 import {resolve,relative} from 'node:path';
 const root=process.env.NAM_QA_ROOT;
 if(!root)throw Error('An explicit isolated QA directory is required.');
@@ -20,10 +20,7 @@ function sourceFile(file,base=process.cwd()){
 const stackSite=new RegExp('(?:^|[\\s(])('+Array.from(known.keys()).flatMap(file=>[resolve(file),file]).map(value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+'):(\\d+):(\\d+)','m');
 // Only this checked-in geometry assertion may publish its numeric coordinates.
 // Report messages and arbitrary strings never become evidence fields.
-function secondaryGeometry(message,file,line,assertion){
- if(file!=='browser/secondary-craftsmanship.spec.mjs'||!secondaryGeometryLine||!Number.isInteger(line)||Math.abs(line-secondaryGeometryLine)>1||assertion!=='toEqual')return null;
- const marker=message.match(/(?:^|\n)(?:Error: )?NAM_SECONDARY_GEOMETRY (.{1,4096})(?:\n|$)/);if(!marker)return null;
- let value;try{value=JSON.parse(marker[1]);}catch{return null;}
+function projectSecondaryGeometry(value){
  if(!['settings','team','library','operations'].includes(value?.route)||![320,390,768,1440].includes(value?.width)||!Array.isArray(value?.issues)||value.issues.length>16)return null;
  const coordinate=value=>typeof value==='number'&&Number.isFinite(value)&&Math.abs(value)<100000;
  const index=value=>Number.isInteger(value)&&value>=0&&value<1000;
@@ -34,6 +31,22 @@ function secondaryGeometry(message,file,line,assertion){
   else return null;
  }
  return {route:value.route,width:value.width,issues};
+}
+function secondaryGeometry(message,file,line,assertion){
+ if(file!=='browser/secondary-craftsmanship.spec.mjs'||!secondaryGeometryLine||!Number.isInteger(line)||Math.abs(line-secondaryGeometryLine)>1||assertion!=='toEqual')return null;
+ const marker=message.match(/(?:^|\n)(?:Error: )?NAM_SECONDARY_GEOMETRY (.{1,4096})(?:\n|$)/);if(!marker)return null;
+ try{return projectSecondaryGeometry(JSON.parse(marker[1]));}catch{return null;}
+}
+async function readSecondaryLayout(){
+ const commit=process.env.GITHUB_SHA;if(!/^[a-f0-9]{40}$/i.test(commit||''))return null;
+ try{
+  const path=resolve(root,'secondary-layout.jsonl');if((await stat(path)).size>65536)return null;
+  const raw=await readFile(path,'utf8');if(Buffer.byteLength(raw)>65536)return null;
+  const lines=raw.trim().split('\n');if(lines.length>16)return null;
+  const rows=[];
+  for(const line of lines){const value=JSON.parse(line);if(value?.commit!==commit)return null;const projected=projectSecondaryGeometry(value);if(!projected)return null;if(projected.issues.length)rows.push(projected);}
+  return rows.length?rows:null;
+ }catch{return null;}
 }
 const safeFailure=error=>{
  let file=sourceFile(error?.location?.file),line=lineNumber(file,error?.location?.line),column=Number(error?.location?.column);
@@ -96,6 +109,8 @@ if(report){
  let performanceEvidence=null;
  if(performanceRequired){try{performanceEvidence=safePerformance(JSON.parse(await readFile(resolve(root,'performance.json'),'utf8')));}catch{}}
  const evidenceIncomplete=performanceRequired&&!performanceEvidence;
- const result={status:incomplete||evidenceIncomplete?'failed_or_incomplete':'passed',commit:/^[a-f0-9]{40}$/i.test(process.env.GITHUB_SHA||'')?process.env.GITHUB_SHA:null,counts:{total:tests.length,passed:tests.filter(passed).length,unexpected:tests.filter(test=>test.status==='unexpected').length,skipped:tests.filter(test=>test.status==='skipped').length,globalErrors:report.errors.length},...(performanceRequired?{performance:performanceEvidence,evidenceIncomplete}:{}),tests};
- await writeFile(resolve(root,'safe-summary.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});console.log(JSON.stringify({status:result.status,commit:result.commit,counts:result.counts,...(performanceEvidence?{performance:performanceEvidence}:{}),failedTests:tests.filter(test=>!passed(test))}));if(incomplete||evidenceIncomplete)process.exitCode=1;
+ const secondaryLayoutRequired=tests.some(test=>test.file==='browser/secondary-craftsmanship.spec.mjs'&&!passed(test));
+ const secondaryLayout=secondaryLayoutRequired?await readSecondaryLayout():null;
+ const result={status:incomplete||evidenceIncomplete?'failed_or_incomplete':'passed',commit:/^[a-f0-9]{40}$/i.test(process.env.GITHUB_SHA||'')?process.env.GITHUB_SHA:null,counts:{total:tests.length,passed:tests.filter(passed).length,unexpected:tests.filter(test=>test.status==='unexpected').length,skipped:tests.filter(test=>test.status==='skipped').length,globalErrors:report.errors.length},...(performanceRequired?{performance:performanceEvidence,evidenceIncomplete}:{}),...(secondaryLayout?{secondaryLayout}:{}),tests};
+ await writeFile(resolve(root,'safe-summary.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});console.log(JSON.stringify({status:result.status,commit:result.commit,counts:result.counts,...(performanceEvidence?{performance:performanceEvidence}:{}),...(secondaryLayout?{secondaryLayout}:{}),failedTests:tests.filter(test=>!passed(test))}));if(incomplete||evidenceIncomplete)process.exitCode=1;
 }

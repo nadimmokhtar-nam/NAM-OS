@@ -13,11 +13,12 @@ const example=(overrides={})=>({config:{rootDir:app},suites:[{file:testFile,spec
  status:'expected',results:[{status:'passed',duration:37}],...overrides,
  }]}]}],errors:[]});
 
-async function summarize(report,{missing=false,raw,performance}={}){
+async function summarize(report,{missing=false,raw,performance,layout}={}){
  const root=await mkdtemp(resolve(tmpdir(),'nam-safe-summary-'));
  try{
   if(!missing)await writeFile(resolve(root,'browser-results.json'),raw??JSON.stringify(report),{mode:0o600});
   if(performance!==undefined)await writeFile(resolve(root,'performance.json'),JSON.stringify(performance),{mode:0o600});
+  if(layout!==undefined)await writeFile(resolve(root,'secondary-layout.jsonl'),typeof layout==='string'?layout:layout.map(row=>JSON.stringify(row)).join('\n')+'\n',{mode:0o600});
   const result=spawnSync(process.execPath,[resolve(app,'tools/qa-safe-summary.mjs')],{
    cwd:app,env:{...process.env,NAM_QA_ROOT:root,GITHUB_SHA:'1'.repeat(40)},encoding:'utf8',timeout:10000,
   });
@@ -189,4 +190,23 @@ test('secondary geometry diagnostics tolerate only an adjacent source-map offset
  const result=await summarize(fixture),sites=result.output.tests[0].results[0].failureSites;
  assert.equal('secondaryGeometry' in sites[0],false);assert.equal('secondaryGeometry' in sites[4],false);
  for(const site of sites.slice(1,4))assert.deepEqual(site.secondaryGeometry,value);
+});
+
+
+function secondaryFailedReport(){const value=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[]}]});value.suites[0].specs[0].file=resolve(app,'browser/secondary-craftsmanship.spec.mjs');value.suites[0].specs[0].line=60;return value;}
+const layoutFixture=()=>({commit:'1'.repeat(40),route:'settings',width:320,issues:[{kind:'panel action exceeds content grid',left:20,right:260,contentRight:240,private:marker}],private:marker});
+test('independent layout evidence publishes numeric geometry only for the exact source and failed checked-in secondary case',async()=>{
+ const value=layoutFixture(),result=await summarize(secondaryFailedReport(),{layout:[value]});
+ assert.equal(result.exit,1);assert.equal(result.output.status,'failed_or_incomplete');
+ assert.deepEqual(result.output.secondaryLayout,[{route:'settings',width:320,issues:[{kind:'panel action exceeds content grid',left:20,right:260,contentRight:240}]}]);
+ assert(result.stdout.includes('secondaryLayout'));
+});
+test('independent layout evidence rejects stale, malformed, excessive and nonnumeric data',async()=>{
+ const invalid=[[{...layoutFixture(),commit:'2'.repeat(40)}],[{...layoutFixture(),route:marker}],[{...layoutFixture(),issues:[{kind:'overlapping actions',i:marker,j:0}]}],Array.from({length:17},layoutFixture),' '.repeat(65537)];
+ for(const layout of invalid){const result=await summarize(secondaryFailedReport(),{layout});assert.equal('secondaryLayout' in result.output,false);}
+});
+test('independent layout evidence is not published for unrelated failures or passing secondary cases',async()=>{
+ const unrelated=await summarize(example({status:'unexpected',results:[{status:'failed',duration:1,errors:[]}]}),{layout:[layoutFixture()]});assert.equal('secondaryLayout' in unrelated.output,false);
+ const report=secondaryFailedReport();report.suites[0].specs[0].tests[0]={status:'expected',results:[{status:'passed',duration:1}]};
+ const passing=await summarize(report,{layout:[layoutFixture()]});assert.equal(passing.exit,0);assert.equal('secondaryLayout' in passing.output,false);
 });

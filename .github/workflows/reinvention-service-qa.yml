@@ -77,6 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          rm -f "$NAM_QA_ROOT/secondary-layout.jsonl"
           npm exec -- playwright test --config=playwright.config.mjs browser/secondary-craftsmanship.spec.mjs > "$NAM_QA_ROOT/secondary-layout-private.log" 2>&1
 
       - name: Publish bounded secondary layout measurements
@@ -101,6 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          rm -f "$NAM_QA_ROOT/secondary-layout.jsonl"
           npm exec -- playwright test --config=playwright.config.mjs > "$NAM_QA_ROOT/browser-private.log" 2>&1
 
       - name: Verify independent PostgreSQL task transactions
