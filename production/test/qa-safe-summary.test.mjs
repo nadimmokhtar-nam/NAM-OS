@@ -181,8 +181,10 @@ test('secondary geometry diagnostics tolerate only an adjacent source-map offset
  const file=resolve(app,'browser/secondary-craftsmanship.spec.mjs'),line=(await readFile(file,'utf8')).split('\n').findIndex(value=>value.includes("expect(result.issues,'NAM_SECONDARY_GEOMETRY '"))+1;
  const {expect}=await import('@playwright/test');let message='';
  const value={route:'settings',width:320,issues:[{kind:'overlapping actions',i:0,j:1}]};
- try{expect(value.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify(value)).toEqual([]);}catch(error){message=error.message;}
- assert(message.includes('NAM_SECONDARY_GEOMETRY'));
+ try{expect(value.issues,'NAM_SECONDARY_GEOMETRY '+JSON.stringify(value)).toEqual([]);}catch(error){message='Error: '+error.message;}
+ // The real Playwright JSON reporter serializes this exact Error prefix; a
+ // directly caught expect error does not include it. Both shapes are bounded.
+ assert(message.startsWith('Error: NAM_SECONDARY_GEOMETRY'));
  const fixture=example({status:'unexpected',results:[{status:'failed',duration:1,errors:[-2,-1,0,1,2].map(offset=>({message,location:{file,line:line+offset,column:4}}))}]});
  const result=await summarize(fixture),sites=result.output.tests[0].results[0].failureSites;
  assert.equal('secondaryGeometry' in sites[0],false);assert.equal('secondaryGeometry' in sites[4],false);

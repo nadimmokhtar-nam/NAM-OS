@@ -65,12 +65,38 @@ jobs:
           node tools/isolated-dev.mjs prepare
 
       - name: Build for isolated online workflow testing
+        id: build
         timeout-minutes: 7
         run: |
           set -euo pipefail
           node tools/isolated-dev.mjs build
 
+      - name: Check secondary layout before the full workflow suite
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          npm exec -- playwright test --config=playwright.config.mjs browser/secondary-craftsmanship.spec.mjs > "$NAM_QA_ROOT/secondary-layout-private.log" 2>&1
+
+      - name: Publish bounded secondary layout measurements
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          node tools/qa-safe-summary.mjs
+
+      - name: Retain early secondary layout evidence
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: secondary-layout-counts-${{ github.run_id }}
+          path: ${{ runner.temp }}/nam-os/isolated/safe-summary.json
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+
       - name: Exercise actual workflows, accessibility and concurrency
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         timeout-minutes: 15
         run: |
           set -euo pipefail
